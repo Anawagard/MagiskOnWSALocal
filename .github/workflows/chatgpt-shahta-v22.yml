@@ -1,0 +1,77 @@
+name: Build Shahta Bez Dna v2.2 APK
+on:
+  push:
+    branches:
+      - chatgpt-shahta-v22-20261029
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore original project and apply v2.2
+        run: |
+          python3 -m pip install brotli
+          python3 - <<'PY'
+          import pathlib,base64,brotli,tarfile,io
+          root=pathlib.Path("shahta-v22/project")
+          root.mkdir(parents=True,exist_ok=True)
+          for path in ("chatgpt-shahta-v2/shahtra-v2-src.tar.br.b64","chatgpt-shahta-v22/changed-sources.tar.br.b64"):
+              packed=base64.b64decode(pathlib.Path(path).read_text())
+              with tarfile.open(fileobj=io.BytesIO(brotli.decompress(packed))) as t:
+                  t.extractall(root,filter="data")
+          assert (root/"app/src/main/res/drawable-nodpi/game_icon.png").exists()
+          code=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          assert "pickTier()" in code and "drawMineralTexture" in code and "fittedText(c,wholeHp" in code
+          gradle=(root/"app/build.gradle").read_text()
+          assert "versionName '2.2'" in gradle
+          print("Game v2.2 restored and validated")
+          PY
+      - name: Install Android SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Build original app
+        working-directory: shahta-v22/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Validate original APK
+        run: |
+          mkdir -p artifacts
+          cp shahta-v22/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2.2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v2.2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v2.2.apk | head -n 4
+          unzip -l artifacts/Shahta-Bez-Dna-v2.2.apk | grep game_icon.png
+      - name: Enable separate v2.2 installation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("shahta-v22/project")
+          f=root/"app/build.gradle"
+          s=f.read_text()
+          assert "applicationId 'com.bezdna.mine'" in s
+          f.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.plus22'"))
+          f=root/"app/src/main/AndroidManifest.xml"
+          s=f.read_text()
+          assert 'android:label="Шахта без дна"' in s
+          f.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 2.2"'))
+          PY
+      - name: Build parallel APK
+        working-directory: shahta-v22/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Validate parallel APK
+        run: |
+          cp shahta-v22/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2.2-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v2.2-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v2.2-Parallel.apk | head -n 4
+          sha256sum artifacts/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v2.2-APKs
+          path: artifacts/*.apk
+          if-no-files-found: error
