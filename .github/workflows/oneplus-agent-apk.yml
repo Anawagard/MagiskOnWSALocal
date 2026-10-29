@@ -29,9 +29,10 @@ jobs:
       - name: Check preinstalled Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
+          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --version
       - name: Android 35 build tools
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: |
+          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
       - name: Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
