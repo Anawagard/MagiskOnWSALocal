@@ -1,0 +1,50 @@
+name: Build Shahta Bez Dna v2 Android APK
+on:
+  push:
+    branches:
+      - chatgpt-shahta-v2-20261029
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore game sources and custom icon
+        run: |
+          python3 -m pip install brotli
+          python3 - <<'PY'
+          import base64, brotli, io, tarfile, pathlib
+          src=pathlib.Path("chatgpt-shahta-v2/shahtra-v2-src.tar.br.b64")
+          target=pathlib.Path("chatgpt-shahta-v2/project")
+          target.mkdir(parents=True,exist_ok=True)
+          with tarfile.open(fileobj=io.BytesIO(brotli.decompress(base64.b64decode(src.read_text())))) as tar:
+              tar.extractall(target,filter="data")
+          print("Extracted:",sum(1 for p in target.rglob("*") if p.is_file()),"files")
+          assert (target/"app/src/main/res/drawable-nodpi/game_icon.png").exists()
+          PY
+      - name: Install Android SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Compile APK
+        working-directory: chatgpt-shahta-v2/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify APK signing and launcher icon
+        run: |
+          APK="chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 15
+          unzip -l "$APK" | grep "game_icon.png"
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v2-APK
+          path: chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
