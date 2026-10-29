@@ -1,0 +1,76 @@
+name: Build Shahta Bez Dna v3.1 Android APK
+on:
+  push:
+    branches:
+      - chatgpt-shahta-v31-20261029
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore v3.1 source
+        run: |
+          python3 -m pip install --disable-pip-version-check brotli
+          python3 - <<'PY'
+          import base64,brotli,io,pathlib,tarfile
+          encoded=pathlib.Path('chatgpt-shahta-v31/source.tar.br.base64').read_text()
+          source=brotli.decompress(base64.b64decode(encoded))
+          dst=pathlib.Path('chatgpt-shahta-v31/project')
+          dst.mkdir(parents=True,exist_ok=True)
+          with tarfile.open(fileobj=io.BytesIO(source)) as tar:
+              tar.extractall(dst,filter='data')
+          code=(dst/'app/src/main/java/com/bezdna/mine/MineView.java').read_text()
+          assert all(m in code for m in ('drawBiomeLandmark(', 'checkBossTimeout(', 'buyGemPerk(', 'drawCrystalMarket(', 'boss_deadline', 'gem_perk_'))
+          assert "versionName '3.1'" in (dst/'app/build.gradle').read_text()
+          assert (dst/'app/src/main/res/drawable-nodpi/game_icon.png').stat().st_size>20000
+          print('All version 3.1 features restored and validated')
+          PY
+      - name: Install Android SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Compile original application
+        working-directory: chatgpt-shahta-v31/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify original APK
+        run: |
+          mkdir -p artifacts
+          cp chatgpt-shahta-v31/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.1.apk | head -n 4
+          unzip -l artifacts/Shahta-Bez-Dna-v3.1.apk | grep game_icon.png
+      - name: Prepare separate-install version
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('chatgpt-shahta-v31/project')
+          f=root/'app/build.gradle'
+          s=f.read_text()
+          assert "applicationId 'com.bezdna.mine'" in s
+          f.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.v31'"))
+          f=root/'app/src/main/AndroidManifest.xml'
+          s=f.read_text()
+          assert 'android:label="Шахта без дна"' in s
+          f.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.1"'))
+          PY
+      - name: Compile separate-install version
+        working-directory: chatgpt-shahta-v31/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify separate-install APK
+        run: |
+          cp chatgpt-shahta-v31/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.1-Parallel.apk | head -n 4
+          sha256sum artifacts/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v3.1-APKs
+          path: artifacts/*.apk
+          if-no-files-found: error
