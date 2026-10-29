@@ -52,6 +52,28 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v2.1.apk | head -n 4
           unzip -l artifacts/Shahta-Bez-Dna-v2.1.apk | grep 'game_icon.png'
           sha256sum artifacts/Shahta-Bez-Dna-v2.1.apk
+      - name: Create separately installable game variant
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('shahta-v21/project/app/build.gradle')
+          s=p.read_text()
+          assert "applicationId 'com.bezdna.mine'" in s
+          p.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.deluxe'"))
+          p=Path('shahta-v21/project/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          assert 'android:label="Шахта без дна"' in s
+          p.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна +"'))
+          PY
+      - name: Build parallel install APK
+        working-directory: shahta-v21/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify parallel install APK
+        run: |
+          cp shahta-v21/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify artifacts/Shahta-Bez-Dna-v2.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v2.1-Parallel.apk | head -n 4
+          sha256sum artifacts/Shahta-Bez-Dna-v2.1-Parallel.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Shahta-Bez-Dna-v2.1-APK
