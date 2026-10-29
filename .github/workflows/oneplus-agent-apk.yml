@@ -1,0 +1,49 @@
+name: Build OnePlus Agent APK
+on:
+  push:
+    branches:
+      - chatgpt-oneplus-agent-v01-20261029
+    paths:
+      - 'agent_build/**'
+      - '.github/workflows/oneplus-agent-apk.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack verified agent project
+        shell: bash
+        run: |
+          base64 -d agent_build/agent_sources.b64 > agent-src.xz
+          echo "a0ed243f073494cefce2f7b5a2bbd288b2d0bb2c64bd571cfe5ebdf407bec6b8  agent-src.xz" | sha256sum -c -
+          xz -d -c agent-src.xz | tar -x
+          test -f android-app/app/src/main/AndroidManifest.xml
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Android 35 build tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Assemble debug APK
+        working-directory: android-app
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Verify APK
+        run: |
+          test -s android-app/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android-app/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload signed debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnePlusAgent-v0.1-debug-APK
+          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
