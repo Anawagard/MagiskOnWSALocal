@@ -1,0 +1,59 @@
+name: Build Shahta Bez Dna v2.1 Android APK
+on:
+  push:
+    branches:
+      - chatgpt-shahta-v21-20261029
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore v2 game and apply new v2.1 source
+        run: |
+          python3 -m pip install brotli
+          python3 - <<'PY'
+          import base64, brotli, io, pathlib, tarfile
+          base=pathlib.Path("chatgpt-shahta-v2/shahtra-v2-src.tar.br.b64").read_text()
+          project=pathlib.Path("shahta-v21/project")
+          project.mkdir(parents=True,exist_ok=True)
+          with tarfile.open(fileobj=io.BytesIO(brotli.decompress(base64.b64decode(base)))) as tar:
+              tar.extractall(project,filter="data")
+          src=pathlib.Path("chatgpt-shahta-v21/MineView.java.br.b64.txt").read_text()
+          java=brotli.decompress(base64.b64decode(src))
+          view=project/"app/src/main/java/com/bezdna/mine/MineView.java"
+          view.write_bytes(java)
+          gradle=project/"app/build.gradle"
+          content=gradle.read_text()
+          assert "versionCode 2" in content and "versionName '2.0'" in content
+          gradle.write_text(content.replace("versionCode 2","versionCode 3").replace("versionName '2.0'","versionName '2.1'"))
+          assert (project/"app/src/main/res/drawable-nodpi/game_icon.png").exists()
+          assert len(java)>30000
+          print("Restored v2.1 native game with animated icon and upgraded features")
+          PY
+      - name: Install Android SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Build and sign updated game
+        working-directory: shahta-v21/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify and package APK
+        run: |
+          mkdir -p artifacts
+          cp shahta-v21/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify artifacts/Shahta-Bez-Dna-v2.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v2.1.apk | head -n 4
+          unzip -l artifacts/Shahta-Bez-Dna-v2.1.apk | grep 'game_icon.png'
+          sha256sum artifacts/Shahta-Bez-Dna-v2.1.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v2.1-APK
+          path: artifacts/*.apk
+          if-no-files-found: error
