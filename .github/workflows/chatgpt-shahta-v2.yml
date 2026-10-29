@@ -26,25 +26,48 @@ jobs:
           target.mkdir(parents=True,exist_ok=True)
           with tarfile.open(fileobj=io.BytesIO(brotli.decompress(base64.b64decode(src.read_text())))) as tar:
               tar.extractall(target,filter="data")
-          print("Extracted:",sum(1 for p in target.rglob("*") if p.is_file()),"files")
           assert (target/"app/src/main/res/drawable-nodpi/game_icon.png").exists()
+          print("Game files:",sum(1 for p in target.rglob("*") if p.is_file()))
           PY
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Compile APK
+      - name: Build regular APK
         working-directory: chatgpt-shahta-v2/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
-      - name: Verify APK signing and launcher icon
+      - name: Save regular APK
         run: |
-          APK="chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 15
-          unzip -l "$APK" | grep "game_icon.png"
-          sha256sum "$APK"
+          mkdir -p artifacts
+          cp chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2.apk
+      - name: Repackage as parallel-installable game
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('chatgpt-shahta-v2/project/app/build.gradle')
+          s=p.read_text()
+          assert "applicationId 'com.bezdna.mine'" in s
+          p.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.v2'"))
+          p=Path('chatgpt-shahta-v2/project/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          assert 'android:label="Шахта без дна"' in s
+          p.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 2"'))
+          PY
+      - name: Build parallel APK
+        working-directory: chatgpt-shahta-v2/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify APKs
+        run: |
+          cp chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v2-Parallel.apk
+          for APK in artifacts/*.apk; do
+            echo "Checking $APK"
+            test -s "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 4
+            unzip -l "$APK" | grep 'game_icon.png'
+            sha256sum "$APK"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: Shahta-Bez-Dna-v2-APK
-          path: chatgpt-shahta-v2/project/app/build/outputs/apk/debug/app-debug.apk
+          path: artifacts/*.apk
           if-no-files-found: error
