@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - chatgpt-build-notion-ru-20261029
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,10 +17,25 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-      - run: gradle :app:assembleDebug --no-daemon
+      - name: Restore Notion RU source
+        run: |
+          python3 -m pip install brotli
+          python3 - <<'PY'
+          import base64, brotli, io, tarfile, pathlib
+          encoded = pathlib.Path("chatgpt-notion-build/notion-source.tar.br.base64").read_text()
+          original = brotli.decompress(base64.b64decode(encoded))
+          target = pathlib.Path("chatgpt-notion-build/project")
+          target.mkdir(parents=True, exist_ok=True)
+          with tarfile.open(fileobj=io.BytesIO(original)) as archive:
+              archive.extractall(target, filter="data")
+          PY
+      - name: Install Android SDK 35
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Build debug APK
+        working-directory: chatgpt-notion-build/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: notion-ru-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: chatgpt-notion-build/project/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
