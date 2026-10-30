@@ -1,8 +1,8 @@
-name: Build Shahta Bez Dna v3.7 Android APK
+name: Build Shahta Bez Dna v3.8 Android APK
 on:
   push:
     branches:
-      - chatgpt-shahta-v37-20261030
+      - chatgpt-shahta-v38-20261030
   workflow_dispatch:
 jobs:
   android:
@@ -34,7 +34,7 @@ jobs:
           gradle=(project/"app/build.gradle").read_text()
           assert "versionCode 7" in gradle and "versionName '3.2'" in gradle
           assert (project/"app/src/main/res/drawable-nodpi/game_icon.png").stat().st_size>20000
-          print("v3.7 game source validated:",len(source),"characters")
+          print("v3.8 game source validated:",len(source),"characters")
           PY
       - name: Inspect source targets
         run: |
@@ -48,7 +48,7 @@ jobs:
                       if len(line)<500: print(i,line[:430])
           for f in p.rglob("AndroidManifest.xml"):print("MANIFEST",f.read_text()[:2000])
           PY
-      - name: Apply v3.7 changes
+      - name: Apply v3.8 changes
         run: |
           python3 chatgpt-shahta-v33/patch_game.py
       - name: Inspect balance and shop code
@@ -61,7 +61,7 @@ jobs:
               print("SECTION",p,q)
               for j in range(p-1,min(q,len(a))):print(f"{j+1}: {a[j]}")
           PY
-      - name: Apply v3.7 balance and upgrade overhaul
+      - name: Apply v3.8 balance and upgrade overhaul
         run: |
           python3 chatgpt-shahta-v34/patch_game.py
       - name: Locate version badge
@@ -89,6 +89,8 @@ jobs:
           ffmpeg -hide_banner -loglevel error -y -ss 18 -i /tmp/rock_foley.ogg -t 0.30 -ar 22050 -ac 1 -filter:a "loudnorm" chatgpt-shahta-v33/project/app/src/main/res/raw/metal_hit.wav
           python3 chatgpt-shahta-v37/patch_real_audio.py
           test -s chatgpt-shahta-v33/project/app/src/main/res/raw/stone_hit.wav
+      - name: Remove header version
+        run: python3 chatgpt-shahta-v38/patch_header.py
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
@@ -98,11 +100,11 @@ jobs:
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.7.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.7.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.7.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v3.7.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v3.7.apk | grep game_icon.png
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.8.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.8.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.8.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v3.8.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v3.8.apk | grep game_icon.png
       - name: Configure side-by-side installation
         run: |
           python3 - <<'PY'
@@ -111,24 +113,24 @@ jobs:
           gradle=root/"app/build.gradle"
           s=gradle.read_text()
           assert "applicationId 'com.bezdna.mine'" in s
-          gradle.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.v37'"))
+          gradle.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.v38'"))
           manifest=root/"app/src/main/AndroidManifest.xml"
           s=manifest.read_text()
           assert 'android:label="Шахта без дна"' in s
-          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.7"'))
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.8"'))
           PY
       - name: Build side-by-side game APK
         working-directory: chatgpt-shahta-v33/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify side-by-side game APK
         run: |
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.7-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.7-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.7-Parallel.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v3.7-Parallel.apk | tail -n 1
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.8-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.8-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.8-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v3.8-Parallel.apk | tail -n 1
           sha256sum artifacts/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v3.7-APKs
+          name: Shahta-Bez-Dna-v3.8-APKs
           path: artifacts/*.apk
           if-no-files-found: error
