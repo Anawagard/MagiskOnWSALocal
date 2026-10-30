@@ -52,6 +52,16 @@ jobs:
       - name: Apply v3.3 changes
         run: |
           python3 chatgpt-shahta-v33/patch_game.py
+      - name: Inspect balance and shop code
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          f=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java")
+          a=f.read_text().splitlines()
+          for p,q in [(40,90),(210,245),(275,330),(1120,1180),(1370,1470)]:
+              print("SECTION",p,q)
+              for j in range(p-1,min(q,len(a))):print(f"{j+1}: {a[j]}")
+          PY
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
