@@ -17,6 +17,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s fluidgram/tests -v
+      - name: Confirm overlay applies to pinned Telegram without secrets
+        run: python fluidgram/scripts/check_upstream.py
   android-apk:
     needs: validate
     runs-on: ubuntu-latest
@@ -54,8 +56,10 @@ jobs:
       - name: Clone pinned official Telegram
         if: steps.gate.outputs.enabled == 'true'
         run: |
-          git clone --filter=blob:none --depth=1 https://github.com/DrKLO/Telegram.git Telegram
-          git -C Telegram checkout 3de37c8cfb039452be7398909461da6288babf15
+          git init Telegram
+          git -C Telegram remote add origin https://github.com/DrKLO/Telegram.git
+          git -C Telegram fetch --depth 1 origin 3de37c8cfb039452be7398909461da6288babf15
+          git -C Telegram checkout --detach FETCH_HEAD
           git -C Telegram submodule update --init --recursive --depth=1
       - name: Patch source and restore private build inputs
         if: steps.gate.outputs.enabled == 'true'
@@ -86,11 +90,16 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon :TMessagesProj_AppStandalone:assembleAfatStandalone
+      - name: Record APK checksum
+        if: steps.gate.outputs.enabled == 'true'
+        run: sha256sum Telegram/TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/*.apk > FluidGram-APK-SHA256.txt
       - name: Upload APK
         if: steps.gate.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: FluidGram-OnePlus15-alpha1
-          path: Telegram/TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/*.apk
+          name: FluidGram-OnePlus15-alpha2
+          path: |
+            Telegram/TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/*.apk
+            FluidGram-APK-SHA256.txt
           if-no-files-found: error
           retention-days: 14

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Apply FluidGram v0.1 overlay to pinned Telegram Android checkout."""
+"""Apply FluidGram v0.2 overlay to pinned Telegram Android checkout."""
 import argparse
 import os
 import re
 from pathlib import Path
 
 PACKAGE = "dev.fluidgram.oneplus15"
+UPSTREAM_SHA = "3de37c8cfb039452be7398909461da6288babf15"
 MOTION_CLASS = """/* FluidGram. GPL-2.0-or-later. */
 package org.telegram.ui.Components;
 
@@ -32,6 +33,19 @@ ICON = """<?xml version="1.0" encoding="utf-8"?>
     <path android:fillColor="#E7FDFB" android:pathData="M51,53h18v5h-18z"/>
 </vector>
 """
+
+FPS_CLASS = "/* FluidGram camera support. GPL-2.0-or-later. */\npackage org.telegram.messenger.camera;\nimport android.util.Range;\n/** Never set an unadvertised Camera2 frame-rate range. */\npublic final class FluidCameraFps {\n    private FluidCameraFps() {}\n    public static Range<Integer> choose(Range<Integer>[] advertised) {\n        if (advertised == null || advertised.length == 0) return null;\n        Range<Integer> best30 = null;\n        Range<Integer> closest = null;\n        for (Range<Integer> range : advertised) {\n            if (range == null) continue;\n            int low = range.getLower(), high = range.getUpper();\n            if (low <= 0 || high < low) continue;\n            if (low == 30 && high == 30) return range;\n            if (low <= 30 && high >= 30 && (best30 == null ||\n                    high - low < best30.getUpper() - best30.getLower())) best30 = range;\n            if (closest == null ||\n                    Math.abs(high - 30) < Math.abs(closest.getUpper() - 30)) closest = range;\n        }\n        return best30 != null ? best30 : closest;\n    }\n}\n"
+THEME_CHANGES = {
+    "public static final int TELEGRAM_COLOR = 0xFF229AF0;": "public static final int TELEGRAM_COLOR = 0xFF16A6A2;",
+    "public static final int TELEGRAM_COLOR_TEXT = 0xFF298ACF;": "public static final int TELEGRAM_COLOR_TEXT = 0xFF087C85;",
+    "defaultColors[key_actionBarDefault] = 0xffffffff;": "defaultColors[key_actionBarDefault] = 0xffF4F8FC;",
+    "defaultColors[key_windowBackgroundGray] = 0xffF1F1F3;": "defaultColors[key_windowBackgroundGray] = 0xffEDF3F8;",
+    "defaultColors[key_dialogSearchBackground] = 0xfff2f4f5;": "defaultColors[key_dialogSearchBackground] = 0xffF4F8FC;",
+    "defaultColors[key_chat_outBubble] = 0xffefffde;": "defaultColors[key_chat_outBubble] = 0xffDDF7F4;",
+    "defaultColors[key_chat_outBubbleSelected] = 0xffd9f7c5;": "defaultColors[key_chat_outBubbleSelected] = 0xffCAEEE9;",
+    "defaultColors[key_chat_outMediaIcon] = 0xffefffde;": "defaultColors[key_chat_outMediaIcon] = 0xffDDF7F4;",
+    "defaultColors[key_chat_outMediaIconSelected] = 0xffe1f8cf;": "defaultColors[key_chat_outMediaIconSelected] = 0xffCAEEE9;"
+}
 
 def replace_exact(source, old, new, path):
     n = source.count(old)
@@ -92,6 +106,28 @@ def apply(root, api_id, api_hash):
     if motion.exists(): raise RuntimeError("FluidMotion exists already; apply only once")
     motion.write_text(MOTION_CLASS, encoding="utf8")
 
+
+    session = root / "TMessagesProj/src/main/java/org/telegram/messenger/camera/Camera2Session.java"
+    def patch_session(s):
+        return replace_exact(s,
+            "                captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<Integer>(30, 60));",
+            """                final Range<Integer> fluidFpsRange = FluidCameraFps.choose(
+                        cameraCharacteristics == null ? null : cameraCharacteristics.get(
+                                CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES));
+                if (fluidFpsRange != null) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fluidFpsRange);
+                }""", session)
+    rewrite(session, patch_session)
+    fps_file = session.parent / "FluidCameraFps.java"
+    if fps_file.exists(): raise RuntimeError("FluidCameraFps exists already; apply once")
+    fps_file.write_text(FPS_CLASS, encoding="utf8")
+    palette = root / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/ThemeColors.java"
+    def patch_palette(s):
+        for before, after in THEME_CHANGES.items():
+            s = replace_exact(s, before, after, palette)
+        return s
+    rewrite(palette, patch_palette)
+
     strings = root / "TMessagesProj/src/main/res/values/strings.xml"
     def patch_strings(s):
         s = replace_exact(s, '<string name="AppName">Telegram</string>',
@@ -114,10 +150,10 @@ def apply(root, api_id, api_hash):
         head, rest = s.split(start_tag, 1)
         section, tail = rest.split("</style>", 1)
         section = replace_exact(section, '<item name="android:windowBackground">@android:color/white</item>',
-                                '<item name="android:windowBackground">#F5F8FC</item>', styles)
+                                '<item name="android:windowBackground">#F4F8FC</item>', styles)
         return head + start_tag + section + "</style>" + tail
     rewrite(styles, patch_styles)
-    print("FluidGram patch complete. Install package: " + PACKAGE + ".web")
+    print("FluidGram v0.2 applied. Install package: " + PACKAGE + ".web")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
