@@ -13,10 +13,9 @@ def append_array(src,name,items):
     if not current.rstrip().endswith(","): current+=","
     repl=m.group(1)+current+"\n        "+",".join(items)+m.group(3)
     return src[:m.start()]+repl+src[m.end():]
-newzones=["\\"Забытый бастион\\"","\\"Нефритовый разлом\\"","\\"Солнечная кузница\\"","\\"Пещеры времени\\"","\\"Астральный карьер\\"","\\"Грозовой купол\\"","\\"Корона бездны\\"","\\"Ядро мироздания\\""]
-newcolors=["0xff91a5bb","0xff56dfab","0xffffb64f","0xffa69aff","0xffcf91ff","0xff66c9ff","0xffff779c","0xfff5d582"]
-s=append_array(s,"ZONES",newzones)
-s=append_array(s,"BIOME",newcolors)
+# Stretch the existing 24 handcrafted biomes to 25 levels each: 600 stages.
+s=s.replace("(depth-1)/15","(depth-1)/25")
+s=s.replace("(bi*15+1)","(bi*25+1)").replace("(bi*15+15)","(bi*25+25)")
 # New upgrade ceiling, including saved progress and mastery shop.
 repls={"clamp(prefs.getInt(\"mastery_\"+i,0),0,30)":"clamp(prefs.getInt(\"mastery_\"+i,0),0,60)",
        "mastery[k]>=30":"mastery[k]>=60","mastery[k]==30":"mastery[k]==60",
@@ -44,4 +43,4 @@ activity.write_text(a)
 g=gradle.read_text()
 assert "versionCode 7" in g and "versionName '3.2'" in g
 gradle.write_text(g.replace("versionCode 7","versionCode 8").replace("versionName '3.2'","versionName '3.3'"))
-print("v3.3 PATCH: 8 new zones, 60 mastery levels, ambient particles, visible status bar")
+print("v3.3 PATCH: 600 level progression, 60 mastery ranks, ambient particles, visible status bar")
