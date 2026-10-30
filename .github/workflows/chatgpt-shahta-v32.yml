@@ -73,6 +73,8 @@ jobs:
               if "3.2" in line or "ВЕРС" in line or "верси" in line.lower() or "SHAHTA" in line:
                   print(i,line[:500])
           PY
+      - name: Refresh version label
+        run: python3 chatgpt-shahta-v35/patch_version.py
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
@@ -99,7 +101,7 @@ jobs:
           manifest=root/"app/src/main/AndroidManifest.xml"
           s=manifest.read_text()
           assert 'android:label="Шахта без дна"' in s
-          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.4"'))
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.5"'))
           PY
       - name: Build side-by-side game APK
         working-directory: chatgpt-shahta-v33/project
