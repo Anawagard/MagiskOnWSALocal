@@ -22,13 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
-      FLUIDGRAM_API_ID: @@{{ secrets.FLUIDGRAM_API_ID }}
-      FLUIDGRAM_API_HASH: @@{{ secrets.FLUIDGRAM_API_HASH }}
-      FLUIDGRAM_GOOGLE_SERVICES_JSON_B64: @@{{ secrets.FLUIDGRAM_GOOGLE_SERVICES_JSON_B64 }}
-      FLUIDGRAM_KEYSTORE_B64: @@{{ secrets.FLUIDGRAM_KEYSTORE_B64 }}
-      FLUIDGRAM_KEY_ALIAS: @@{{ secrets.FLUIDGRAM_KEY_ALIAS }}
-      FLUIDGRAM_STORE_PASSWORD: @@{{ secrets.FLUIDGRAM_STORE_PASSWORD }}
-      FLUIDGRAM_KEY_PASSWORD: @@{{ secrets.FLUIDGRAM_KEY_PASSWORD }}
+      FLUIDGRAM_API_ID: ${{ secrets.FLUIDGRAM_API_ID }}
+      FLUIDGRAM_API_HASH: ${{ secrets.FLUIDGRAM_API_HASH }}
+      FLUIDGRAM_GOOGLE_SERVICES_JSON_B64: ${{ secrets.FLUIDGRAM_GOOGLE_SERVICES_JSON_B64 }}
+      FLUIDGRAM_KEYSTORE_B64: ${{ secrets.FLUIDGRAM_KEYSTORE_B64 }}
+      FLUIDGRAM_KEY_ALIAS: ${{ secrets.FLUIDGRAM_KEY_ALIAS }}
+      FLUIDGRAM_STORE_PASSWORD: ${{ secrets.FLUIDGRAM_STORE_PASSWORD }}
+      FLUIDGRAM_KEY_PASSWORD: ${{ secrets.FLUIDGRAM_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Check prerequisites
