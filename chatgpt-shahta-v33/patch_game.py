@@ -6,21 +6,21 @@ activity=root/"app/src/main/java/com/bezdna/mine/MainActivity.java"
 gradle=root/"app/build.gradle"
 s=mine.read_text()
 def append_array(src,name,items):
-    pattern=r'(\\b'+name+r'\\s*=\\s*\\{)(.*?)(\\};)'
+    pattern=r'(\b'+name+r'\s*=\s*\{)(.*?)(\};)'
     m=re.search(pattern,src,re.S)
     if not m: raise RuntimeError("Array missing: "+name)
     current=m.group(2).rstrip()
     if not current.rstrip().endswith(","): current+=","
-    repl=m.group(1)+current+"\\n        "+",".join(items)+m.group(3)
+    repl=m.group(1)+current+"\n        "+",".join(items)+m.group(3)
     return src[:m.start()]+repl+src[m.end():]
-newzones=["\\\"Забытый бастион\\\"","\\\"Нефритовый разлом\\\"","\\\"Солнечная кузница\\\"","\\\"Пещеры времени\\\"","\\\"Астральный карьер\\\"","\\\"Грозовой купол\\\"","\\\"Корона бездны\\\"","\\\"Ядро мироздания\\\""]
+newzones=["\\"Забытый бастион\\"","\\"Нефритовый разлом\\"","\\"Солнечная кузница\\"","\\"Пещеры времени\\"","\\"Астральный карьер\\"","\\"Грозовой купол\\"","\\"Корона бездны\\"","\\"Ядро мироздания\\""]
 newcolors=["0xff91a5bb","0xff56dfab","0xffffb64f","0xffa69aff","0xffcf91ff","0xff66c9ff","0xffff779c","0xfff5d582"]
 s=append_array(s,"ZONES",newzones)
 s=append_array(s,"BIOME",newcolors)
 # New upgrade ceiling, including saved progress and mastery shop.
-repls={"clamp(prefs.getInt(\\"mastery_\\"+i,0),0,30)":"clamp(prefs.getInt(\\"mastery_\\"+i,0),0,60)",
+repls={"clamp(prefs.getInt(\"mastery_\"+i,0),0,30)":"clamp(prefs.getInt(\"mastery_\"+i,0),0,60)",
        "mastery[k]>=30":"mastery[k]>=60","mastery[k]==30":"mastery[k]==60",
-       "mastery[k]<30":"mastery[k]<60","mastery[k]+\\" / 30\\"":"mastery[k]+\\" / 60\\""}
+       "mastery[k]<30":"mastery[k]<60","mastery[k]+\" / 30\"":"mastery[k]+\" / 60\""}
 for a,b in repls.items(): s=s.replace(a,b)
 # Expand the animated atmospheric layer while using existing in-game renderer.
 needle="    private void drawCaveWeather(Canvas c,int biome,int tint){"
@@ -35,10 +35,10 @@ extra="""    private void drawDeepAtmosphere(Canvas c,int biome,int tint){
         }
     }
 """
-s=s.replace(needle,extra+needle+"\\n        drawDeepAtmosphere(c,biome,tint);")
+s=s.replace(needle,extra+needle+"\n        drawDeepAtmosphere(c,biome,tint);")
 mine.write_text(s)
 a=activity.read_text()
-a,n=re.subn(r'getWindow\\(\\)\\.setFlags\\(WindowManager\\.LayoutParams\\.FLAG_FULLSCREEN,\\s*WindowManager\\.LayoutParams\\.FLAG_FULLSCREEN\\);','getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);\\n        getWindow().setStatusBarColor(0xff0d1625);',a)
+a,n=re.subn(r'getWindow\(\)\.setFlags\(WindowManager\.LayoutParams\.FLAG_FULLSCREEN,\s*WindowManager\.LayoutParams\.FLAG_FULLSCREEN\);','getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);\n        getWindow().setStatusBarColor(0xff0d1625);',a)
 assert n==1,n
 activity.write_text(a)
 g=gradle.read_text()
