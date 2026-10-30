@@ -37,6 +37,18 @@ jobs:
           assert (project/"app/src/main/res/drawable-nodpi/game_icon.png").stat().st_size>20000
           print("v3.2 game source validated:",len(source),"characters")
           PY
+      - name: Inspect source targets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("chatgpt-shahta-v32/project/app/src/main")
+          for f in p.rglob("*.java"):
+              print("JAVA",f)
+              for i,line in enumerate(f.read_text().splitlines(),1):
+                  if any(w in line.lower() for w in ["biome","upgrade","level","fullscreen","immersive","setflags","system_ui","mastery","rank","skill"]):
+                      if len(line)<500: print(i,line[:430])
+          for f in p.rglob("AndroidManifest.xml"):print("MANIFEST",f.read_text()[:2000])
+          PY
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
