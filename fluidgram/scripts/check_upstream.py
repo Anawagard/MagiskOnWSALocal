@@ -26,6 +26,7 @@ def verify():
             request = urllib.request.Request(url, headers={"User-Agent": "FluidGram-Compat/0.2"})
             with urllib.request.urlopen(request, timeout=45) as response:
                 dest.write_bytes(response.read())
+        (root / "TMessagesProj/src/main/res/drawable").mkdir(parents=True, exist_ok=True)
         apply(root, "123456", "0" * 32)  # invalid, not for login or distribution
         camera = (root / FILES[2]).read_text(encoding="utf8")
         fps = (root / FILES[3]).read_text(encoding="utf8")
