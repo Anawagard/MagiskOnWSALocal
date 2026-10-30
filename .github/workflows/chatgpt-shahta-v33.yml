@@ -1,0 +1,93 @@
+name: Build Shahta Bez Dna v3.3 Android APK
+on:
+  push:
+    branches:
+      - chatgpt-shahta-v33-20261029
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore and statically verify game 3.2
+        run: |
+          python3 -m pip install --disable-pip-version-check brotli
+          python3 - <<'PY'
+          import base64,brotli,io,pathlib,tarfile
+          path=pathlib.Path("chatgpt-shahta-v32/source.tar.br.base64")
+          project=pathlib.Path("chatgpt-shahta-v33/project")
+          project.mkdir(parents=True,exist_ok=True)
+          packed=brotli.decompress(base64.b64decode(path.read_text()))
+          with tarfile.open(fileobj=io.BytesIO(packed)) as t:
+              t.extractall(project,filter="data")
+          source=(project/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          required=["drawCaveWeather(","drawEncounterEffects(","drawMastery(","startTrial(","updateTrial(","modifier()","perfectStrikes","buyMastery(","pageSlide","volatileSeconds","trialDeadline"]
+          assert len(source)>80000, len(source)
+          assert all(v in source for v in required),[v for v in required if v not in source]
+          gradle=(project/"app/build.gradle").read_text()
+          assert "versionCode 7" in gradle and "versionName '3.2'" in gradle
+          assert (project/"app/src/main/res/drawable-nodpi/game_icon.png").stat().st_size>20000
+          print("v3.3 game source validated:",len(source),"characters")
+          PY
+      - name: Inspect source for v3.3 enhancements
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("chatgpt-shahta-v33/project/app/src/main")
+          for f in p.rglob("*.java"):
+              print("JAVA",f)
+              for i,line in enumerate(f.read_text().splitlines(),1):
+                  if any(w in line.lower() for w in ["biome","upgrade","level","fullscreen","immersive","setflags","system_ui","mastery","rank","skill"]):
+                      if len(line)<500: print(i,line[:430])
+          for f in p.rglob("AndroidManifest.xml"): print("MANIFEST",f.read_text()[:2000])
+          PY
+      - name: Install Android SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Build standard game APK
+        working-directory: chatgpt-shahta-v33/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify standard game APK
+        run: |
+          mkdir -p artifacts
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.3.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.3.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.3.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v3.3.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v3.3.apk | grep game_icon.png
+      - name: Configure side-by-side installation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          gradle=root/"app/build.gradle"
+          s=gradle.read_text()
+          assert "applicationId 'com.bezdna.mine'" in s
+          gradle.write_text(s.replace("applicationId 'com.bezdna.mine'","applicationId 'com.bezdna.mine.v33'"))
+          manifest=root/"app/src/main/AndroidManifest.xml"
+          s=manifest.read_text()
+          assert 'android:label="Шахта без дна"' in s
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 3.2"'))
+          PY
+      - name: Build side-by-side game APK
+        working-directory: chatgpt-shahta-v33/project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify side-by-side game APK
+        run: |
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v3.3-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v3.3-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v3.3-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v3.3-Parallel.apk | tail -n 1
+          sha256sum artifacts/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v3.3-APKs
+          path: artifacts/*.apk
+          if-no-files-found: error
