@@ -14,7 +14,7 @@ def append_array(src,name,items):
     repl=m.group(1)+current+"\n        "+",".join(items)+m.group(3)
     return src[:m.start()]+repl+src[m.end():]
 # Stretch the existing 24 handcrafted biomes to 25 levels each: 600 stages.
-zone_pattern=r'private int zone\\(\\)\\s*\\{[^{}]*\\}'
+zone_pattern=r'private int zone\(\)\s*\{[^{}]*\}'
 zone_replacement='private int zone(){return Math.min(ZONES.length-1,Math.max(0,(depth-1)/25));}'
 s,zone_count=re.subn(zone_pattern,zone_replacement,s)
 assert zone_count==1,"Could not safely upgrade zone progression: "+str(zone_count)
