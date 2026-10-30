@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - chatgpt-shahta-v33-20261030
+      - chatgpt-shahta-v34-20261030
       - chatgpt-shahta-v33-20261030
   workflow_dispatch:
 jobs:
