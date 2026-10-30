@@ -80,6 +80,7 @@ jobs:
       - name: Install recorded rock sound effects
         run: |
           set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
           mkdir -p chatgpt-shahta-v33/project/app/src/main/res/raw
           curl -fL --retry 3 -A "ShahtaGame/3.7 (sound effect processing)" "https://commons.wikimedia.org/wiki/Special:Redirect/file/Grinding_and_tapping_ro.ogg" -o /tmp/rock_foley.ogg
           test "$(stat -c%s /tmp/rock_foley.ogg)" -gt 100000
