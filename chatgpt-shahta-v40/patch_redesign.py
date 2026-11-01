@@ -8,11 +8,11 @@ s=mine.read_text()
 def inject_method(name,body):
     global s
     # Insert directly inside the existing renderer method; keep gameplay and touch hitboxes intact.
-    pattern=r'(private\\s+(?:void|boolean|int|float|long)\\s+'+re.escape(name)+r'\\s*\\([^)]*\\)\\s*\\{)'
+    pattern=r'(private\s+(?:void|boolean|int|float|long)\s+'+re.escape(name)+r'\s*\([^)]*\)\s*\{)'
     matches=list(re.finditer(pattern,s))
     assert len(matches)==1,(name,len(matches))
     m=matches[0]
-    s=s[:m.end()]+'\\n'+body+'\\n'+s[m.end():]
+    s=s[:m.end()]+'\n'+body+'\n'+s[m.end():]
 
 # A new, unified dark-fantasy art direction: inset panels, warm metal trim,
 # deep parallax cave strata, glowing ore flecks and dynamic cave dust.
@@ -66,13 +66,13 @@ art=r"""
 """
 anchor="    private void drawCaveWeather(Canvas c,int biome,int tint){"
 assert s.count(anchor)==1
-s=s.replace(anchor,art+"\\n"+anchor+"\\n        drawV4Scene(c,biome,tint);",1)
+s=s.replace(anchor,art+"\n"+anchor+"\n        drawV4Scene(c,biome,tint);",1)
 
 # Replace generic rounded panels with beveled, highlighted materials while preserving
 # original coordinates, interaction and text.
 def enhance_primitive(name,helper):
     global s
-    pat=r'(private\\s+void\\s+'+name+r'\\s*\\(([^)]*)\\)\\s*\\{)'
+    pat=r'(private\s+void\s+'+name+r'\s*\(([^)]*)\)\s*\{)'
     matches=list(re.finditer(pat,s))
     if len(matches)!=1:
         print("Skipping optional UI primitive",name,"matches",len(matches))
