@@ -8,7 +8,7 @@ s=p.read_text()
 # This deliberately leaves input geometry, gameplay, save keys, and progression intact.
 def hook(name,callback):
     global s
-    pattern=r'(private\\s+void\\s+'+name+r'\\s*\\(([^)]*)\\)\\s*\\{)'
+    pattern=r'(private\s+void\s+'+name+r'\s*\(([^)]*)\)\s*\{)'
     found=list(re.finditer(pattern,s))
     if len(found)!=1:
         print("optional primitive not found:",name,len(found));return False
@@ -16,7 +16,7 @@ def hook(name,callback):
     params=[x.strip().split()[-1] for x in m.group(2).split(",")]
     addition=callback(params)
     if not addition:return False
-    s=s[:m.end()]+"\\n"+addition+"\\n"+s[m.end():]
+    s=s[:m.end()]+"\n"+addition+"\n"+s[m.end():]
     print("redesigned primitive",name)
     return True
 
@@ -24,7 +24,7 @@ def hook(name,callback):
 # Render highlights AFTER the original primitive by hooking at the method end.
 def posthook(name,callback):
     global s
-    pattern=r'(private\\s+void\\s+'+name+r'\\s*\\(([^)]*)\\)\\s*\\{)'
+    pattern=r'(private\s+void\s+'+name+r'\s*\(([^)]*)\)\s*\{)'
     found=list(re.finditer(pattern,s))
     if len(found)!=1:return False
     m=found[0];params=[x.strip().split()[-1] for x in m.group(2).split(",")]
@@ -36,7 +36,7 @@ def posthook(name,callback):
     assert level==0
     addition=callback(params)
     if not addition:return False
-    s=s[:idx-1]+"\\n"+addition+"\\n"+s[idx-1:]
+    s=s[:idx-1]+"\n"+addition+"\n"+s[idx-1:]
     print("post-redesigned",name)
     return True
 
@@ -105,7 +105,7 @@ scene=r"""
         }
     }
 """
-s=s.replace(anchor,scene+"\\n"+anchor+"\\n        drawV4WorldEngraving(c,biome);",1)
+s=s.replace(anchor,scene+"\n"+anchor+"\n        drawV4WorldEngraving(c,biome);",1)
 p.write_text(s)
 b=g.read_text()
 assert "versionName '4.0'" in b
