@@ -101,6 +101,17 @@ jobs:
         run: python3 chatgpt-shahta-v40/patch_redesign.py
       - name: Apply global v4.1 UI and world art
         run: python3 chatgpt-shahta-v40/patch_global_ui.py
+      - name: Export rendered game source for visual audit
+        run: |
+          mkdir -p inspection
+          cp chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java inspection/MineView.java
+          cp chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MainActivity.java inspection/MainActivity.java
+          cp chatgpt-shahta-v33/project/app/build.gradle inspection/build.gradle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-v41-source-inspection
+          path: inspection/*
+          if-no-files-found: error
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
