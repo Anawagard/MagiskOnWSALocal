@@ -31,6 +31,22 @@ a=a.replace('!Float.isFinite(f)','(Float.isNaN(f)||Float.isInfinite(f))',1)
 activity.write_text(a)
 g=gradle.read_text()
 assert "versionCode 22" in g and "versionName '4.5'" in g
+assert "signingConfigs" not in g
+g=g.replace("    compileOptions {", """    // Debug-only signing key restored from CI cache. Do not use for production.
+    signingConfigs {
+        shahtaDebug {
+            storeFile file(System.getenv('HOME') + '/.android/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shahtaDebug
+        }
+    }
+    compileOptions {""")
 gradle.write_text(g.replace("versionCode 22","versionCode 23").replace("versionName '4.5'","versionName '4.6'"))
 assert "drawV45Guardian" in s and "drawV43AtlasThumbnail" in s
 print("v4.6: corrected 25-stage biome rail, milestone diamonds and Android-compatible save import validation")
