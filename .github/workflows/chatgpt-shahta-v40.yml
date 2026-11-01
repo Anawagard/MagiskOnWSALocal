@@ -1,4 +1,4 @@
-name: Build Shahta Bez Dna v4.0 Android APK
+name: Build Shahta Bez Dna v4.1 Android APK
 on:
   push:
     branches:
@@ -99,6 +99,8 @@ jobs:
         run: python3 chatgpt-shahta-v311/patch_visual.py
       - name: Apply v4.0 scene redesign
         run: python3 chatgpt-shahta-v40/patch_redesign.py
+      - name: Apply global v4.1 UI and world art
+        run: python3 chatgpt-shahta-v40/patch_global_ui.py
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
@@ -108,11 +110,11 @@ jobs:
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.0.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v4.0.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v4.0.apk | grep game_icon.png
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.1.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v4.1.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v4.1.apk | grep game_icon.png
       - name: Configure side-by-side installation
         run: |
           python3 - <<'PY'
@@ -132,13 +134,13 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify side-by-side game APK
         run: |
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk | tail -n 1
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.1-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v4.1-Parallel.apk | tail -n 1
           sha256sum artifacts/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v4.0-APKs
+          name: Shahta-Bez-Dna-v4.1-APKs
           path: artifacts/*.apk
           if-no-files-found: error
