@@ -2,7 +2,7 @@ name: Build Shahta Bez Dna v3.9 Android APK
 on:
   push:
     branches:
-      - chatgpt-shahta-v39-20261031
+      - chatgpt-shahta-v310-20261101
   workflow_dispatch:
 jobs:
   android:
@@ -93,6 +93,20 @@ jobs:
         run: python3 chatgpt-shahta-v38/patch_header.py
       - name: Add precise volume slider
         run: python3 chatgpt-shahta-v39/patch_volume_slider.py
+      - name: Inspect gameplay and save hooks for v3.10
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java")
+          lines=p.read_text().splitlines()
+          words=("private void save(","private void load(","private void drawMine(","private void drawGame(","private void drawCaveWeather(","private void drawRock(","private void destroyRock(","private int hpFor(","private long rewardFor(","private void onDraw(","private void damageRock(","private void tick(","private void rebirth(","private void drawTop(","private void drawHud(","private void drawHUD(")
+          hits=[i for i,line in enumerate(lines) if any(word in line for word in words)]
+          for k in hits:
+              lo=max(0,k-3);hi=min(len(lines),k+48)
+              print("INSPECT BLOCK",k+1)
+              for i in range(lo,hi): print(f"{i+1}: {lines[i]}")
+          print("INSPECT TOTAL",len(lines))
+          PY
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
