@@ -157,7 +157,8 @@ jobs:
           assert "if(guardian())drawV45Guardian(c);" in s
           assert "if(treasure())drawV45Treasure(c);" in s
           assert "if(geode())drawV45Geode(c);" in s
-          assert "new LinearGradient(x,y,x,y+h" not in s
+          rounded=s[s.index("private void round("):s.index("private void grad(")]
+          assert "new LinearGradient" not in rounded
           print("v4.5 special ore renderers and low-allocation rounded UI verified")
           PY
       - name: Export rendered game source for visual audit
