@@ -113,7 +113,7 @@ jobs:
               assert method+"(" in s, method
           assert "drawV4Scene(c,biome,tint)" not in s
           assert "drawV4Scene(c,biome,theme)" in s
-          assert 'prefs.edit()' in s and 'private void save()' in s
+          assert 'prefs.edit()' in s and 'public void save()' in s
           assert 'private void rebirth()' in s
           print("All 12 rendering hooks and save/rebirth methods verified")
           PY
