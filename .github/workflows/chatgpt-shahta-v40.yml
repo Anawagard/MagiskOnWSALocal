@@ -99,10 +99,10 @@ jobs:
         run: python3 chatgpt-shahta-v311/patch_visual.py
       - name: Apply v4.0 scene redesign
         run: python3 chatgpt-shahta-v40/patch_redesign.py
-      - name: Apply global v4.3 UI and world art
+      - name: Apply global v4.1 UI and world art
         run: python3 chatgpt-shahta-v40/patch_global_ui.py
-      - name: Apply v4.3 full-screen art overhaul
-        run: python3 chatgpt-shahta-v40/patch_art_v43.py
+      - name: Apply v4.2 full-screen art overhaul
+        run: python3 chatgpt-shahta-v40/patch_art_v42.py
       - name: Check visual hooks and save compatibility
         run: |
           python3 - <<'PY'
