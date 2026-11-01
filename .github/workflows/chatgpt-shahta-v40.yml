@@ -2,7 +2,7 @@ name: Build Shahta Bez Dna v4.0 Android APK
 on:
   push:
     branches:
-      - chatgpt-shahta-v40-visual-20261102
+      - chatgpt-shahta-v40-redesign-20261102
   workflow_dispatch:
 jobs:
   android:
