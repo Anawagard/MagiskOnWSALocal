@@ -96,7 +96,7 @@ jobs:
       - name: Add rich veins and gameplay rewards
         run: python3 chatgpt-shahta-v310/patch_rich_veins.py
       - name: Apply v4.0 cave lighting
-        run: python3 chatgpt-shahta-v40/patch_visual.py
+        run: python3 chatgpt-shahta-v311/patch_visual.py
       - name: Apply v4.0 scene redesign
         run: python3 chatgpt-shahta-v40/patch_redesign.py
       - name: Install Android SDK 35
