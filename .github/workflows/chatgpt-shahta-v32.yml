@@ -95,7 +95,9 @@ jobs:
         run: python3 chatgpt-shahta-v39/patch_volume_slider.py
       - name: Add rich veins and gameplay rewards
         run: python3 chatgpt-shahta-v310/patch_rich_veins.py
-      - name: Apply v3.11 cave lighting\n        run: python3 chatgpt-shahta-v311/patch_visual.py\n      - name: Install Android SDK 35
+      - name: Apply v3.11 cave lighting
+        run: python3 chatgpt-shahta-v311/patch_visual.py
+      - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
       - name: Build standard game APK
