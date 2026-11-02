@@ -96,7 +96,7 @@ replace_method("@Override protected void onDraw(Canvas canvas)",r"""
         drawHeader(canvas);
         canvas.save();
         canvas.translate(0,60);
-        canvas.scale(1,.90f);
+        canvas.scale(1,1.0f);
         canvas.clipRect(0,87,360,653);
         drawPage(canvas,page);
         canvas.restore();
@@ -274,9 +274,9 @@ new=r"""        float x=e.getX()*W/Math.max(1,getWidth());
             }
             invalidate();return true;
         }
-        // Every page is translated by +60 and scaled vertically by 0.90.
+        // Every page is moved down 60 units without shrinking; controls remain finger-sized.
         // Map all controls and settings back into their original logical geometry.
-        float y=(screenY-60f)/.90f;"""
+        float y=(screenY-60f)/1.0f;"""
 s=s.replace(old,new,1)
 assert "if(y>=651){" in s
 s=s.replace("if(y>=651){","if(y>=900){",1)
@@ -303,7 +303,7 @@ assert "versionCode 46" in g and "versionName '6.9'" in g
 assert "applicationId 'com.bezdna.mine'" in g
 assert "signingConfig signingConfigs.shahtaDebug" in g
 source.write_text(s)
-gradle.write_text(g.replace("versionCode 46","versionCode 47")
-                    .replace("versionName '6.9'","versionName '7.0'"))
+gradle.write_text(g.replace("versionCode 46","versionCode 48")
+                    .replace("versionName '6.9'","versionName '7.0.1'"))
 print("v7.0: entire five-tab UI reskinned, top navigation reflowed with hitboxes, "
       "textured ore/caves, material menus; same saves/balance/signature")
