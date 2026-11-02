@@ -682,6 +682,7 @@ jobs:
           python3 chatgpt-shahta-v40/generate_art_v70.py
           python3 chatgpt-shahta-v40/patch_full_redesign_v70.py
           python3 chatgpt-shahta-v40/patch_modernist_v71.py
+          python3 chatgpt-shahta-v40/patch_modernist_v72.py
           python3 - <<'PY'
           from pathlib import Path
           root=Path("chatgpt-shahta-v33/project")
@@ -697,7 +698,11 @@ jobs:
           src=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
           gradle=(root/"app/build.gradle").read_text()
           assert 'private void drawV70Placeholder(' not in src
-          for required in ["private void v70Draw(","v70Draw(c,\"panel.png\"",
+          for required in ["private void v72NineSlice(", "private void v72SectionHeader(",
+                           "private void drawForgeLegacy(", "private void drawGuildLegacy(",
+                           "private void drawCollectionLegacy(",
+                           "x=(x-13f)/.93f;", "y=(y-18f)/.94f;",
+                           "private void v70Draw(","v70Draw(c,\"panel.png\"",
                            "if(screenY>=88&&screenY<=136)",
                            "ore_%02d.png","biome_%02d.jpg","fractures.png",
                            'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);',
