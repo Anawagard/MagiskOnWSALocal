@@ -1,4 +1,4 @@
-name: Build Shahta Bez Dna v5.3 Android APK
+name: Build Shahta Bez Dna v5.4 Android APK
 on:
   push:
     branches:
@@ -315,6 +315,28 @@ jobs:
           assert "signingConfig signingConfigs.shahtaDebug" in g
           print("v5.3: all ore types receive cached-independent specular effects")
           PY
+      - name: Apply v5.4 24 biome crests and shop layout correction
+        run: python3 chatgpt-shahta-v40/patch_hud_v54.py
+      - name: Verify v5.4 UI layout, 25-level atlas and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV54BiomeCrest(")==1
+          assert s.count("drawV54BiomeCrest(c,biome,bcol);")==1
+          assert '"УЛУЧШЕНИЯ",132,112,19' in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "РУБЕЖ ДОБЫЧИ! +кристаллы" in s
+          assert "drawV53LivingOreGlints(c,id,damageRatio);" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 31" in g and "versionName '5.4'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.4: 24 crests, layout collision fixed, 25-level atlas and persistence verified")
+          PY
       - name: Export rendered game source for visual audit
         run: |
           mkdir -p inspection
@@ -323,7 +345,7 @@ jobs:
           cp chatgpt-shahta-v33/project/app/build.gradle inspection/build.gradle
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-v53-source-inspection
+          name: Shahta-v54-source-inspection
           path: inspection/*
           if-no-files-found: error
       - name: Install Android SDK 35
@@ -355,16 +377,16 @@ jobs:
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v5.3.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v5.3.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v5.3.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v5.3.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v5.3.apk | grep game_icon.png
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v5.4.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v5.4.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v5.4.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v5.4.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v5.4.apk | grep game_icon.png
       - name: Check APK signing certificate matches cached identity
         run: |
           set -euo pipefail
           expected="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
-          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v5.3.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
+          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v5.4.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
           echo "Expected signing certificate: $expected"
           echo "Actual APK certificate: $actual"
           test "$expected" = "$actual"
@@ -380,21 +402,21 @@ jobs:
           manifest=root/"app/src/main/AndroidManifest.xml"
           s=manifest.read_text()
           assert 'android:label="Шахта без дна"' in s
-          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 5.3"'))
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 5.4"'))
           PY
       - name: Build side-by-side game APK
         working-directory: chatgpt-shahta-v33/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify side-by-side game APK
         run: |
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v5.3-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v5.3-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v5.3-Parallel.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v5.3-Parallel.apk | tail -n 1
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v5.4-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v5.4-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v5.4-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v5.4-Parallel.apk | tail -n 1
           sha256sum artifacts/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v5.3-APKs
+          name: Shahta-Bez-Dna-v5.4-APKs
           path: artifacts/*.apk
           if-no-files-found: error
 
@@ -410,7 +432,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v5.3-APKs
+          name: Shahta-Bez-Dna-v5.4-APKs
           path: smoke-apks
       - name: Enable hardware-accelerated Android emulator when KVM is available
         run: |
@@ -434,6 +456,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Shahta-v53-android-smoke-screenshots
+          name: Shahta-v54-android-smoke-screenshots
           path: screenshots/
           if-no-files-found: warn
