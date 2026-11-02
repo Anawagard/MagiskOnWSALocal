@@ -1,4 +1,4 @@
-name: Build Shahta Bez Dna v6.8 Android APK
+name: Build Shahta Bez Dna v6.9 Android APK
 on:
   push:
     branches:
@@ -635,9 +635,9 @@ jobs:
           assert "signingConfig signingConfigs.shahtaDebug" in g
           print("v6.7: 24 atlas scenes, zero-allocation drawing, save/input and signing invariants")
           PY
-      - name: Apply v6.8 illustrated biome banners and progress tracks
+      - name: Apply v6.9 illustrated biome banners and progress tracks
         run: python3 chatgpt-shahta-v40/patch_hud_v68.py
-      - name: Verify v6.8 visual coverage, 25-level progress, persistence and signing
+      - name: Verify v6.9 visual coverage, 25-level progress, persistence and signing
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -658,7 +658,25 @@ jobs:
           assert "versionCode 45" in g and "versionName '6.8'" in g
           assert "signingConfig signingConfigs.shahtaDebug" in g
           assert "applicationId 'com.bezdna.mine'" in g
-          print("v6.8: 24 biome banners, 25-step progress, 5 upgrade screens, saved state and signing")
+          print("v6.9: 24 biome banners, 25-step progress, 5 upgrade screens, saved state and signing")
+          PY
+      - name: Generate 24 raster material textures and apply v6.9 scene renderer
+        run: |
+          python3 -m pip install --disable-pip-version-check Pillow
+          python3 chatgpt-shahta-v40/generate_raster_v69.py
+          python3 chatgpt-shahta-v40/patch_raster_v69.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          textures=list((root/"app/src/main/assets/shahta_textures").glob("biome_*.png"))
+          assert len(textures)==24 and all(p.stat().st_size>10000 for p in textures)
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert "drawV69RasterCave(c,biome);" in s
+          assert "versionName '6.9'" in g and "versionCode 46" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          print("24 actual PNG textures and gameplay/signing invariants verified")
           PY
       - name: Export rendered game source for visual audit
         run: |
@@ -668,7 +686,7 @@ jobs:
           cp chatgpt-shahta-v33/project/app/build.gradle inspection/build.gradle
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-v68-source-inspection
+          name: Shahta-v69-source-inspection
           path: inspection/*
           if-no-files-found: error
       - name: Install Android SDK 35
@@ -700,16 +718,16 @@ jobs:
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v6.8.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v6.8.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v6.8.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v6.8.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v6.8.apk | grep game_icon.png
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v6.9.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v6.9.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v6.9.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v6.9.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v6.9.apk | grep game_icon.png
       - name: Check APK signing certificate matches cached identity
         run: |
           set -euo pipefail
           expected="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
-          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v6.8.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
+          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v6.9.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
           echo "Expected signing certificate: $expected"
           echo "Actual APK certificate: $actual"
           test "$expected" = "$actual"
@@ -732,14 +750,14 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify side-by-side game APK
         run: |
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v6.8-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v6.8-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v6.8-Parallel.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v6.8-Parallel.apk | tail -n 1
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v6.9-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v6.9-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v6.9-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v6.9-Parallel.apk | tail -n 1
           sha256sum artifacts/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v6.8-APKs
+          name: Shahta-Bez-Dna-v6.9-APKs
           path: artifacts/*.apk
           if-no-files-found: error
 
@@ -755,7 +773,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v6.8-APKs
+          name: Shahta-Bez-Dna-v6.9-APKs
           path: smoke-apks
       - name: Enable hardware-accelerated Android emulator when KVM is available
         run: |
@@ -779,6 +797,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Shahta-v68-android-smoke-screenshots
+          name: Shahta-v69-android-smoke-screenshots
           path: screenshots/
           if-no-files-found: warn
