@@ -158,16 +158,23 @@ def ore(index,color,path):
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
+    """Modernist HUD surface: flat midnight titanium, precise hairlines and accent bar."""
     w,h=size
-    noise=field(w,h,2029+sum(base))
-    xx,yy=np.meshgrid(np.arange(w,dtype=np.float32),np.arange(h,dtype=np.float32))
-    factor=.72+.10*(1-yy/h)+.10*np.sin(yy/h*math.pi)
-    arr=np.array(base,dtype=np.float32)[None,None,:]*factor[:,:,None]+noise[:,:,None]*.45
-    im=image_array(arr)
+    yy,xx=np.mgrid[0:h,0:w].astype(np.float32)
+    # Clean layered gradient, not rock, wood or bevelled medieval UI.
+    top=np.asarray(base,dtype=np.float32)
+    arr=top[None,None,:]*(.86+.10*(1-yy/h))[:,:,None]
+    arr=np.broadcast_to(arr,(h,w,3)).copy()
+    arr+=np.maximum(0,1-np.abs(xx-w*.28)/(w*.8))[:,:,None]*2
+    im=image_array(arr).convert("RGBA")
     d=ImageDraw.Draw(im,"RGBA")
-    d.rounded_rectangle((2,2,w-3,h-3),radius=13,outline=(*border,225),width=3)
-    d.line((18,6,w-18,6),fill=(245,228,193,83),width=2)
-    d.line((17,h-9,w-17,h-9),fill=(9,12,21,180),width=3)
+    accent=(93,224,210,255) if bright else (119,166,190,230)
+    d.rounded_rectangle((1,1,w-2,h-2),radius=12,
+                        outline=(115,146,163,118),width=2)
+    d.line((15,3,w-15,3),fill=(*accent[:3],85),width=1)
+    d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
+    if bright:
+        d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
     im.save(path,optimize=True)
 
 for i,color in enumerate(SCENES):
@@ -176,11 +183,11 @@ for i,color in enumerate(ORES):
     ore(i,color,OUT/("ore_%02d.png"%i))
 for j,base in enumerate([(59,118,137),(132,74,51),(73,108,133),(101,93,143)],start=1):
     cave(30+j,base,OUT/("menu_%d.jpg"%j))
-panel_art(OUT/"panel.png",(39,48,59),(170,155,116))
-panel_art(OUT/"button.png",(51,112,116),(186,224,208),size=(160,64),bright=True)
-panel_art(OUT/"button_off.png",(49,62,70),(95,118,126),size=(160,64))
-panel_art(OUT/"header.png",(27,42,57),(184,158,112),size=(360,88))
-panel_art(OUT/"nav.png",(22,41,52),(154,185,182),size=(360,50))
+panel_art(OUT/"panel.png",(23,32,47),(85,125,148))
+panel_art(OUT/"button.png",(21,103,109),(92,227,207),size=(160,64),bright=True)
+panel_art(OUT/"button_off.png",(32,44,58),(91,112,131),size=(160,64))
+panel_art(OUT/"header.png",(17,27,42),(85,132,156),size=(360,88))
+panel_art(OUT/"nav.png",(17,28,42),(90,150,164),size=(360,50))
 # Crack texture: real alpha-image wear, blended by HP damage at draw time.
 crack=Image.new("RGBA",(300,300),(0,0,0,0))
 draw=ImageDraw.Draw(crack,"RGBA")
