@@ -679,27 +679,6 @@ jobs:
           assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
           print("24 actual PNG textures and gameplay/signing invariants verified")
           PY
-      # The complete redesign is unfinished: this workflow remains manual-only.
-      # Do not dispatch a build until all screens and touch geometry are replaced.
-      - name: Prepare raster materials and new mine/shop layout
-        run: |
-          python3 -m pip install --disable-pip-version-check Pillow
-          python3 chatgpt-shahta-v40/redesign_assets.py
-          python3 chatgpt-shahta-v40/redesign_layout_phase_a.py
-          python3 - <<'PY'
-          from pathlib import Path
-          root=Path("chatgpt-shahta-v33/project")
-          a=root/"app/src/main/assets/shahta_redesign"
-          assert len(list(a.glob("*.png")))==50
-          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
-          assert "v70ShopTile(c," in s and "v70Ore(c,id,109,221+bob,229,237);" in s
-          assert "if(y>=600&&y<=646)" in s
-          assert "else if(x>=110&&x<=340&&y>=217&&y<=480)" in s
-          assert "int next=x<66?0:x<135?1:x<216?2:x<286?3:4;" in s
-          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
-          assert "public void save()" in s and "private void rebirth()" in s
-          print("Phase A raster sprites, new touch regions, original save schema checked")
-          PY
       - name: Generate entire v7.0 raster artpack and apply full UI redesign
         run: |
           python3 -m pip install --disable-pip-version-check Pillow numpy
