@@ -702,7 +702,7 @@ jobs:
                            "private void drawForgeLegacy(", "private void drawGuildLegacy(",
                            "private void drawCollectionLegacy(",
                            "x=(x-13f)/.93f;", "y=(y-18f)/.94f;",
-                           "private void v70Draw(","v70Draw(c,\"panel.png\"",
+                           "private void v70Draw(","v72NineSlice(c,\"panel.png\"",
                            "if(screenY>=88&&screenY<=136)",
                            "ore_%02d.png","biome_%02d.jpg","fractures.png",
                            'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);',
