@@ -106,11 +106,14 @@ def ore(index,color,path):
         rgb[:,:,channel]=base[channel]*(.70+shade*.23)+tone*.8+detail*.5
     mask=Image.new("L",(w,h));md=ImageDraw.Draw(mask)
     points=[]
+    # Correlated chipped edge: an irregular stone contour, not a star/gear.
+    nodes=r.normal(0,9.0,18)
+    radii=np.interp(np.linspace(0,18,64,endpoint=False),
+                    np.arange(19),np.r_[nodes,nodes[0]])
     for a in range(64):
         rad=a*math.tau/64
-        dist=r.uniform(103,132)
-        if a%7==0:dist+=12
-        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*.91))
+        dist=113+float(radii[a])+6*math.sin(rad*3+index)+4*math.cos(rad*7+index*.4)
+        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*.87))
     md.polygon(points,fill=255)
     md.ellipse((87,74,210,220),fill=255)
     mask=mask.filter(ImageFilter.GaussianBlur(.55))
