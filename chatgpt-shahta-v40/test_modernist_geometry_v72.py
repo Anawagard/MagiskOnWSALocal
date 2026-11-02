@@ -19,6 +19,9 @@ def feature_screen(x,y):
     return 13+.93*x,60+18+.94*y
 
 def feature_input(x,screen_y):
+    # Keep identical with patch_modernist_v72.py: header is not interactive.
+    if screen_y<205 or screen_y>713:
+        return None
     return (x-13)/.93,((screen_y-60)-18)/.94
 
 screens=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
@@ -67,5 +70,17 @@ for width,height in screens:
         rx,ry=feature_input(lx,ly)
         assert isclose(rx,x,abs_tol=1e-4),(width,height,x,rx)
         assert isclose(ry,y,abs_tol=1e-4),(width,height,y,ry)
+        checks+=1
+    # Invisible legacy controls under the modern section header must never
+    # receive touches. The clipped content is visible only at y=205..713.
+    for sy in (145,174,192,204,714,719):
+        px,py=physical(180,sy,width,height)
+        lx,ly=logical(px,py,width,height)
+        assert feature_input(lx,ly) is None,(width,height,sy)
+        checks+=1
+    for sy in (206,340,712):
+        px,py=physical(180,sy,width,height)
+        lx,ly=logical(px,py,width,height)
+        assert feature_input(lx,ly) is not None,(width,height,sy)
         checks+=1
 print(f'PASS: {checks} geometry assertions across {len(screens)} resolutions; no APK built')
