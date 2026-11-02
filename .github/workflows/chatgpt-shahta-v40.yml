@@ -684,8 +684,10 @@ jobs:
           python3 chatgpt-shahta-v40/patch_modernist_v71.py
           python3 chatgpt-shahta-v40/patch_modernist_v72.py
           python3 chatgpt-shahta-v40/patch_modernist_v73.py
+          python3 chatgpt-shahta-v40/patch_modernist_v74.py
           python3 chatgpt-shahta-v40/test_modernist_geometry_v72.py
           python3 chatgpt-shahta-v40/test_modernist_settings_v73.py
+          python3 chatgpt-shahta-v40/test_modernist_shop_v74.py
           python3 - <<'PY'
           from pathlib import Path
           root=Path("chatgpt-shahta-v33/project")
