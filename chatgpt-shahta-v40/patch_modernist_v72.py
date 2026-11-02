@@ -40,6 +40,9 @@ def replace_method(signature,body):
 nine_slice=r"""
     private final android.graphics.Rect v72Source=new android.graphics.Rect();
     private final android.graphics.RectF v72Target=new android.graphics.RectF();
+    // Reuse slice coordinates: no short-lived arrays on 60/120 Hz frames.
+    private final int[] v72Xs=new int[4],v72Ys=new int[4];
+    private final float[] v72Xd=new float[4],v72Yd=new float[4];
     private void v72Slice(Canvas c,android.graphics.Bitmap bitmap,
                           int sx0,int sy0,int sx1,int sy1,
                           float dx0,float dy0,float dx1,float dy1){
@@ -55,14 +58,16 @@ nine_slice=r"""
         int bw=bitmap.getWidth(),bh=bitmap.getHeight();
         int sx=Math.min(18,bw/4),sy=Math.min(18,bh/4);
         float dx=Math.min(11f,w/3f),dy=Math.min(11f,h/3f);
-        int[] xs={0,sx,bw-sx,bw},ys={0,sy,bh-sy,bh};
-        float[] xd={x,x+dx,x+w-dx,x+w},yd={y,y+dy,y+h-dy,y+h};
+        v72Xs[0]=0;v72Xs[1]=sx;v72Xs[2]=bw-sx;v72Xs[3]=bw;
+        v72Ys[0]=0;v72Ys[1]=sy;v72Ys[2]=bh-sy;v72Ys[3]=bh;
+        v72Xd[0]=x;v72Xd[1]=x+dx;v72Xd[2]=x+w-dx;v72Xd[3]=x+w;
+        v72Yd[0]=y;v72Yd[1]=y+dy;v72Yd[2]=y+h-dy;v72Yd[3]=y+h;
         p.reset();p.setAntiAlias(true);p.setFilterBitmap(true);
         p.setAlpha(Math.max(0,Math.min(255,alpha)));
         for(int row=0;row<3;row++)
             for(int col=0;col<3;col++)
-                v72Slice(c,bitmap,xs[col],ys[row],xs[col+1],ys[row+1],
-                    xd[col],yd[row],xd[col+1],yd[row+1]);
+                v72Slice(c,bitmap,v72Xs[col],v72Ys[row],v72Xs[col+1],v72Ys[row+1],
+                    v72Xd[col],v72Yd[row],v72Xd[col+1],v72Yd[row+1]);
         p.setAlpha(255);
     }
 
