@@ -429,9 +429,9 @@ jobs:
           assert "signingConfig signingConfigs.shahtaDebug" in g
           print("v5.8 24 distinct cached silhouettes, clipping, saves and debug identity verified")
           PY
-      - name: Apply v6.0 dynamic mining debris and ore-edge chipping
-        run: python3 chatgpt-shahta-v40/patch_shards_v60.py
-      - name: Verify v6.0 physics hooks, rendering budget and saved state
+      - name: Apply v5.9 dynamic mining debris and ore-edge chipping
+        run: python3 chatgpt-shahta-v40/patch_shards_v59.py
+      - name: Verify v5.9 physics hooks, rendering budget and saved state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -444,7 +444,7 @@ jobs:
           assert "drawV59Shards(c);" in s
           assert "spawnV59Shards(180,329,found,true,true);" in s
           assert "spawnV59Shards(180,330,ore(),critical,false);" in s
-          assert "if(v60Shards.size()+count>64)" in s
+          assert "if(v59Shards.size()+count>64)" in s
           assert "if(measuredFps<30f)" in s
           assert "c.clipPath(v58RockShape(id));" in s
           assert "drawV57BiomeRelics(c,biome,bcol);" in s
@@ -453,7 +453,7 @@ jobs:
           assert "public void save()" in s and "private void rebirth()" in s
           assert "versionCode 36" in g and "versionName '5.9'" in g
           assert "signingConfig signingConfigs.shahtaDebug" in g
-          print("v6.0 transient shards, 24 ore outlines, input/save compatibility and signing verified")
+          print("v5.9 transient shards, 24 ore outlines, input/save compatibility and signing verified")
           PY
       - name: Apply v6.0 material-aware mining impacts and particle optimizations
         run: python3 chatgpt-shahta-v40/patch_impact_v60.py
@@ -541,7 +541,7 @@ jobs:
           manifest=root/"app/src/main/AndroidManifest.xml"
           s=manifest.read_text()
           assert 'android:label="Шахта без дна"' in s
-          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 5.9"'))
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 6.0"'))
           PY
       - name: Build side-by-side game APK
         working-directory: chatgpt-shahta-v33/project
