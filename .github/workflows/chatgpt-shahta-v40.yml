@@ -429,80 +429,11 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -noaudio -no-boot-anim -no-snapshot -camera-back none -cores 2 -memory 2048
-          script: |
-            set -e
-            mkdir -p screenshots
-            adb shell wm size 360x760
-            adb shell wm density 160
-            adb shell input keyevent KEYCODE_WAKEUP
-            adb install -r smoke-apks/Shahta-Bez-Dna-v5.3.apk
-            adb shell am start -W -n com.bezdna.mine/.MainActivity
-            python3 -m pip install --disable-pip-version-check --quiet Pillow
-            # Boot completion does not imply the first frame has rendered.
-            # Poll for non-black UI before tapping the Canvas navigation.
-            capture_ready() {
-              local target="$1"
-              for attempt in $(seq 1 55); do
-                adb exec-out screencap -p > "$target" || true
-                if python3 - "$target" <<'PY'
-            import sys
-            from pathlib import Path
-            from PIL import Image, ImageStat
-            try:
-                path=Path(sys.argv[1])
-                im=Image.open(path).convert("RGB")
-                assert im.width>=320 and im.height>=640
-                mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
-                assert path.stat().st_size>12000 and mean>18, (path,mean)
-            except Exception as exc:
-                print("Waiting for rendered UI:",exc)
-                sys.exit(1)
-            PY
-                then
-                  echo "Rendered screen: $target"
-                  return 0
-                fi
-                sleep 2
-              done
-              echo "::error::Game screen remained black or incomplete"
-              return 1
-            }
-            adb shell pidof com.bezdna.mine
-            capture_ready screenshots/01-mine.png
-            # 360x760 emulator includes status and system navigation bars.
-            # Canvas bottom tabs are at ~y=680, NOT y=714.
-            adb shell input tap 109 680
-            sleep 3
-            capture_ready screenshots/02-shop.png
-            adb shell input tap 324 680
-            sleep 3
-            capture_ready screenshots/03-atlas.png
-            adb shell pidof com.bezdna.mine
-            adb logcat -d -s AndroidRuntime:E ActivityManager:E | tail -n 90 || true
-            python3 - <<'PY'
-            from pathlib import Path
-            from PIL import Image, ImageChops, ImageStat
-            files=sorted(Path("screenshots").glob("*.png"))
-            assert len(files)==3,files
-            images=[]
-            for path in files:
-                im=Image.open(path).convert("RGB")
-                assert im.width>=320 and im.height>=640
-                mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
-                assert path.stat().st_size>12000 and mean>18,(path,mean)
-                images.append(im)
-                print(path,path.stat().st_size,im.size,round(mean,2))
-            for i in range(2):
-                first=images[i].crop((10,120,350,630))
-                second=images[i+1].crop((10,120,350,630))
-                delta=sum(ImageStat.Stat(ImageChops.difference(first,second)).mean)/3
-                assert delta>8,(files[i],files[i+1],delta)
-                print("Page transition visual delta:",round(delta,2))
-            PY
+          script: bash chatgpt-shahta-v40/android_smoke_v53.sh
       - name: Upload smoke screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Shahta-v53-android-smoke-screenshots
-          path: screenshots/*.png
+          path: screenshots/
           if-no-files-found: warn
