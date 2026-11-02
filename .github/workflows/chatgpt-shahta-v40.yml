@@ -445,19 +445,19 @@ jobs:
               for attempt in $(seq 1 55); do
                 adb exec-out screencap -p > "$target" || true
                 if python3 - "$target" <<'PY'
-import sys
-from pathlib import Path
-from PIL import Image, ImageStat
-try:
-    path=Path(sys.argv[1])
-    im=Image.open(path).convert("RGB")
-    assert im.width>=320 and im.height>=640
-    mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
-    assert path.stat().st_size>12000 and mean>18, (path,mean)
-except Exception as exc:
-    print("Waiting for rendered UI:",exc)
-    sys.exit(1)
-PY
+            import sys
+            from pathlib import Path
+            from PIL import Image, ImageStat
+            try:
+                path=Path(sys.argv[1])
+                im=Image.open(path).convert("RGB")
+                assert im.width>=320 and im.height>=640
+                mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
+                assert path.stat().st_size>12000 and mean>18, (path,mean)
+            except Exception as exc:
+                print("Waiting for rendered UI:",exc)
+                sys.exit(1)
+            PY
                 then
                   echo "Rendered screen: $target"
                   return 0
@@ -480,25 +480,25 @@ PY
             adb shell pidof com.bezdna.mine
             adb logcat -d -s AndroidRuntime:E ActivityManager:E | tail -n 90 || true
             python3 - <<'PY'
-from pathlib import Path
-from PIL import Image, ImageChops, ImageStat
-files=sorted(Path("screenshots").glob("*.png"))
-assert len(files)==3,files
-images=[]
-for path in files:
-    im=Image.open(path).convert("RGB")
-    assert im.width>=320 and im.height>=640
-    mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
-    assert path.stat().st_size>12000 and mean>18,(path,mean)
-    images.append(im)
-    print(path,path.stat().st_size,im.size,round(mean,2))
-for i in range(2):
-    first=images[i].crop((10,120,350,630))
-    second=images[i+1].crop((10,120,350,630))
-    delta=sum(ImageStat.Stat(ImageChops.difference(first,second)).mean)/3
-    assert delta>8,(files[i],files[i+1],delta)
-    print("Page transition visual delta:",round(delta,2))
-PY
+            from pathlib import Path
+            from PIL import Image, ImageChops, ImageStat
+            files=sorted(Path("screenshots").glob("*.png"))
+            assert len(files)==3,files
+            images=[]
+            for path in files:
+                im=Image.open(path).convert("RGB")
+                assert im.width>=320 and im.height>=640
+                mean=sum(ImageStat.Stat(im.crop((20,120,340,620))).mean)/3
+                assert path.stat().st_size>12000 and mean>18,(path,mean)
+                images.append(im)
+                print(path,path.stat().st_size,im.size,round(mean,2))
+            for i in range(2):
+                first=images[i].crop((10,120,350,630))
+                second=images[i+1].crop((10,120,350,630))
+                delta=sum(ImageStat.Stat(ImageChops.difference(first,second)).mean)/3
+                assert delta>8,(files[i],files[i+1],delta)
+                print("Page transition visual delta:",round(delta,2))
+            PY
       - name: Upload smoke screenshots
         if: always()
         uses: actions/upload-artifact@v4
