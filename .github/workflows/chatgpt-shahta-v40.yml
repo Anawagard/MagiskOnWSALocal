@@ -1,8 +1,6 @@
-name: Build Shahta Bez Dna v4.0 Android APK
+name: Build Shahta Bez Dna v7.0.1 Android APK
+# Full v7.0.1 release validated; further intermediate commits must not build APK.
 on:
-  push:
-    branches:
-      - chatgpt-shahta-v40-redesign-20261102
   workflow_dispatch:
 jobs:
   android:
@@ -99,20 +97,676 @@ jobs:
         run: python3 chatgpt-shahta-v311/patch_visual.py
       - name: Apply v4.0 scene redesign
         run: python3 chatgpt-shahta-v40/patch_redesign.py
+      - name: Apply global v4.1 UI and world art
+        run: python3 chatgpt-shahta-v40/patch_global_ui.py
+      - name: Apply v4.2 full-screen art overhaul
+        run: python3 chatgpt-shahta-v40/patch_art_v42.py
+      - name: Check visual hooks and save compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java")
+          s=p.read_text()
+          for method in ["drawV42OreHighlights","drawV4Scene","drawHeader","drawBottom","drawParticles","drawOreCrystal","drawRock","powerButton","nav","button","bar","panel"]:
+              assert method+"(" in s, method
+          assert "drawV4Scene(c,biome,tint)" not in s
+          assert "drawV4Scene(c,biome,theme)" in s
+          assert 'prefs.edit()' in s and 'public void save()' in s
+          assert 'private void rebirth()' in s
+          print("All 12 rendering hooks and save/rebirth methods verified")
+          PY
+      - name: Apply v4.3 illustrated menus and atlas
+        run: python3 chatgpt-shahta-v40/patch_art_v43.py
+      - name: Verify v4.3 menu rendering hooks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          for hook in ["drawV43PageAtmosphere","drawV43Sigil","drawV43AtlasThumbnail"]:
+              assert s.count("private void "+hook+"(")==1,hook
+          assert "drawV43PageAtmosphere(c,tab)" in s
+          assert "drawV43AtlasThumbnail(c,53,y+38,bi)" in s
+          print("v4.3 menu art hooks verified")
+          PY
+      - name: Apply v4.4 save backup and persistence fix
+        run: python3 chatgpt-shahta-v40/patch_save_v44.py
+      - name: Verify save export/import and all six technologies
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine")
+          game=(root/"MineView.java").read_text()
+          main=(root/"MainActivity.java").read_text()
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in game
+          assert 'exportSave()' in main and 'importSave()' in main
+          assert 'shahta-save-v1' in main and 'mine_save_v1' in main
+          assert 'ACTION_CREATE_DOCUMENT' in main and 'ACTION_OPEN_DOCUMENT' in main
+          print("Backup, restore, and six-upgrade persistence verified")
+          PY
+      - name: Apply v4.5 boss and treasure redesign
+        run: python3 chatgpt-shahta-v40/patch_art_v45.py
+      - name: Verify v4.5 special ore art
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          for name in ["drawV45Guardian","drawV45Treasure","drawV45Geode"]:
+              assert s.count("private void "+name+"(")==1,name
+          assert "if(guardian())drawV45Guardian(c);" in s
+          assert "if(treasure())drawV45Treasure(c);" in s
+          assert "if(geode())drawV45Geode(c);" in s
+          rounded=s[s.index("private void round("):s.index("private void grad(")]
+          assert "new LinearGradient" not in rounded
+          print("v4.5 special ore renderers and low-allocation rounded UI verified")
+          PY
+      - name: Apply v4.6 biome and signing polish
+        run: python3 chatgpt-shahta-v40/patch_polish_v46.py
+      - name: Verify explicit cached debug signing config
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          g=Path("chatgpt-shahta-v33/project/app/build.gradle").read_text()
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          assert "versionCode 23" in g and "versionName '4.6'" in g
+          assert "/.android/debug.keystore" in g
+          print("Explicit stable debug signing configured")
+          PY
+      - name: Apply v4.7 unique art for all 24 biomes
+        run: python3 chatgpt-shahta-v40/patch_biomes_v47.py
+      - name: Verify v4.7 art coverage and persistent state compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          start=src.index("private void drawV47BiomeIdentity(")
+          end=src.index("private void drawBiomeLandmark(",start)
+          renderer=src[start:end]
+          assert all(("case %d:" % i) in renderer for i in range(24))
+          assert src.count("drawV47BiomeIdentity(c,biome,theme);")==1
+          assert "c.clipRect(19,155,341,506)" in renderer
+          assert "prefs.edit()" in src and "public void save()" in src
+          assert "for(int i=0;i<6;i++)ed.putInt(\"tech_\"+i,tech[i]);" in src
+          assert "versionName '4.7'" in Path("chatgpt-shahta-v33/project/app/build.gradle").read_text()
+          print("24 biome motifs, original game state and touch geometry preserved")
+          PY
+      - name: Apply v4.8 rendering performance improvements
+        run: python3 chatgpt-shahta-v40/patch_performance_v48.py
+      - name: Verify v4.8 allocations and save compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          gradle=Path("chatgpt-shahta-v33/project/app/build.gradle").read_text()
+          assert src.count("private final Path reusablePolygon=new Path();")==1
+          assert "reusablePolygon.reset();" in src and "reusableRidge.reset();" in src
+          assert src.count('Typeface.create("sans-serif-condensed",Typeface.BOLD)')==1
+          assert "measuredFps<43f?14:28" in src
+          assert "measuredFps<43f?5:9" in src
+          assert "drawV47BiomeIdentity(c,biome,theme);" in src
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in src
+          assert "versionCode 25" in gradle and "versionName '4.8'" in gradle
+          print("v4.8 drawing allocation and persistence invariants verified")
+          PY
+      - name: Apply v4.9 biome geology and cached ore surface
+        run: python3 chatgpt-shahta-v40/patch_art_v49.py
+      - name: Verify v4.9 cache, visual coverage and save compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java")
+          s=p.read_text()
+          g=Path("chatgpt-shahta-v33/project/app/build.gradle").read_text()
+          assert s.count("private void drawV49Lithology(")==1
+          assert s.count("private void drawV49CachedRockTexture(")==1
+          assert s.count("drawV49CachedRockTexture(c,id,base);")==1
+          assert s.count("drawV49Lithology(c,biome,theme);")==1
+          assert "cachedV49Rock.recycle()" in s
+          assert "uptimeMillis()-cachedV49Since>=180" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s
+          assert "versionCode 26" in g and "versionName '4.9'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v4.9: texture cache, 24 biome color grading, live glints, saves and debug signing verified")
+          PY
+      - name: Apply v5.0 fracture network and light shafts
+        run: python3 chatgpt-shahta-v40/patch_art_v50.py
+      - name: Verify v5.0 renderers, game state and signature policy
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV50FractureNetwork(")==1
+          assert s.count("private void drawV50LightShafts(")==1
+          assert s.count("drawV50FractureNetwork(c,id,damageRatio);")==1
+          assert s.count("drawV50LightShafts(c,biome,theme);")==1
+          assert "drawV49CachedRockTexture(c,id,base);" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 27" in g and "versionName '5.0'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.0: fracture/light art and save/debug identity invariants verified")
+          PY
+      - name: Apply v5.1 cached 24-biome environment and adaptive effects
+        run: python3 chatgpt-shahta-v40/patch_performance_v51.py
+      - name: Verify v5.1 cave cache, game state and signing policy
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV51CachedCavern(")==1
+          assert s.count("drawV51CachedCavern(c,biome,bcol);")==1
+          assert "v51CavernCache.eraseColor" in s
+          assert "v51CavernCache.recycle()" in s
+          assert "measuredFps<25f?7:measuredFps<43f?14:28" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert "drawV50FractureNetwork(c,id,damageRatio);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 28" in g and "versionName '5.1'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.1 cave caching, all 24 motifs, persistence, and debug signing verified")
+          PY
+      - name: Apply v5.2 distinctive material faceting for 24 ore types
+        run: python3 chatgpt-shahta-v40/patch_ore_v52.py
+      - name: Verify v5.2 ore renderer, game state and pinned signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV52MaterialFacets(")==1
+          assert s.count("drawV52MaterialFacets(c,id,base);")==1
+          assert s.count("c.clipPath(v52OreClip);")==1
+          assert "int family=id==0?0:id<=3?1:" in s
+          assert "drawV51CachedCavern(c,biome,bcol);" in s
+          assert "drawV50FractureNetwork(c,id,damageRatio);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 29" in g and "versionName '5.2'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.2 24-ore material, game save and debug-signature policy verified")
+          PY
+      - name: Apply v5.3 animated ore reflections
+        run: python3 chatgpt-shahta-v40/patch_ore_v53.py
+      - name: Verify v5.3 live ore effects and save/signing invariants
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV53LivingOreGlints(")==1
+          assert s.count("drawV53LivingOreGlints(c,id,damageRatio);")==1
+          assert "c.clipPath(v52OreClip);" in s
+          assert "drawV52MaterialFacets(c,id,base);" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 30" in g and "versionName '5.3'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.3: all ore types receive cached-independent specular effects")
+          PY
+      - name: Apply v5.4 24 biome crests and shop layout correction
+        run: python3 chatgpt-shahta-v40/patch_hud_v54.py
+      - name: Verify v5.4 UI layout, 25-level atlas and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV54BiomeCrest(")==1
+          assert s.count("drawV54BiomeCrest(c,biome,bcol);")==1
+          assert '"УЛУЧШЕНИЯ",132,112,19' in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "РУБЕЖ ДОБЫЧИ! +кристаллы" in s
+          assert "drawV53LivingOreGlints(c,id,damageRatio);" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 31" in g and "versionName '5.4'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.4: 24 crests, layout collision fixed, 25-level atlas and persistence verified")
+          PY
+      - name: Apply v5.5 vector navigation and 24 unique biome seals
+        run: python3 chatgpt-shahta-v40/patch_hud_v55.py
+      - name: Verify v5.5 visual hooks, save invariants and debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          for hook in ("drawV55NavIcon","drawV55BiomeProgress","drawV55BiomeSigil"):
+              assert s.count("private void "+hook+"(")==1,hook
+          assert "drawV55NavIcon(c,x+32.5f,678+bounce,tab,selected);" in s
+          assert "drawV55BiomeProgress(c,biome);" in s
+          assert "drawV55BiomeSigil(c,biome,bright);" in s
+          assert "for(int i=0;i<25;i++)" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 32" in g and "versionName '5.5'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.5 UI vectors, 25 stages, 24 seals, save and signature policy checked")
+          PY
+      - name: Apply v5.6 biome-specific atmospheric animation
+        run: python3 chatgpt-shahta-v40/patch_weather_v56.py
+      - name: Verify v5.6 weather coverage, state safety and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          start=s.index("private void drawV56BiomeWeather(")
+          end=s.index("private void drawCaveWeather(",start)
+          weather=s[start:end]
+          assert all(("case %d:"%i) in weather for i in range(24))
+          assert s.count("drawV56BiomeWeather(c,biome,bcol);")==1
+          assert "if(!fxEnabled)return;" in weather
+          assert "measuredFps<28f?3:measuredFps<45f?5:8" in weather
+          assert "drawV55NavIcon(c,x+32.5f,678+bounce,tab,selected);" in s
+          assert "drawV47BiomeIdentity(c,biome,theme);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 33" in g and "versionName '5.6'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.6 24 atmospheric profiles and gameplay/signature invariants verified")
+          PY
+      - name: Apply v5.7 twenty-four cave relic sets
+        run: python3 chatgpt-shahta-v40/patch_relics_v57.py
+      - name: Verify v5.7 all-biome relic coverage and state invariants
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          start=s.index("private void drawV57BiomeRelics(")
+          end=s.index("private void drawCaveWeather(",start)
+          relics=s[start:end]
+          assert all(("case %d:"%i) in relics for i in range(24))
+          assert s.count("drawV57BiomeRelics(c,biome,bcol);")==1
+          assert "c.clipRect(18,149,342,511)" in s
+          assert "drawV56BiomeWeather(c,biome,bcol);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 34" in g and "versionName '5.7'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.7: 24 unique relic sets, existing clip, gameplay, saves and debug signature retained")
+          PY
+      - name: Apply v5.8 unique ore silhouettes and unified clip geometry
+        run: python3 chatgpt-shahta-v40/patch_silhouettes_v58.py
+      - name: Verify v5.8 silhouettes, texture masks, saves and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private Path v58RockShape(")==1
+          assert s.count("private void drawV58RockBody(")==1
+          assert "private final Path[] v58RockShapes=new Path[24];" in s
+          assert "drawV58RockBody(c,id,base);" in s
+          assert "v52OreClip.set(v58RockShape(id));" in s
+          assert "v50FractureMask.set(v58RockShape(id));" in s
+          assert "v58TextureOreId!=id" in s and "v58FractureOreId!=id" in s
+          assert "drawV53LivingOreGlints(c,id,damageRatio);" in s
+          assert "drawV57BiomeRelics(c,biome,bcol);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 35" in g and "versionName '5.8'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.8 24 distinct cached silhouettes, clipping, saves and debug identity verified")
+          PY
+      - name: Apply v5.9 dynamic mining debris and ore-edge chipping
+        run: python3 chatgpt-shahta-v40/patch_shards_v59.py
+      - name: Verify v5.9 physics hooks, rendering budget and saved state
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          for hook in ("spawnV59Shards","drawV59Shards","drawV59SurfaceChips"):
+              assert s.count("private void "+hook+"(")==1,hook
+          assert "drawV59SurfaceChips(c,id,damageRatio);" in s
+          assert "drawV59Shards(c);" in s
+          assert "spawnV59Shards(180,329,found,true,true);" in s
+          assert "spawnV59Shards(180,330,ore(),critical,false);" in s
+          assert "if(v59Shards.size()+count>64)" in s
+          assert "if(measuredFps<30f)" in s
+          assert "c.clipPath(v58RockShape(id));" in s
+          assert "drawV57BiomeRelics(c,biome,bcol);" in s
+          assert "drawV55NavIcon(c,x+32.5f,678+bounce,tab,selected);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 36" in g and "versionName '5.9'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v5.9 transient shards, 24 ore outlines, input/save compatibility and signing verified")
+          PY
+      - name: Apply v6.0 material-aware mining impacts and particle optimizations
+        run: python3 chatgpt-shahta-v40/patch_impact_v60.py
+      - name: Verify v6.0 transient effects, state invariants and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV60ImpactResonance(")==1
+          assert s.count("drawV60ImpactResonance(c);")==1
+          assert s.count("v60ParticlePath.reset();")==1
+          assert s.count("v60CriticalImpact=critical;")==1
+          assert s.count("drawV59Shards(c);")==1
+          assert "drawV57BiomeRelics(c,biome,bcol);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 37" in g and "versionName '6.0'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.0 impact and performance hooks; save schema and pinned signing retained")
+          PY
+      - name: Apply v6.1 layered cave foreground for all 24 biomes
+        run: python3 chatgpt-shahta-v40/patch_foreground_v61.py
+      - name: Verify v6.1 strata coverage, state safety and pinned debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV61Foreground(")==1
+          assert s.count("drawV61Foreground(c,biome,bcol);")==1
+          assert "final int family=biome%6;" in s
+          assert "c.clipRect(18,149,342,511);" in s
+          assert "drawV60ImpactResonance(c);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 38" in g and "versionName '6.1'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.1: 24 biome foregrounds, unchanged saves and pinned debug identity")
+          PY
+      - name: Apply v6.2 24-biome mining floor and ore plinths
+        run: python3 chatgpt-shahta-v40/patch_floor_v62.py
+      - name: Verify v6.2 floor art, unchanged game state and debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV62OrePedestal(")==1
+          assert s.count("drawV62OrePedestal(c,biome,bcol);")==1
+          assert "final int family=index%6;" in s
+          assert "c.clipRect(19,149,341,509);" in s
+          assert "drawV61Foreground(c,biome,bcol);" in s
+          assert "drawV60ImpactResonance(c);" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert "versionCode 39" in g and "versionName '6.2'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.2: floor art, 24 identities, touch/save invariants, debug identity verified")
+          PY
+      - name: Apply v6.3 visual progress tracks to all upgrade families
+        run: python3 chatgpt-shahta-v40/patch_upgrade_v63.py
+      - name: Verify v6.3 menu rendering and persistence invariants
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV63RankTrack(")==1
+          assert s.count("drawV63RankTrack(c,")==5
+          for k in ("136,level,0,accent", "148,mastery[k],60,colors[k]",
+                    "146,gemPerk[k],60,colors[k]", "119,artifact[k],12,tint",
+                    "180,talent[k],20,tint"):
+              assert k in s,k
+          assert "drawV62OrePedestal(c,biome,bcol);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 40" in g and "versionName '6.3'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.3: 5 UI rank track families, original saves and debug signing retained")
+          PY
+      - name: Apply v6.4 24 biome-specific ore halos
+        run: python3 chatgpt-shahta-v40/patch_halo_v64.py
+      - name: Verify v6.4 halo coverage, motion budget, state and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV64BiomeHalo(")==1
+          assert s.count("drawV64BiomeHalo(c,biome,bcol);")==1
+          assert "final int family=index%6;" in s
+          assert "final int epoch=index/6;" in s
+          assert "final int marks=measuredFps<28f?6:12;" in s
+          assert "drawV63RankTrack(c," in s
+          assert "drawV62OrePedestal(c,biome,bcol);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "versionCode 41" in g and "versionName '6.4'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.4: 24 deterministic halos, adaptive motion, saves, touch and pinned debug signing verified")
+          PY
+      - name: Apply v6.5 allocation-free polygons and ore-integrity HUD
+        run: python3 chatgpt-shahta-v40/patch_render_v65.py
+      - name: Verify v6.5 polygon hot-path, touch/save invariants and pinned debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void polyV65(")==8
+          assert s.count("polyV65(c,")>=107
+          assert "polygon(c,new float[]{" not in s
+          assert s.count("private void drawV65OreIntegrity(")==1
+          assert s.count("drawV65OreIntegrity(c,displayedHpRatio,biome,guardian());")==1
+          assert "drawV64BiomeHalo(c,biome,bcol);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "versionCode 42" in g and "versionName '6.5'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.5: 107 polygon arrays removed; health HUD, 24 biomes, input, saves and signing retained")
+          PY
+      - name: Apply v6.6 cave architecture and ore engravings for all 24 biomes
+        run: python3 chatgpt-shahta-v40/patch_architecture_v66.py
+      - name: Verify v6.6 visual coverage, unchanged input/save schema and debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV66CaveArchitecture(")==1
+          assert s.count("private void drawV66OreEngraving(")==1
+          assert s.count("drawV66CaveArchitecture(c,biome,bcol);")==1
+          assert s.count("drawV66OreEngraving(c,id,damageRatio);")==1
+          assert "final int family=index%6,epoch=index/6;" in s
+          assert "c.clipPath(v58RockShape(index));" in s
+          assert "drawV64BiomeHalo(c,biome,bcol);" in s
+          assert "drawV53LivingOreGlints(c,id,damageRatio);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "versionCode 43" in g and "versionName '6.6'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.6: 24x2 visual motifs, no gameplay/input/save changes, pinned debug signature")
+          PY
+      - name: Apply v6.7 illustrated atlas landscapes for all 24 biomes
+        run: python3 chatgpt-shahta-v40/patch_atlas_v67.py
+      - name: Verify v6.7 atlas reliefs, unchanged touch/save schema and pinned debug signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV67AtlasLandscape(")==1
+          assert s.count("drawV67AtlasLandscape(c,cx,cy,biome);")==1
+          assert "final int family=index%6,epoch=index/6;" in s
+          assert "c.clipRect(cx-23,cy-23,cx+23,cy+23);" in s
+          assert "drawV66CaveArchitecture(c,biome,bcol);" in s
+          assert "drawV66OreEngraving(c,id,damageRatio);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "versionCode 44" in g and "versionName '6.7'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          print("v6.7: 24 atlas scenes, zero-allocation drawing, save/input and signing invariants")
+          PY
+      - name: Apply v6.9 illustrated biome banners and progress tracks
+        run: python3 chatgpt-shahta-v40/patch_hud_v68.py
+      - name: Verify v6.9 visual coverage, 25-level progress, persistence and signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert s.count("private void drawV68BiomeBanner(")==1
+          assert s.count("drawV68BiomeBanner(c,biome,bcol);")==1
+          assert s.count("private void drawV63RankTrack(")==1
+          assert s.count("private void drawV55BiomeProgress(")==1
+          assert "final int family=index%6,epoch=index/6;" in s
+          assert "final int filled=1+(depth-1)%25;" in s
+          assert "drawV67AtlasLandscape(c,cx,cy,biome);" in s
+          assert "@Override public boolean onTouchEvent(MotionEvent e)" in s
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          assert "public void save()" in s and "private void rebirth()" in s
+          assert "private int zoneNo(){return (depth-1)/25;}" in s
+          assert "versionCode 45" in g and "versionName '6.8'" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          assert "applicationId 'com.bezdna.mine'" in g
+          print("v6.9: 24 biome banners, 25-step progress, 5 upgrade screens, saved state and signing")
+          PY
+      - name: Generate 24 raster material textures and apply v6.9 scene renderer
+        run: |
+          python3 -m pip install --disable-pip-version-check Pillow
+          python3 chatgpt-shahta-v40/generate_raster_v69.py
+          python3 chatgpt-shahta-v40/patch_raster_v69.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          textures=list((root/"app/src/main/assets/shahta_textures").glob("biome_*.png"))
+          assert len(textures)==24 and all(p.stat().st_size>10000 for p in textures)
+          s=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          g=(root/"app/build.gradle").read_text()
+          assert "drawV69RasterCave(c,biome);" in s
+          assert "versionName '6.9'" in g and "versionCode 46" in g
+          assert "signingConfig signingConfigs.shahtaDebug" in g
+          assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
+          print("24 actual PNG textures and gameplay/signing invariants verified")
+          PY
+      - name: Generate entire v7.0 raster artpack and apply full UI redesign
+        run: |
+          python3 -m pip install --disable-pip-version-check Pillow numpy
+          python3 chatgpt-shahta-v40/generate_art_v70.py
+          python3 chatgpt-shahta-v40/patch_full_redesign_v70.py
+          python3 chatgpt-shahta-v40/patch_modernist_v71.py
+          python3 chatgpt-shahta-v40/patch_modernist_v72.py
+          python3 chatgpt-shahta-v40/test_modernist_geometry_v72.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("chatgpt-shahta-v33/project")
+          assets=root/"app/src/main/assets/shahta_v70"
+          rocks=sorted(assets.glob("ore_*.png"))
+          caves=sorted(assets.glob("biome_*.jpg"))
+          assert len(rocks)==24 and len(caves)==24,(len(rocks),len(caves))
+          assert all(p.stat().st_size>12000 for p in rocks+caves)
+          for name in ["fractures.png","panel.png","button.png","button_off.png",
+                       "header.png","nav.png","menu_1.jpg","menu_2.jpg",
+                       "menu_3.jpg","menu_4.jpg"]:
+              assert (assets/name).stat().st_size>700,name
+          src=(root/"app/src/main/java/com/bezdna/mine/MineView.java").read_text()
+          gradle=(root/"app/build.gradle").read_text()
+          assert 'private void drawV70Placeholder(' not in src
+          for required in ["private void v72NineSlice(", "private void v72SectionHeader(",
+                           "private void drawForgeLegacy(", "private void drawGuildLegacy(",
+                           "private void drawCollectionLegacy(",
+                           "x=(x-13f)/.93f;", "y=(y-18f)/.94f;",
+                           "private void v70Draw(","v72NineSlice(c,\"panel.png\"",
+                           "if(screenY>=88&&screenY<=136)",
+                           "ore_%02d.png","biome_%02d.jpg","fractures.png",
+                           'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);',
+                           "public void save()","private void rebirth()"]:
+              assert required in src,required
+          assert "versionCode 48" in gradle
+          assert "versionName '7.0.1'" in gradle
+          assert "signingConfig signingConfigs.shahtaDebug" in gradle
+          print("v7.0 24+24 raster assets and full 5-tab UX contract verified")
+          PY
+      - name: Export rendered game source for visual audit
+        run: |
+          mkdir -p inspection
+          cp chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MineView.java inspection/MineView.java
+          cp chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MainActivity.java inspection/MainActivity.java
+          cp chatgpt-shahta-v33/project/app/build.gradle inspection/build.gradle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-v70-source-inspection
+          path: inspection/*
+          if-no-files-found: error
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      # Debug-only identity. GitHub cache persists the same debug certificate across
+      # successive CI runs on this branch. Never use it for a production release.
+      - name: Restore debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: shahta-v44-debug-keystore-20261102
+      - name: Initialize debug signing identity
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -s "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Shahta Debug,O=Anawagard,C=RU" -noprompt
+          fi
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep SHA256
+          pinned="CB:A5:21:97:28:75:54:86:04:AF:46:EF:77:43:1E:15:5F:17:FA:DD:90:1C:77:2C:83:9B:38:89:B8:1C:83:A0"
+          actual="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
+          if [ "$actual" != "$pinned" ]; then
+            echo "::error::Debug signing identity differs from v4.6. Refusing incompatible APK."
+            exit 1
+          fi
       - name: Build standard game APK
         working-directory: chatgpt-shahta-v33/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.0.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.0.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v4.0.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v4.0.apk | grep game_icon.png
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v7.0.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v7.0.1.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v7.0.1.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v7.0.1.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v7.0.1.apk | grep game_icon.png
+      - name: Check APK signing certificate matches cached identity
+        run: |
+          set -euo pipefail
+          expected="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
+          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v7.0.1.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
+          echo "Expected signing certificate: $expected"
+          echo "Actual APK certificate: $actual"
+          test "$expected" = "$actual"
       - name: Configure side-by-side installation
         run: |
           python3 - <<'PY'
@@ -125,20 +779,60 @@ jobs:
           manifest=root/"app/src/main/AndroidManifest.xml"
           s=manifest.read_text()
           assert 'android:label="Шахта без дна"' in s
-          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 4.0"'))
+          manifest.write_text(s.replace('android:label="Шахта без дна"','android:label="Шахта без дна 7.0.1"'))
           PY
       - name: Build side-by-side game APK
         working-directory: chatgpt-shahta-v33/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify side-by-side game APK
         run: |
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v4.0-Parallel.apk | tail -n 1
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v7.0.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v7.0.1-Parallel.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v7.0.1-Parallel.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v7.0.1-Parallel.apk | tail -n 1
           sha256sum artifacts/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v4.0-APKs
+          name: Shahta-Bez-Dna-v7.0.1-APKs
           path: artifacts/*.apk
           if-no-files-found: error
+
+  android-smoke:
+    name: Android emulator launch and screenshots
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    # Final release requires successful emulator installation and smoke checks.
+    # Infrastructure failures are retried or fixed before an APK is published.
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v7.0.1-APKs
+          path: smoke-apks
+      - name: Enable hardware-accelerated Android emulator when KVM is available
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            echo "KVM available: enabling acceleration"
+            ls -l /dev/kvm
+          else
+            echo "::warning::KVM unavailable; emulator will use slow software emulation"
+          fi
+      - name: Boot emulator, launch game and capture 3 screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader -noaudio -no-boot-anim -no-snapshot -camera-back none -cores 2 -memory 2048
+          script: bash chatgpt-shahta-v40/android_smoke_v70.sh
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-v70-android-smoke-screenshots
+          path: screenshots/
+          if-no-files-found: warn
