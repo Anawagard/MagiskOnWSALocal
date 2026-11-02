@@ -203,6 +203,10 @@ for j in range(24):
     draw.line([(x0+1,y0+1) for x0,y0 in pts],fill=(218,211,183,112),width=1)
 crack.save(OUT/"fractures.png",optimize=True)
 
+# Reuse the separately authored, textured miner sprite rather than a Canvas silhouette.
+from redesign_assets import miner as generate_miner_sprite
+generate_miner_sprite().save(OUT/"miner.png",optimize=True)
+assert (OUT/"miner.png").stat().st_size>5000
 assert len(list(OUT.glob("ore_*.png")))==24
 assert len(list(OUT.glob("biome_*.jpg")))==24
 print("V7.0 generated raster art: ",len(list(OUT.iterdir())),"files; bytes",
