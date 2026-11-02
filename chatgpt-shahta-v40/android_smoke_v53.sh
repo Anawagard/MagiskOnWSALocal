@@ -5,7 +5,12 @@ mkdir -p screenshots
 adb shell wm size 360x760
 adb shell wm density 160
 adb shell input keyevent KEYCODE_WAKEUP
-adb install -r smoke-apks/Shahta-Bez-Dna-v5.3.apk
+standard_apk=""
+for candidate in smoke-apks/Shahta-Bez-Dna-v*.apk; do
+  if [[ "$candidate" != *Parallel.apk ]]; then standard_apk="$candidate"; break; fi
+done
+test -n "$standard_apk"
+adb install -r "$standard_apk"
 adb shell am start -W -n com.bezdna.mine/.MainActivity
 python3 -m pip install --disable-pip-version-check --quiet Pillow
 
