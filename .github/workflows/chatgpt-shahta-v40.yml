@@ -681,6 +681,7 @@ jobs:
           python3 -m pip install --disable-pip-version-check Pillow numpy
           python3 chatgpt-shahta-v40/generate_art_v70.py
           python3 chatgpt-shahta-v40/patch_full_redesign_v70.py
+          python3 chatgpt-shahta-v40/patch_modernist_v71.py
           python3 - <<'PY'
           from pathlib import Path
           root=Path("chatgpt-shahta-v33/project")
