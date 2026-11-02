@@ -77,8 +77,8 @@ if adb shell run-as com.bezdna.mine pwd >/dev/null 2>&1; then
   for biome in $(seq 0 23); do
     depth=$((biome*25+1))
     adb shell am force-stop com.bezdna.mine
-    adb shell run-as com.bezdna.mine mkdir -p shared_prefs
-    printf '<?xml version="1.0" encoding="utf-8" standalone="yes" ?><map><int name="depth" value="%s" /><int name="discovered" value="24" /></map>\n' "$depth" | adb shell run-as com.bezdna.mine sh -c 'cat > shared_prefs/mine_save_v1.xml'
+    adb shell run-as com.bezdna.mine mkdir -p /data/user/0/com.bezdna.mine/shared_prefs
+    printf '<?xml version="1.0" encoding="utf-8" standalone="yes" ?><map><int name="depth" value="%s" /><int name="discovered" value="24" /></map>\n' "$depth" | adb shell "run-as com.bezdna.mine sh -c 'cat > /data/user/0/com.bezdna.mine/shared_prefs/mine_save_v1.xml'"
     adb shell am start -W -n com.bezdna.mine/.MainActivity >/dev/null
     sleep 1
     capture_ready "screenshots/biomes/$(printf '%02d' "$biome").png" 16
