@@ -41,6 +41,25 @@ for width,height in screens:
             assert xx+13-1e-5<=rx<=xx+152+1e-5
             assert yy+102-1e-5<=ry<=yy+138+1e-5
             checks+=1
+    for x,y in [(105,210),(220,325),(330,440)]:
+        px,py=physical(x,y+60,width,height)
+        rx,ry=logical(px,py,width,height)
+        ry-=60
+        assert 105-1e-5<=rx<=330+1e-5 and 210-1e-5<=ry<=440+1e-5
+        checks+=1
+    for i,x in enumerate((68,180,292)):
+        px,py=physical(x,627+60,width,height)
+        rx,ry=logical(px,py,width,height)
+        ry-=60
+        assert 609<=ry<=648
+        assert (0 if rx<124 else 1 if rx<236 else 2)==i
+        checks+=1
+    for x,y in ((293,120),(120,137)):
+        px,py=physical(x,y+60,width,height)
+        rx,ry=logical(px,py,width,height)
+        ry-=60
+        assert (rx>=235 and 95<=ry<=144) if x==293 else (rx<234 and 117<=ry<=157)
+        checks+=1
     for x,y in [(15,150),(180,340),(340,610),(180,645)]:
         sx,sy=feature_screen(x,y)
         px,py=physical(sx,sy,width,height)
