@@ -1,8 +1,6 @@
 name: Build Shahta Bez Dna v6.9 Android APK
+# Full redesign in progress. Builds are manual-only until final release.
 on:
-  push:
-    branches:
-      - chatgpt-shahta-v40-redesign-20261102
   workflow_dispatch:
 jobs:
   android:
