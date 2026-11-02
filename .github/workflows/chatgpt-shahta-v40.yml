@@ -405,7 +405,7 @@ jobs:
             assert len(files)==3,files
             for path in files:
                 raw=path.read_bytes()
-                assert raw[:8]==b"\\x89PNG\\r\\n\\x1a\\n",path
+                assert raw.startswith(bytes([137,80,78,71,13,10,26,10])),path
                 width,height=unpack(">II",raw[16:24])
                 assert width>=320 and height>=640,(path,width,height)
                 assert len(raw)>6000,(path,len(raw))
