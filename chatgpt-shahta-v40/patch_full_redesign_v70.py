@@ -168,6 +168,8 @@ replace_method("private void drawMine(Canvas c)",r"""
         // faceting, vector pickaxe and decorative particle rings.
         v70Draw(c,String.format(Locale.US,"ore_%02d.png",id),
                 47,203,266,249,255);
+        v70Draw(c,"fractures.png",47,203,266,249,
+            (int)(Math.max(0f,Math.min(1f,1-rockHp/(float)Math.max(1,rockMax)))*210));
         if(guardian())v70Draw(c,"ore_09.png",115,247,130,127,110);
         if(treasure())v70Draw(c,"ore_03.png",112,282,140,129,145);
         if(geode())v70Draw(c,"ore_07.png",118,270,125,126,160);
