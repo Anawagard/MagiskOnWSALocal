@@ -85,6 +85,40 @@ for i,j in ((0,2),(2,3)):
     print("Page transition visual delta:",round(delta,2))
 PY
 
+# v6.3 visual regression coverage: shop technology page and four forge tabs.
+# Only screenshots are taken; no upgrade buttons or player data are modified.
+adb shell input tap 109 680
+sleep 1
+adb shell input tap 180 123
+sleep 1
+capture_ready screenshots/04-tech-shop.png
+adb shell input tap 180 680
+sleep 1
+capture_ready screenshots/05-forge-relics.png
+for item in "136:06-forge-talents" "222:07-forge-runes" "307:08-forge-mastery"; do
+  x="${item%%:*}"
+  name="${item#*:}"
+  adb shell input tap "$x" 161
+  sleep 1
+  capture_ready "screenshots/${name}.png"
+done
+python3 - <<'PY'
+from pathlib import Path
+from PIL import Image, ImageChops, ImageStat
+files=[Path('screenshots')/f for f in (
+  '04-tech-shop.png','05-forge-relics.png','06-forge-talents.png',
+  '07-forge-runes.png','08-forge-mastery.png')]
+for path in files:
+    assert path.is_file(),path
+    assert path.stat().st_size>12000,path
+for a,b in zip(files,files[1:]):
+    ia=Image.open(a).convert('RGB').crop((15,180,345,635))
+    ib=Image.open(b).convert('RGB').crop((15,180,345,635))
+    delta=sum(ImageStat.Stat(ImageChops.difference(ia,ib)).mean)/3
+    assert delta>3,(a,b,delta)
+    print('Upgrade UI screenshot difference:',a.name,b.name,round(delta,2))
+PY
+
 # Visual audit: seed the app's *debug emulator only* SharedPreferences.
 # This never modifies a user's phone, APK, import/export schema or release data.
 if adb shell run-as com.bezdna.mine pwd >/dev/null 2>&1; then
