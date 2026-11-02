@@ -126,7 +126,7 @@ method("drawMine",r"""
         v70Plate(c,10,96,340,78);
         fittedText(c,ZONES[biome],180,121,18,0xfff9ead0,315);
         fittedText(c,"ГЛУБИНА "+depth+"  ·  "+ORE_NAMES[ore()],180,143,12,0xffc6e6df,316);
-        drawV55BiomeProgress(c,biome);
+        c.save();c.translate(0,20);drawV55BiomeProgress(c,biome);c.restore();
         v70Plate(c,12,183,336,311);
         c.save();c.clipRect(17,188,343,488);
         v70Cave(c,biome);
