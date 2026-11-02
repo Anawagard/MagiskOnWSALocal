@@ -44,6 +44,12 @@ PY
 
 adb shell pidof com.bezdna.mine
 capture_ready screenshots/01-mine.png
+# Exercise actual mining, fracture surfaces and hit/debris rendering.
+adb shell input tap 180 329
+adb shell input tap 180 329
+adb shell input tap 180 329
+sleep 0.2
+capture_ready screenshots/01b-damage.png
 # Emulator 360x760 includes status and system navigation; Canvas tabs are at y~680.
 adb shell input tap 109 680
 sleep 3
@@ -58,7 +64,7 @@ python3 - <<'PY'
 from pathlib import Path
 from PIL import Image, ImageChops, ImageStat
 files=sorted(Path("screenshots").glob("*.png"))
-assert len(files)==3,files
+assert len(files)==4,files
 images=[]
 for path in files:
     im=Image.open(path).convert("RGB")
@@ -67,11 +73,15 @@ for path in files:
     assert path.stat().st_size>12000 and mean>18,(path,mean)
     images.append(im)
     print(path,path.stat().st_size,im.size,round(mean,2))
-for i in range(2):
+damage_delta=sum(ImageStat.Stat(ImageChops.difference(
+    images[0].crop((70,220,290,465)),images[1].crop((70,220,290,465)))).mean)/3
+assert damage_delta>1.2,("Mining visual did not change",damage_delta)
+print("Mining damage visual delta:",round(damage_delta,2))
+for i,j in ((0,2),(2,3)):
     first=images[i].crop((10,120,350,630))
-    second=images[i+1].crop((10,120,350,630))
+    second=images[j].crop((10,120,350,630))
     delta=sum(ImageStat.Stat(ImageChops.difference(first,second)).mean)/3
-    assert delta>8,(files[i],files[i+1],delta)
+    assert delta>8,(files[i],files[j],delta)
     print("Page transition visual delta:",round(delta,2))
 PY
 
