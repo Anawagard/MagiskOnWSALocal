@@ -98,7 +98,7 @@ capture_ready screenshots/05-forge-relics.png
 for item in "136:06-forge-talents" "222:07-forge-runes" "307:08-forge-mastery"; do
   x="${item%%:*}"
   name="${item#*:}"
-  adb shell input tap "$x" 161
+  adb shell input tap "$x" 180
   sleep 1
   capture_ready "screenshots/${name}.png"
 done
