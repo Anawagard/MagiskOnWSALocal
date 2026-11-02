@@ -178,6 +178,21 @@ panel_art(OUT/"button.png",(51,112,116),(186,224,208),size=(160,64),bright=True)
 panel_art(OUT/"button_off.png",(49,62,70),(95,118,126),size=(160,64))
 panel_art(OUT/"header.png",(27,42,57),(184,158,112),size=(360,88))
 panel_art(OUT/"nav.png",(22,41,52),(154,185,182),size=(360,50))
+# Crack texture: real alpha-image wear, blended by HP damage at draw time.
+crack=Image.new("RGBA",(300,300),(0,0,0,0))
+draw=ImageDraw.Draw(crack,"RGBA")
+rr=np.random.default_rng(44571)
+for j in range(24):
+    x=int(rr.integers(40,255));y=int(rr.integers(35,245))
+    pts=[(x,y)]
+    for segment in range(int(rr.integers(3,8))):
+        x+=int(rr.integers(-23,24))
+        y+=int(rr.integers(-15,25))
+        pts.append((x,y))
+    draw.line(pts,fill=(9,13,17,215),width=int(rr.integers(2,5)),joint="curve")
+    draw.line([(x0+1,y0+1) for x0,y0 in pts],fill=(218,211,183,112),width=1)
+crack.save(OUT/"fractures.png",optimize=True)
+
 assert len(list(OUT.glob("ore_*.png")))==24
 assert len(list(OUT.glob("biome_*.jpg")))==24
 print("V7.0 generated raster art: ",len(list(OUT.iterdir())),"files; bytes",
