@@ -73,10 +73,10 @@ replace_method("private void panel(Canvas c,float x,float y,float w,float h,int 
 replace_method("private void button(Canvas c,float x,float y,float w,float h,String title,String sub,boolean enabled)",r"""
     private void button(Canvas c,float x,float y,float w,float h,String title,String sub,boolean enabled){
         v70Draw(c,enabled?"button.png":"button_off.png",x,y,w,h,255);
-        text(c,title,x+w/2,y+Math.max(17,h*.36f),12,enabled?0xfff6ebce:0xffc0c6cb,true);
+        text(c,title,x+w/2,y+Math.max(17,h*.36f),12,enabled?0xffe8fffa:0xffc0c6cb,true);
         if(sub!=null&&!sub.isEmpty())
             fittedText(c,sub,x+w/2,y+Math.max(32,h*.72f),10,
-                enabled?0xffd9f4ee:0xff9eacb4,w-8);
+                enabled?0xffaef0e4:0xff9eacb4,w-8);
     }
 """)
 replace_method("@Override protected void onDraw(Canvas canvas)",r"""
@@ -127,11 +127,11 @@ replace_method("private void drawPage(Canvas c,int tab)",r"""
 replace_method("private void drawHeader(Canvas c)",r"""
     private void drawHeader(Canvas c){
         v70Draw(c,"header.png",0,0,360,88,255);
-        text(c,"D E E P  •  M I N E",180,25,20,0xfff5ddaa,true);
+        text(c,"D E E P  /  M I N E",180,25,19,0xffe7f6f4,true);
         v70Draw(c,"ore_03.png",10,40,31,31,255);
         v70Draw(c,"ore_07.png",190,40,30,31,255);
-        fittedText(c,fmt(coins)+"  МОНЕТ",103,61,14,0xffffdc9a,136);
-        fittedText(c,fmt(gems)+"  КРИСТ.",281,61,13,0xffb7ffdb,125);
+        fittedText(c,fmt(coins)+"  МОНЕТ",103,61,14,0xffa9f4dc,136);
+        fittedText(c,fmt(gems)+"  КРИСТ.",281,61,13,0xffa4d5fa,125);
     }
 """)
 replace_method("private void drawBottom(Canvas c)",r"""
@@ -144,7 +144,7 @@ replace_method("private void drawBottom(Canvas c)",r"""
             else v70Draw(c,"button_off.png",x,91,65,40,196);
             v70Draw(c,V70_ICONS[i],x+22,92,21,22,255);
             text(c,V70_NAV[i],x+32.5f,126,8,
-                page==i?0xffffe8ad:0xffc2d0ce,true);
+                page==i?0xffb4ffeb:0xffa4bac6,true);
         }
     }
 """)
@@ -155,12 +155,12 @@ replace_method("private void drawMine(Canvas c)",r"""
         final int tint=BIOME[biome];
         // New composition: expansive environment and independent fully-textured ore.
         panel(c,18,93,324,66,0xff263c42);
-        fittedText(c,"ЭКСПЕДИЦИЯ  •  ГЛУБИНА "+depth,180,115,16,0xfff6dfae,304);
+        fittedText(c,"СЕКТОР / ГЛУБИНА "+depth,180,115,16,0xffe7f6f4,304);
         fittedText(c,ZONES[biome]+"   |   "+ORE_NAMES[id],180,139,11,
             colorBlend(tint,WHITE,.62f),310);
         round(c,28,171,304,5,2,0xff182e34);
         float step=((depth-1)%25+1)/25f;
-        rect(c,30,172,300*step,3,colorBlend(tint,0xfff7dfa5,.40f));
+        rect(c,30,172,300*step,3,colorBlend(tint,0xff64e4ce,.40f));
         c.save();
         float bob=fxEnabled?(float)Math.sin(time*1.7f)*1.3f:0f;
         c.translate(0,bob);
@@ -187,12 +187,12 @@ replace_method("private void drawMine(Canvas c)",r"""
             modifier()>0?MOD_NAMES[modifier()]:"ПРОЧНОСТЬ РУДЫ",
             180,479,12,guardian()?0xffffac8c:0xffd8f3e6,306);
         fittedText(c,wholeHp(Math.max(0,rockHp))+" / "+wholeHp(rockMax),
-            180,500,17,0xfff9f1d8,306);
+            180,500,17,0xffe5f7f6,306);
         bar(c,28,512,304,13,displayedHpRatio,
             guardian()?0xffee865e:colorBlend(tint,0xff8aeab4,.44f));
         fittedText(c,"УРОН "+fmt(damage())+"   •   БУР "+
             String.format(Locale.US,"%.1f",dps())+"/с",
-            180,549,12,0xfff4e6c7,314);
+            180,549,12,0xffd4e9ed,314);
         fittedText(c,richVein()?"БОГАТАЯ ЖИЛА • x3 МОНЕТЫ":
             guardian()?"ПОБЕДИ СТРАЖА ДО ИСТЕЧЕНИЯ ВРЕМЕНИ":
             modifier()==4&&volatileSeconds>0?"НЕСТАБИЛЬНАЯ ПОРОДА":
@@ -207,7 +207,7 @@ replace_method("private void drawMine(Canvas c)",r"""
                 Math.max(0,(trialDeadline-System.currentTimeMillis())/1000)+" СЕК.":
                 crystalSurgeTime>0?"РЕЗОНАНС • "+(int)crystalSurgeTime+" СЕК.":
                 "СЛЕДУЮЩАЯ ЗОНА ЧЕРЕЗ "+(25-(depth-1)%25)+" УР.",
-                180,597,11,0xfff5dea9,316);
+                180,597,11,0xffa5e5dc,316);
         }
         powerButton(c,16,610,104,"ФОРСАЖ",
             boostTime>0?"АКТИВНО "+(int)boostTime+"с":
@@ -230,7 +230,7 @@ replace_method("private void powerButton(Canvas c,int x,int y,int w,String title
     private void powerButton(Canvas c,int x,int y,int w,String title,String sub,boolean enabled){
         v70Draw(c,enabled?"button.png":"button_off.png",x,y,w,35,255);
         text(c,title,x+w/2f,y+15,11,
-            enabled?0xffffe4ac:0xffbfc3ca,true);
+            enabled?0xffd5fff5:0xffbfc3ca,true);
         fittedText(c,sub,x+w/2f,y+28,9,0xffe0edeb,w-8);
     }
 """)
