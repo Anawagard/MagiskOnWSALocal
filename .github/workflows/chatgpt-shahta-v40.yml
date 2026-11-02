@@ -1,9 +1,6 @@
 name: Build Shahta Bez Dna v7.0.1 Android APK
-# v7.0 final integrated redesign build: native textured sprites and top navigation.
+# Full v7.0.1 release validated; further intermediate commits must not build APK.
 on:
-  push:
-    branches:
-      - chatgpt-shahta-v40-redesign-20261102
   workflow_dispatch:
 jobs:
   android:
