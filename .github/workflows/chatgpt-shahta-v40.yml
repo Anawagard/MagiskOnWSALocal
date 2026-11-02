@@ -392,6 +392,15 @@ jobs:
         with:
           name: Shahta-Bez-Dna-v5.2-APKs
           path: smoke-apks
+      - name: Enable hardware-accelerated Android emulator when KVM is available
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            echo "KVM available: enabling acceleration"
+            ls -l /dev/kvm
+          else
+            echo "::warning::KVM unavailable; emulator will use slow software emulation"
+          fi
       - name: Boot emulator, launch game and capture 3 screens
         uses: reactivecircus/android-emulator-runner@v2
         with:
