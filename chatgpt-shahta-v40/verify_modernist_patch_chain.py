@@ -19,7 +19,30 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 DEFAULT_PROJECT = REPO / "chatgpt-shahta-v33" / "project"
-PROJECT = Path(os.environ["SHAHTA_BASELINE_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_BASELINE_PROJECT") else DEFAULT_PROJECT
+def locate_project():
+    """Resolve the real Android baseline, never treating patch scripts as a project."""
+    configured = os.environ.get("SHAHTA_BASELINE_PROJECT")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    if DEFAULT_PROJECT.is_dir():
+        return DEFAULT_PROJECT
+    candidates = []
+    for parent in (REPO, REPO.parent):
+        for gradle in parent.glob("*/project/app/build.gradle"):
+            candidate = gradle.parent.parent.parent
+            if (candidate / "app/src/main/java/com/bezdna/mine/MineView.java").is_file() and (
+                candidate / "app/src/main/java/com/bezdna/mine/MainActivity.java"
+            ).is_file():
+                candidates.append(candidate.resolve())
+    candidates = sorted(set(candidates))
+    if len(candidates) > 1:
+        raise SystemExit(
+            "BLOCKED: multiple Android baselines found; set SHAHTA_BASELINE_PROJECT: "
+            + ", ".join(map(str, candidates))
+        )
+    return candidates[0] if candidates else DEFAULT_PROJECT
+
+PROJECT = locate_project()
 PREPARE = [HERE / "patch_full_redesign_v70.py", HERE / "patch_modernist_v71.py"]
 PATCHES = [HERE / f"patch_modernist_v{v}.py" for v in range(72, 78)]
 if not PROJECT.is_dir():
