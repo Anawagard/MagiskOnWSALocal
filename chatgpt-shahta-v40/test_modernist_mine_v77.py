@@ -21,9 +21,9 @@ sizes=[(320,568),(360,720),(393,852),(720,1280),(1080,2400),(1272,2772),(1440,32
 nav=(0,88,360,136)
 mine_header=(18,93,342,176)
 toast=(18,237,342,269)
-ore=(105,210,330,440)
-hp=(18,457,342,576)
-power=(16,610,344,645)
+ore=(105,270,330,500)  # rendered mine hitbox: source y=210..440 plus +60
+hp=(18,517,342,636)  # source panel shifted +60
+power=(16,670,344,705)  # source action controls shifted +60
 checks=0
 
 def overlaps(a,b):
@@ -32,7 +32,7 @@ def overlaps(a,b):
 # Mine content is translated +60 before rendering; top navigation is not.
 assert not overlaps((nav[0],nav[1],nav[2],nav[3]),
                     (mine_header[0],mine_header[1]+60,mine_header[2],mine_header[3]+60))
-assert not overlaps(mine_header,ore)
+assert not overlaps((mine_header[0],mine_header[1]+60,mine_header[2],mine_header[3]+60),ore)
 assert not overlaps(toast,ore)
 assert not overlaps(toast,(mine_header[0],mine_header[1]+60,mine_header[2],mine_header[3]+60))
 assert not overlaps(hp,ore)
@@ -45,7 +45,7 @@ checks+=8
 # rectangle must not obscure the mine tap target or the bottom action button.
 assert not overlaps(toast,power)
 assert toast[1] > mine_header[3]+60
-assert toast[3] < ore[3]  # overlay remains in the upper ore region only
+assert toast[3] < ore[1]  # toast ends before the translated ore hitbox
 checks+=3
 
 for width,height in sizes:
@@ -76,6 +76,6 @@ for width,height in sizes:
         assert 39+282*step<=321
         checks+=1
     for x,y in ((105,210),(215,320),(330,440)):
-        assert ore[0]<=x<=ore[2] and ore[1]<=y<=ore[3]
+        assert ore[0]<=x<=ore[2] and ore[1]<=y+60<=ore[3]
         checks+=1
 print(f"PASS: {checks} source-only mine/HUD checks on {len(sizes)} screen sizes")
