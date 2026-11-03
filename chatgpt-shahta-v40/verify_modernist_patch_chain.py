@@ -4,6 +4,8 @@ Run from any directory: python3 chatgpt-shahta-v40/verify_modernist_patch_chain.
 Copies the Android project into a temporary directory; never runs Gradle,
 Android tooling, network requests, or GitHub Actions. Does not modify checkout.
 Requires the v7.1 baseline (v70Asset and modernist raster assets).
+If it is not checked into this branch, set SHAHTA_BASELINE_PROJECT to an
+existing local project directory. Missing input fails before any patch runs.
 """
 from pathlib import Path
 import ast
@@ -16,9 +18,23 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
-PROJECT = REPO / "chatgpt-shahta-v33" / "project"
+DEFAULT_PROJECT = REPO / "chatgpt-shahta-v33" / "project"
+PROJECT = Path(os.environ["SHAHTA_BASELINE_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_BASELINE_PROJECT") else DEFAULT_PROJECT
 PATCHES = [HERE / f"patch_modernist_v{v}.py" for v in range(72, 78)]
-assert PROJECT.is_dir(), f"Missing baseline project: {PROJECT}"
+if not PROJECT.is_dir():
+    raise SystemExit(
+        f"BLOCKED: v7.1 Android baseline not found at {PROJECT}. "
+        "Provide the actual project directory with SHAHTA_BASELINE_PROJECT; "
+        "no patches or builds were run."
+    )
+required = (
+    "app/src/main/java/com/bezdna/mine/MineView.java",
+    "app/src/main/java/com/bezdna/mine/MainActivity.java",
+    "app/build.gradle",
+)
+missing = [name for name in required if not (PROJECT / name).is_file()]
+if missing:
+    raise SystemExit(f"BLOCKED: baseline at {PROJECT} lacks: {missing}; no patches or builds were run.")
 assert all(p.is_file() for p in PATCHES)
 for patch in PATCHES:
     ast.parse(patch.read_text(encoding="utf-8"), filename=str(patch))
