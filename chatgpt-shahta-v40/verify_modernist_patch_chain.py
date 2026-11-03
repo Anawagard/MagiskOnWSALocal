@@ -8,6 +8,7 @@ Requires the v7.1 baseline (v70Asset and modernist raster assets).
 from pathlib import Path
 import ast
 import contextlib
+import hashlib
 import os
 import runpy
 import shutil
@@ -30,6 +31,13 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     java = target / "app/src/main/java/com/bezdna/mine/MineView.java"
     activity = target / "app/src/main/java/com/bezdna/mine/MainActivity.java"
     gradle = target / "app/build.gradle"
+    def snapshot(tree):
+        return {
+            p.relative_to(tree).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in tree.rglob("*") if p.is_file()
+        }
+
+    baseline_files = snapshot(target)
     before_activity = activity.read_bytes()
     before_gradle = gradle.read_bytes()
     before = java.read_text(encoding="utf-8")
@@ -43,6 +51,11 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     finally:
         os.chdir(original_cwd)
     after = java.read_text(encoding="utf-8")
+    updated_files = snapshot(target)
+    java_rel = java.relative_to(target).as_posix()
+    assert updated_files.keys() == baseline_files.keys(), "Patch chain added or removed project files"
+    changed = {name for name in baseline_files if baseline_files[name] != updated_files[name]}
+    assert changed == {java_rel}, f"Unexpected changed files: {sorted(changed)}"
     assert after != before
     assert activity.read_bytes() == before_activity, "Activity/save wiring changed"
     assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
@@ -58,4 +71,4 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert after.count("c.translate(13f,18f);") == 3
     assert after.count("c.scale(.93f,.94f);") == 3
     print("PASS: six patches applied in order to disposable source tree; "
-          "navigation, saves, package/signing config retained; no build.")
+          "only MineView.java changed; navigation, saves, package/signing config retained; no build.")
