@@ -70,6 +70,6 @@ gradle=(root/"app/build.gradle").read_text()
 assert "applicationId 'com.bezdna.mine'" in gradle
 assert "signingConfig signingConfigs.shahtaDebug" in gradle
 assert s.count('v72NineSlice(c,"panel.png",18,93,324,83,255);')==1
-assert s.count('v72NineSlice(canvas,"panel.png",18,237,324,32,252);')==1
+assert s.count('v72NineSlice(canvas,"panel.png",18,240,324,26,252);')==1
 source.write_text(s)
 print("v7.7: mine telemetry, health surface and global toast restyled; source-only")
