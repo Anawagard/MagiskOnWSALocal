@@ -688,6 +688,7 @@ jobs:
           python3 chatgpt-shahta-v40/patch_modernist_v75.py
           python3 chatgpt-shahta-v40/patch_modernist_v76.py
           python3 chatgpt-shahta-v40/patch_modernist_v77.py
+          python3 chatgpt-shahta-v40/patch_modernist_v78.py
           python3 chatgpt-shahta-v40/test_modernist_geometry_v72.py
           python3 chatgpt-shahta-v40/test_modernist_settings_v73.py
           python3 chatgpt-shahta-v40/test_modernist_shop_v74.py
