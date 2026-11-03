@@ -50,9 +50,9 @@ once("""        if(System.currentTimeMillis()<toastUntil){
             fittedText(canvas,toast,180,159,12,0xfff6e5c7,290);
         }""",
 """        if(System.currentTimeMillis()<toastUntil){
-            v72NineSlice(canvas,"panel.png",18,237,324,32,252);
-            rect(canvas,26,243,3,19,0xff65e1d0);
-            leftFittedText(canvas,toast,39,257,12,0xfff0fffb,285);
+            v72NineSlice(canvas,"panel.png",18,240,324,26,252);
+            rect(canvas,26,245,3,16,0xff65e1d0);
+            leftFittedText(canvas,toast,39,258,12,0xfff0fffb,285);
         }""")
 
 for marker in (
