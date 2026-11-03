@@ -20,7 +20,7 @@ def audit():
     assert "actions/upload-artifact@v4" in data, "APK artifact upload missing"
     assert "android_smoke_v70.sh" in data, "Android smoke gate missing"
 
-    scripts = [f"patch_modernist_v{i}.py" for i in range(71, 78)]
+    scripts = [f"patch_modernist_v{i}.py" for i in range(71, 79)]
     offsets = []
     for name in scripts:
         pattern = rf"(?m)^\s*python3 chatgpt-shahta-v40/{re.escape(name)}\s*$"
@@ -42,7 +42,7 @@ def audit():
     assert f"versionName '{version}'" in data or version == "7.0.1", (
         "APK filename does not match a declared release version"
     )
-    print("PASS: manual-only workflow; one build; ordered v7.1-v7.7 patch chain; smoke gate")
+    print("PASS: manual-only workflow; one build; ordered v7.1-v7.8 patch chain; smoke gate")
     print(f"WARNING: release output is named {apk_name}; this test does NOT verify Gradle version or binary contents.")
     print("NOTE: passing this audit does not prove patches apply or Android compilation succeeds.")
 
