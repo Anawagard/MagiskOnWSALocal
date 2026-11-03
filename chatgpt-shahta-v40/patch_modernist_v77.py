@@ -50,9 +50,9 @@ once("""        if(System.currentTimeMillis()<toastUntil){
             fittedText(canvas,toast,180,159,12,0xfff6e5c7,290);
         }""",
 """        if(System.currentTimeMillis()<toastUntil){
-            v72NineSlice(canvas,"panel.png",18,139,324,38,252);
-            rect(canvas,26,147,3,22,0xff65e1d0);
-            leftFittedText(canvas,toast,39,163,12,0xfff0fffb,285);
+            v72NineSlice(canvas,"panel.png",18,237,324,32,252);
+            rect(canvas,26,243,3,19,0xff65e1d0);
+            leftFittedText(canvas,toast,39,257,12,0xfff0fffb,285);
         }""")
 
 for marker in (
@@ -70,6 +70,6 @@ gradle=(root/"app/build.gradle").read_text()
 assert "applicationId 'com.bezdna.mine'" in gradle
 assert "signingConfig signingConfigs.shahtaDebug" in gradle
 assert s.count('v72NineSlice(c,"panel.png",18,93,324,83,255);')==1
-assert s.count('v72NineSlice(canvas,"panel.png",18,139,324,38,252);')==1
+assert s.count('v72NineSlice(canvas,"panel.png",18,237,324,32,252);')==1
 source.write_text(s)
 print("v7.7: mine telemetry, health surface and global toast restyled; source-only")
