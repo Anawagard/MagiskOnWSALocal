@@ -10,8 +10,8 @@ for marker in (
     'leftFittedText(c,ZONES[biome]+" / "+ORE_NAMES[id],',
     'rect(c,39,158,282*step,5,0xff64ddce)',
     'v72NineSlice(c,"panel.png",18,457,324,119,255)',
-    'v72NineSlice(canvas,"panel.png",18,139,324,38,252)',
-    'leftFittedText(canvas,toast,39,163,12,0xfff0fffb,285)',
+    'v72NineSlice(canvas,"panel.png",18,237,324,32,252)',
+    'leftFittedText(canvas,toast,39,257,12,0xfff0fffb,285)',
     'else if(x>=105&&x<=330&&y>=210&&y<=440)',
 ):
     assert marker in patch,marker
@@ -20,7 +20,7 @@ W,H=360,720
 sizes=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 nav=(0,88,360,136)
 mine_header=(18,93,342,176)
-toast=(18,139,342,177)
+toast=(18,237,342,269)
 ore=(105,210,330,440)
 hp=(18,457,342,576)
 power=(16,610,344,645)
@@ -34,11 +34,12 @@ assert not overlaps((nav[0],nav[1],nav[2],nav[3]),
                     (mine_header[0],mine_header[1]+60,mine_header[2],mine_header[3]+60))
 assert not overlaps(mine_header,ore)
 assert not overlaps(toast,ore)
+assert not overlaps(toast,(mine_header[0],mine_header[1]+60,mine_header[2],mine_header[3]+60))
 assert not overlaps(hp,ore)
 assert not overlaps(hp,power)
 assert 40+171 < 276-116/2  # depth label cannot enter the sector label
 assert 39+285 <= 342       # notification text remains within the panel
-checks+=7
+checks+=8
 
 for width,height in sizes:
     scale=min(width/W,height/H)
