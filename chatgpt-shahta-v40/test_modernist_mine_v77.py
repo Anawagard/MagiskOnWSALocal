@@ -17,7 +17,7 @@ for marker in (
     assert marker in patch,marker
 
 W,H=360,720
-sizes=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+sizes=[(320,568),(360,720),(393,852),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 nav=(0,88,360,136)
 mine_header=(18,93,342,176)
 toast=(18,237,342,269)
@@ -41,6 +41,13 @@ assert 40+171 < 276-116/2  # depth label cannot enter the sector label
 assert 39+285 <= 342       # notification text remains within the panel
 checks+=8
 
+# Notifications are visual overlays, not interactive controls. Their visible
+# rectangle must not obscure the mine tap target or the bottom action button.
+assert not overlaps(toast,power)
+assert toast[1] > mine_header[3]+60
+assert toast[3] < ore[3]  # overlay remains in the upper ore region only
+checks+=3
+
 for width,height in sizes:
     scale=min(width/W,height/H)
     ox=(width-W*scale)/2
@@ -55,6 +62,14 @@ for width,height in sizes:
         assert isclose(rx,x,abs_tol=1e-5)
         assert isclose(ry,y,abs_tol=1e-5)
         checks+=1
+    # Confirm that the toast and mining target retain their relative separation
+    # after letterboxing, including narrow and unusually tall displays.
+    def screen_rect(r):
+        return (ox+r[0]*scale,oy+r[1]*scale,
+                ox+r[2]*scale,oy+r[3]*scale)
+    assert not overlaps(screen_rect(toast),screen_rect(ore))
+    assert not overlaps(screen_rect(toast),screen_rect(power))
+    checks+=2
     for depth in (1,24,25,26,100,600):
         step=((depth-1)%25+1)/25
         assert 0<step<=1
