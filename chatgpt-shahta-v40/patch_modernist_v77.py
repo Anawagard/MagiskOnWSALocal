@@ -28,7 +28,7 @@ once("""        panel(c,18,93,324,66,0xff263c42);
         rect(c,30,172,300*step,3,colorBlend(tint,0xff64e4ce,.40f));""",
 """        v72NineSlice(c,"panel.png",18,93,324,83,255);
         rect(c,27,104,3,45,0xff64ddce);
-        leftFittedText(c,"ГЛУБИНА "+depth,40,119,17,0xffeffffc,184);
+        leftFittedText(c,"ГЛУБИНА "+depth,40,119,17,0xffeffffc,171);
         fittedText(c,"СЕКТОР "+(biome+1)+" / 24",276,117,11,
             0xffa2e7da,116);
         leftFittedText(c,ZONES[biome]+" / "+ORE_NAMES[id],
