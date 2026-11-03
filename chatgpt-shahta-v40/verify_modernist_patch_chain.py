@@ -3,7 +3,7 @@
 Run from any directory: python3 chatgpt-shahta-v40/verify_modernist_patch_chain.py
 Copies the Android project into a temporary directory; never runs Gradle,
 Android tooling, network requests, or GitHub Actions. Does not modify checkout.
-Requires the v7.1 baseline (v70Asset and modernist raster assets).
+Accepts either a raw v6.9 project or an already-prepared v7.1 baseline.
 If it is not checked into this branch, set SHAHTA_BASELINE_PROJECT to an
 existing local project directory. Missing input fails before any patch runs.
 """
@@ -20,6 +20,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 DEFAULT_PROJECT = REPO / "chatgpt-shahta-v33" / "project"
 PROJECT = Path(os.environ["SHAHTA_BASELINE_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_BASELINE_PROJECT") else DEFAULT_PROJECT
+PREPARE = [HERE / "patch_full_redesign_v70.py", HERE / "patch_modernist_v71.py"]
 PATCHES = [HERE / f"patch_modernist_v{v}.py" for v in range(72, 78)]
 if not PROJECT.is_dir():
     raise SystemExit(
@@ -35,8 +36,8 @@ required = (
 missing = [name for name in required if not (PROJECT / name).is_file()]
 if missing:
     raise SystemExit(f"BLOCKED: baseline at {PROJECT} lacks: {missing}; no patches or builds were run.")
-assert all(p.is_file() for p in PATCHES)
-for patch in PATCHES:
+assert all(p.is_file() for p in PREPARE + PATCHES)
+for patch in PREPARE + PATCHES:
     ast.parse(patch.read_text(encoding="utf-8"), filename=str(patch))
 
 with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
@@ -57,11 +58,15 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     before_activity = activity.read_bytes()
     before_gradle = gradle.read_bytes()
     before = java.read_text(encoding="utf-8")
-    assert "v70Asset(" in before, "Baseline lacks v7.1 raster support"
+    prepared = "v70Asset(" in before and "v71Scale(" in before
+    if not prepared:
+        assert "v70Asset(" not in before and "v71Scale(" not in before, "Partially patched baseline"
+        assert "versionCode 46" in gradle.read_text() and "versionName '6.9'" in gradle.read_text(), "Raw baseline must be v6.9"
+    chain = PATCHES if prepared else PREPARE + PATCHES
     original_cwd = Path.cwd()
     try:
         os.chdir(root)
-        for patch in PATCHES:
+        for patch in chain:
             print(f"APPLY source-only {patch.name}", flush=True)
             runpy.run_path(str(patch), run_name="__main__")
     finally:
@@ -71,10 +76,15 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     java_rel = java.relative_to(target).as_posix()
     assert updated_files.keys() == baseline_files.keys(), "Patch chain added or removed project files"
     changed = {name for name in baseline_files if baseline_files[name] != updated_files[name]}
-    assert changed == {java_rel}, f"Unexpected changed files: {sorted(changed)}"
+    expected_changed = {java_rel} if prepared else {java_rel, gradle.relative_to(target).as_posix()}
+    assert changed == expected_changed, f"Unexpected changed files: {sorted(changed)}"
     assert after != before
     assert activity.read_bytes() == before_activity, "Activity/save wiring changed"
-    assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
+    if prepared:
+        assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
+    else:
+        expected_gradle = before_gradle.decode("utf-8").replace("versionCode 46", "versionCode 48").replace("versionName '6.9'", "versionName '7.0.1'")
+        assert gradle.read_text() == expected_gradle, "Unexpected Gradle change"
     for marker in (
         'v72NineSlice(c,"panel.png",18,93,324,83,255);',
         'v72NineSlice(canvas,"panel.png",18,240,324,26,252);',
@@ -86,5 +96,5 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         assert marker in after, f"Missing post-chain invariant: {marker}"
     assert after.count("c.translate(13f,18f);") == 3
     assert after.count("c.scale(.93f,.94f);") == 3
-    print("PASS: six patches applied in order to disposable source tree; "
-          "only MineView.java changed; navigation, saves, package/signing config retained; no build.")
+    print(f"PASS: {len(chain)} patches applied in order to disposable source tree; "
+          "only expected source/version files changed; saves, package/signing retained; no build.")
