@@ -10,8 +10,8 @@ for marker in (
     'leftFittedText(c,ZONES[biome]+" / "+ORE_NAMES[id],',
     'rect(c,39,158,282*step,5,0xff64ddce)',
     'v72NineSlice(c,"panel.png",18,457,324,119,255)',
-    'v72NineSlice(canvas,"panel.png",18,237,324,32,252)',
-    'leftFittedText(canvas,toast,39,257,12,0xfff0fffb,285)',
+    'v72NineSlice(canvas,"panel.png",18,240,324,26,252)',
+    'leftFittedText(canvas,toast,39,258,12,0xfff0fffb,285)',
     'else if(x>=105&&x<=330&&y>=210&&y<=440)',
 ):
     assert marker in patch,marker
@@ -20,7 +20,7 @@ W,H=360,720
 sizes=[(320,568),(360,720),(393,852),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 nav=(0,88,360,136)
 mine_header=(18,93,342,176)
-toast=(18,237,342,269)
+toast=(18,240,342,266)
 ore=(105,270,330,500)  # rendered mine hitbox: source y=210..440 plus +60
 hp=(18,517,342,636)  # source panel shifted +60
 power=(16,670,344,705)  # source action controls shifted +60
@@ -44,8 +44,8 @@ checks+=8
 # Notifications are visual overlays, not interactive controls. Their visible
 # rectangle must not obscure the mine tap target or the bottom action button.
 assert not overlaps(toast,power)
-assert toast[1] > mine_header[3]+60
-assert toast[3] < ore[1]  # toast ends before the translated ore hitbox
+assert toast[1] - (mine_header[3]+60) >= 4
+assert ore[1] - toast[3] >= 4  # toast ends before the translated ore hitbox
 checks+=3
 
 for width,height in sizes:
