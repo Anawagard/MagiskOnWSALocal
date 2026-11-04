@@ -44,11 +44,24 @@ def audit(directory=ASSETS):
                     f"Duplicate raster content: {name} and {fingerprints.get(digest)}")
             fingerprints[digest] = name
             require(width >= 32 and height >= 32, f"Too small: {name} {im.size}")
+            # Enforce authored dimensions to catch accidental asset rescaling.
+            if name.startswith("biome_") or name.startswith("menu_"):
+                require(im.size == (360, 570),
+                        f"Incorrect cave background dimensions: {name} {im.size}")
+                require(im.mode == "RGB", f"Background must be RGB: {name} ({im.mode})")
+            elif name.startswith("ore_"):
+                require(im.size == (300, 300),
+                        f"Incorrect ore dimensions: {name} {im.size}")
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
                 require(im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}")
                 alpha = im.convert("RGBA").getchannel("A")
                 lo, hi = alpha.getextrema()
                 require(lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}")
+                if name.startswith("ore_"):
+                    require(alpha.getpixel((0, 0)) == 0,
+                            f"Ore has opaque top-left corner: {name}")
+                    require(alpha.getpixel((width // 2, height // 2)) >= 240,
+                            f"Ore center unexpectedly transparent: {name}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
