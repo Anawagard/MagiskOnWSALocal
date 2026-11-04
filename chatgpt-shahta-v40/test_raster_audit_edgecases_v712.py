@@ -59,8 +59,8 @@ class RasterAuditEdgeCases(unittest.TestCase):
         path = self.root / "biome_23.jpg"
         im = Image.new("RGB", (360, 570), (85, 90, 95))
         # Sparse white spots raise min/max but cover far below 5% of pixels.
-        for y in range(30, 540, 100):
-            for x in range(30, 330, 100):
+        for y in range(10, 560, 14):
+            for x in range(10, 350, 14):
                 im.putpixel((x, y), (245, 245, 245))
         im.save(path, quality=95)
         with self.assertRaisesRegex(RuntimeError, "distributed texture"):
