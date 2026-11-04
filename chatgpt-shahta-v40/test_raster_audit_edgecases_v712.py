@@ -55,6 +55,17 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "transparent pixels"):
             audit_module.audit(self.root)
 
+    def test_isolated_highlights_do_not_mask_flat_biome(self):
+        path = self.root / "biome_23.jpg"
+        im = Image.new("RGB", (360, 570), (85, 90, 95))
+        # Sparse white spots raise min/max but cover far below 5% of pixels.
+        for y in range(30, 540, 100):
+            for x in range(30, 330, 100):
+                im.putpixel((x, y), (245, 245, 245))
+        im.save(path, quality=95)
+        with self.assertRaisesRegex(RuntimeError, "distributed texture"):
+            audit_module.audit(self.root)
+
     def test_wrong_background_encoding_is_rejected(self):
         path = self.root / "biome_23.jpg"
         with Image.open(path) as image:
