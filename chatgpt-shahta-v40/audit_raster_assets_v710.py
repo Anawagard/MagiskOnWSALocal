@@ -66,8 +66,14 @@ def audit(directory=ASSETS):
                 require(im.size == ui_sizes[name],
                         f"Incorrect UI sprite dimensions: {name} {im.size}; expected {ui_sizes[name]}")
             if name.endswith(".png"):
-                require(im.mode in ("RGBA", "LA", "P"),
-                        f"PNG sprite must preserve an alpha-capable mode: {name} ({im.mode})")
+                # Palette mode alone does not imply transparency: an indexed PNG
+                # without a tRNS chunk is fully opaque when Android decodes it.
+                # Require a real alpha channel or explicit palette transparency.
+                has_alpha = im.mode in ("RGBA", "LA") or (
+                    im.mode == "P" and "transparency" in im.info
+                )
+                require(has_alpha,
+                        f"PNG sprite must contain alpha/transparency: {name} ({im.mode})")
             # Reject accidental blank/flat exports. Sampling decoded RGB pixels
             # catches solid-color placeholders without relying on PNG byte size.
             if name.startswith(("biome_", "menu_", "ore_")):
