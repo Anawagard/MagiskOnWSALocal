@@ -20,7 +20,7 @@ def audit():
     assert "actions/upload-artifact@v4" in data, "APK artifact upload missing"
     assert "android_smoke_v70.sh" in data, "Android smoke gate missing"
 
-    scripts = [f"patch_modernist_v{i}.py" for i in range(71, 79)]
+    scripts = [f"patch_modernist_v{i}.py" for i in range(71, 80)]
     offsets = []
     for name in scripts:
         pattern = rf"(?m)^\s*python3 chatgpt-shahta-v40/{re.escape(name)}\s*$"
@@ -31,8 +31,13 @@ def audit():
         assert path.is_file(), f"Missing patch file: {name}"
         ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     assert offsets == sorted(offsets), "Modernist patches are out of order"
+    assert len(set(offsets)) == len(offsets), "Duplicate patch positions"
     assert offsets[-1] < data.index("gradle :app:assembleDebug"), "Build precedes source patches"
     assert "patch_full_redesign_v70.py" in data, "Missing v7.0 source preparation"
+    # v7.9 must follow v7.8 and keep notification positioning page-specific.
+    v79 = (SCRIPTS / "patch_modernist_v79.py").read_text(encoding="utf-8")
+    assert "page==0 ? 178 : 623" in v79, "Page-aware toast clearance missing"
+    assert "onTouchEvent" not in v79.split("old = ", 1)[-1].split("new = ", 1)[0], "Unexpected touch handler patch"
 
     # Never silently label an older or unverified binary as a newer release.
     match = re.search(r"artifacts/(Shahta-Bez-Dna-v[\d.]+\.apk)", data)
@@ -42,7 +47,7 @@ def audit():
     assert f"versionName '{version}'" in data or version == "7.0.1", (
         "APK filename does not match a declared release version"
     )
-    print("PASS: manual-only workflow; one build; ordered v7.1-v7.8 patch chain; smoke gate")
+    print("PASS: manual-only workflow; one build; ordered v7.1-v7.9 patch chain; smoke gate")
     print(f"WARNING: release output is named {apk_name}; this test does NOT verify Gradle version or binary contents.")
     print("NOTE: passing this audit does not prove patches apply or Android compilation succeeds.")
 
