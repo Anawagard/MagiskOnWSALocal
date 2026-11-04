@@ -52,12 +52,26 @@ def audit(directory=ASSETS):
             elif name.startswith("ore_"):
                 require(im.size == (300, 300),
                         f"Incorrect ore dimensions: {name} {im.size}")
+            # Reject accidental blank/flat exports. Sampling decoded RGB pixels
+            # catches solid-color placeholders without relying on PNG byte size.
+            if name.startswith(("biome_", "menu_", "ore_")):
+                rgb = im.convert("RGB").resize((32, 32))
+                extrema = rgb.getextrema()
+                dynamic_range = max(high - low for low, high in extrema)
+                require(dynamic_range >= 24,
+                        f"Raster lacks visible tonal detail: {name} (range={dynamic_range})")
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
                 require(im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}")
                 alpha = im.convert("RGBA").getchannel("A")
                 lo, hi = alpha.getextrema()
                 require(lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}")
                 if name.startswith("ore_"):
+                    # Require a substantial but not full-frame stone silhouette.
+                    # This detects both missing alpha masks and tiny stray dots.
+                    opaque = sum(v for level, v in enumerate(alpha.histogram()) if level >= 240)
+                    coverage = opaque / (width * height)
+                    require(0.12 <= coverage <= 0.80,
+                            f"Ore silhouette coverage invalid: {name} ({coverage:.1%})")
                     require(alpha.getpixel((0, 0)) == 0,
                             f"Ore has opaque top-left corner: {name}")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
