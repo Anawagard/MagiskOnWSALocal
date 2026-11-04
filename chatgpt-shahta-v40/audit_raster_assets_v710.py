@@ -74,6 +74,14 @@ def audit(directory=ASSETS):
                 )
                 require(has_alpha,
                         f"PNG sprite must contain alpha/transparency: {name} ({im.mode})")
+                # A syntactically valid RGBA export can still be invisible in-game.
+                # Require meaningful visible coverage for nine-slice UI artwork.
+                if name in ("panel.png", "button.png", "button_off.png", "header.png", "nav.png"):
+                    alpha_hist = im.convert("RGBA").getchannel("A").histogram()
+                    visible_count = sum(alpha_hist[32:])
+                    require(visible_count >= width * height * 0.05,
+                            f"UI sprite is nearly invisible: {name} "
+                            f"({visible_count / (width * height):.1%} visible)")
             # Reject accidental blank/flat exports. Sampling decoded RGB pixels
             # catches solid-color placeholders without relying on PNG byte size.
             if name.startswith(("biome_", "menu_", "ore_")):
