@@ -82,6 +82,21 @@ def audit(directory=ASSETS):
                 dynamic_range = max(high - low for low, high in extrema)
                 require(dynamic_range >= 24,
                         f"Raster lacks visible tonal detail: {name} (range={dynamic_range})")
+                if name.startswith(("biome_", "menu_")):
+                    # A few bright pixels can inflate extrema on an otherwise
+                    # featureless backdrop. Require distributed tonal detail.
+                    # Use the full-resolution image so isolated speckles cannot
+                    # gain weight through downsampling/interpolation.
+                    samples = im.convert("RGB").resize((64, 64))
+                    bands = samples.split()
+                    spreads = []
+                    for band in bands:
+                        values = sorted(band.getdata())
+                        spreads.append(values[(len(values) - 1) * 95 // 100]
+                                       - values[(len(values) - 1) * 5 // 100])
+                    require(max(spreads) >= 24,
+                            f"Background lacks distributed texture: {name} "
+                            f"(5-95% range={max(spreads)})")
             if name.startswith("ore_"):
                 # RGB conversion paints transparent PNG pixels black. Measuring
                 # the full image can therefore incorrectly approve a flat,
