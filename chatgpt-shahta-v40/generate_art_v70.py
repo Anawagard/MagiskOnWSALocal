@@ -6,7 +6,9 @@ from pathlib import Path
 import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
-ROOT=Path("chatgpt-shahta-v33/project")
+# Resolve relative to this script, not the shell working directory.
+# This keeps generation and audit pointed at the same Android assets folder.
+ROOT=Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
 OUT=ROOT/"app/src/main/assets/shahta_v70"
 OUT.mkdir(parents=True,exist_ok=True)
 SCENES=[
