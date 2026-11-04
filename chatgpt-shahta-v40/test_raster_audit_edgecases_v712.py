@@ -66,6 +66,19 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "distributed texture"):
             audit_module.audit(self.root)
 
+    def test_nearly_invisible_miner_is_rejected(self):
+        path = self.root / "miner.png"
+        im = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+        # A noisy one-percent patch can easily exceed the PNG size gate.
+        # It must still fail the silhouette-coverage contract.
+        for y in range(48, 61):
+            for x in range(48, 61):
+                v = (x * 37 + y * 61 + x * y) % 200
+                im.putpixel((x, y), (v, 255 - v, 90, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Miner silhouette coverage"):
+            audit_module.audit(self.root)
+
     def test_wrong_background_encoding_is_rejected(self):
         path = self.root / "biome_23.jpg"
         with Image.open(path) as image:
