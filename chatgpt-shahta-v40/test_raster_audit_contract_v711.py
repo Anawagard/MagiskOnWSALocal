@@ -46,6 +46,12 @@ def make_image(name, index):
     else:
         d.rectangle((10, 10, w - 11, h - 11),
                     fill=(30 + index % 100, 70, 90, 255))
+        # Add deterministic high-frequency texture so the >1 KiB audit gate
+        # tests actual image contracts rather than rejecting tiny fixtures.
+        for y in range(11, h - 11):
+            for x in range(11, w - 11):
+                v = (x * 19 + y * 37 + (x * y) % 127 + index * 11) % 140
+                im.putpixel((x, y), (30 + v, 45 + v, 65 + v, 255))
         d.line((12, 12, w - 13, h - 13),
                fill=(200, 170, 120, 255), width=3)
     return im
