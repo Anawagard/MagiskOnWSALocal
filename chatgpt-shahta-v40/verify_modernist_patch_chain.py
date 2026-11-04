@@ -81,6 +81,26 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     before_activity = activity.read_bytes()
     before_gradle = gradle.read_bytes()
     before = java.read_text(encoding="utf-8")
+    # Compare persistence and rebirth method bodies, not merely their names.
+    # These are gameplay contracts; a visual-only patch must not rewrite them.
+    def method_body(source, signature):
+        import re
+        matches = list(re.finditer(r"(?m)^\\s*" + re.escape(signature) + r"\\s*\\{", source))
+        assert len(matches) == 1, f"Expected one method: {signature}; found {len(matches)}"
+        start = matches[0].start()
+        opening = source.index("{", matches[0].start())
+        depth = 0
+        for i in range(opening, len(source)):
+            if source[i] == "{":
+                depth += 1
+            elif source[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return source[start:i + 1].strip()
+        raise AssertionError(f"Unclosed method: {signature}")
+
+    protected_methods = ("public void save()", "private void rebirth()")
+    protected_before = {name: method_body(before, name) for name in protected_methods}
     prepared = "v70Asset(" in before and "v71Scale(" in before
     if not prepared:
         assert "v70Asset(" not in before and "v71Scale(" not in before, "Partially patched baseline"
@@ -115,6 +135,8 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     expected_changed = {java_rel} if prepared else {java_rel, gradle.relative_to(target).as_posix()}
     assert changed == expected_changed, f"Unexpected changed files: {sorted(changed)}"
     assert after != before
+    for name, original in protected_before.items():
+        assert method_body(after, name) == original, f"Gameplay/persistence method changed: {name}"
     assert activity.read_bytes() == before_activity, "Activity/save wiring changed"
     if prepared:
         assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
