@@ -133,6 +133,14 @@ def audit(directory=ASSETS):
                 alpha = im.convert("RGBA").getchannel("A")
                 lo, hi = alpha.getextrema()
                 require(lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}")
+                if name == "miner.png":
+                    # A nearly blank miner export can have both zero and nonzero
+                    # alpha yet still be invisible at gameplay scale.
+                    opaque_count = sum(count for level, count in enumerate(alpha.histogram())
+                                       if level >= 128)
+                    visible_fraction = opaque_count / (width * height)
+                    require(0.10 <= visible_fraction <= 0.90,
+                            f"Miner silhouette coverage invalid: {visible_fraction:.1%}")
                 if name.startswith("ore_"):
                     # Require a substantial but not full-frame stone silhouette.
                     # This detects both missing alpha masks and tiny stray dots.
