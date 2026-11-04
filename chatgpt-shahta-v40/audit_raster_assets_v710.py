@@ -52,6 +52,22 @@ def audit(directory=ASSETS):
             elif name.startswith("ore_"):
                 require(im.size == (300, 300),
                         f"Incorrect ore dimensions: {name} {im.size}")
+            # UI skins are nine-slice sources: unexpected dimensions shift the
+            # corner caps and touch feedback even if the PNG decodes correctly.
+            ui_sizes = {
+                "panel.png": (400, 96),
+                "button.png": (160, 64),
+                "button_off.png": (160, 64),
+                "header.png": (360, 88),
+                "nav.png": (360, 50),
+                "fractures.png": (300, 300),
+            }
+            if name in ui_sizes:
+                require(im.size == ui_sizes[name],
+                        f"Incorrect UI sprite dimensions: {name} {im.size}; expected {ui_sizes[name]}")
+            if name.endswith(".png"):
+                require(im.mode in ("RGBA", "LA", "P"),
+                        f"PNG sprite must preserve an alpha-capable mode: {name} ({im.mode})")
             # Reject accidental blank/flat exports. Sampling decoded RGB pixels
             # catches solid-color placeholders without relying on PNG byte size.
             if name.startswith(("biome_", "menu_", "ore_")):
