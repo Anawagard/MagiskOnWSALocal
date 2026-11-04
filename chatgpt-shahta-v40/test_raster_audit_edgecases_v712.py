@@ -58,7 +58,8 @@ class RasterAuditEdgeCases(unittest.TestCase):
     def test_wrong_background_encoding_is_rejected(self):
         path = self.root / "biome_23.jpg"
         with Image.open(path) as image:
-            image.save(path, format="PNG")
+            decoded = image.copy()
+        decoded.save(path, format="PNG")
         with self.assertRaisesRegex(RuntimeError, "Unexpected encoding"):
             audit_module.audit(self.root)
 
