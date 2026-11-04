@@ -9,8 +9,13 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "chatgpt-shahta-v33/project/app/src/main/assets/shahta_v70"
 
+def require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
 def audit(directory=ASSETS):
-    assert directory.is_dir(), f"Raster assets missing: {directory}"
+    require(directory.is_dir(), f"Raster assets missing: {directory}")
     required = {f"biome_{i:02d}.jpg" for i in range(24)}
     required |= {f"ore_{i:02d}.png" for i in range(24)}
     required |= {f"menu_{i}.jpg" for i in range(1, 5)}
@@ -18,21 +23,22 @@ def audit(directory=ASSETS):
                  "header.png", "nav.png", "fractures.png", "miner.png"}
     present = {p.name for p in directory.iterdir() if p.is_file()}
     missing = sorted(required - present)
-    assert not missing, f"Missing raster assets ({len(missing)}): {missing}"
+    require(not missing, f"Missing raster assets ({len(missing)}): {missing}")
     for name in sorted(required):
         file = directory / name
-        assert file.stat().st_size > 1024, f"Suspiciously small sprite: {name}"
+        require(file.stat().st_size > 1024, f"Suspiciously small sprite: {name}")
         with Image.open(file) as im:
             im.verify()
         with Image.open(file) as im:
+            im.load()  # Force full pixel decoding, not only header verification.
             width, height = im.size
-            assert width >= 32 and height >= 32, f"Too small: {name} {im.size}"
+            require(width >= 32 and height >= 32, f"Too small: {name} {im.size}")
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
-                assert im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}"
+                require(im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}")
                 alpha = im.convert("RGBA").getchannel("A")
                 lo, hi = alpha.getextrema()
-                assert lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}"
-    print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, five-screen art.")
+                require(lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}")
+    print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
     audit()
