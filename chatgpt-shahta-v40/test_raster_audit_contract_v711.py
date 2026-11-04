@@ -105,6 +105,16 @@ class RasterAuditContract(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "top-left corner"):
             audit_module.audit(self.root)
 
+    def test_palette_png_without_transparency_is_rejected(self):
+        # Indexed PNGs are not necessarily transparent: Pillow reports mode P
+        # even when the file has no tRNS transparency metadata.
+        path = self.root / "panel.png"
+        with Image.open(path) as im:
+            indexed = im.convert("RGB").quantize(colors=64)
+        indexed.save(path)
+        with self.assertRaisesRegex(RuntimeError, "alpha/transparency"):
+            audit_module.audit(self.root)
+
     def test_wrong_panel_size_is_rejected(self):
         path = self.root / "panel.png"
         with Image.open(path) as im:
