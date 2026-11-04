@@ -60,6 +60,22 @@ def audit(directory=ASSETS):
                 dynamic_range = max(high - low for low, high in extrema)
                 require(dynamic_range >= 24,
                         f"Raster lacks visible tonal detail: {name} (range={dynamic_range})")
+            if name.startswith("ore_"):
+                # RGB conversion paints transparent PNG pixels black. Measuring
+                # the full image can therefore incorrectly approve a flat,
+                # single-colour stone merely because its edges are transparent.
+                rgba = im.convert("RGBA")
+                pixels = rgba.getdata()
+                visible = [(r, g, b) for r, g, b, a in pixels if a >= 240]
+                require(len(visible) >= width * height * 0.12,
+                        f"Ore has too few visible pixels: {name}")
+                # Sample only fully visible stone pixels. Channel spread is a
+                # conservative source-only proxy for actual surface texture.
+                channel_min = [min(px[c] for px in visible) for c in range(3)]
+                channel_max = [max(px[c] for px in visible) for c in range(3)]
+                stone_range = max(hi - lo for lo, hi in zip(channel_min, channel_max))
+                require(stone_range >= 24,
+                        f"Ore interior is nearly flat: {name} (range={stone_range})")
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
                 require(im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}")
                 alpha = im.convert("RGBA").getchannel("A")
