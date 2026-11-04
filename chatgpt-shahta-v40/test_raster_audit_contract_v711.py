@@ -115,6 +115,19 @@ class RasterAuditContract(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "alpha/transparency"):
             audit_module.audit(self.root)
 
+    def test_nearly_invisible_ui_skin_is_rejected(self):
+        # Preserve valid dimensions, alpha mode and a nontrivial PNG size,
+        # but make only ~1% of the button visible to catch blank exports.
+        path = self.root / "button.png"
+        im = Image.new("RGBA", (160, 64), (0, 0, 0, 0))
+        for y in range(64):
+            for x in range(160):
+                if (x * 17 + y * 31) % 100 == 0:
+                    im.putpixel((x, y), ((x * 13) % 256, (y * 19) % 256, 170, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "nearly invisible"):
+            audit_module.audit(self.root)
+
     def test_wrong_panel_size_is_rejected(self):
         path = self.root / "panel.png"
         with Image.open(path) as im:
