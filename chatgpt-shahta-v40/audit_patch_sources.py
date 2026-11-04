@@ -8,10 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PATCHES = [ROOT / "patch_full_redesign_v70.py", ROOT / "patch_modernist_v71.py"]
-PATCHES += [ROOT / f"patch_modernist_v{n}.py" for n in range(72, 78)]
-FORBIDDEN = {"subprocess", "requests", "urllib", "http", "socket", "importlib"}
+PATCHES += [ROOT / f"patch_modernist_v{n}.py" for n in range(72, 80)]
+FORBIDDEN = {"subprocess", "requests", "urllib", "http", "socket", "importlib", "shutil"}
 DYNAMIC_CALLS = {"eval", "exec", "compile", "__import__"}
-SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spawnv")}
+SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spawnv"), ("os", "execv"), ("os", "execve")}
 
 def require(condition, message):
     if not condition:
@@ -36,7 +36,9 @@ for path in PATCHES:
                 raise RuntimeError(f"{path.name}: dynamic code execution: {target.id}")
     require(not (imports & FORBIDDEN), f"{path.name}: forbidden imports {imports & FORBIDDEN}")
     require("MineView.java" in source, f"{path.name}: unexpected target")
+    require(not any(s in source for s in (".github/workflows/", "gradle assemble", "assembleDebug", "adb install")), f"{path.name}: build or workflow mutation reference")
     require("gradlew" not in source and "workflow_dispatch" not in source,
             f"{path.name}: build or workflow trigger reference")
     print(f"PASS {path.name}: Python syntax and import safety")
+assert len(PATCHES) == 10, "expected v7.0 and v7.1-v7.9 patches"
 print(f"PASS: {len(PATCHES)} source-only patch scripts inspected; baseline application NOT verified")
