@@ -85,6 +85,19 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     if not prepared:
         assert "v70Asset(" not in before and "v71Scale(" not in before, "Partially patched baseline"
         assert "versionCode 46" in gradle.read_text() and "versionName '6.9'" in gradle.read_text(), "Raw baseline must be v6.9"
+    # A partially modernized checkout is not a valid baseline: applying patches
+    # again can silently duplicate draw calls or shift touch geometry.
+    modern_markers = [
+        "v72NineSlice(", "v73", "v74", "v75", "v76",
+        "v77", "v78", "int toastY = page==0 ? 178 : 623;",
+    ]
+    found_modern = [marker for marker in modern_markers if marker in before]
+    if found_modern:
+        raise SystemExit(
+            "BLOCKED: baseline already contains post-v7.1 modernist markers: "
+            + ", ".join(found_modern)
+            + ". Supply an untouched v6.9 or prepared v7.1 source tree."
+        )
     chain = PATCHES if prepared else PREPARE + PATCHES
     original_cwd = Path.cwd()
     try:
