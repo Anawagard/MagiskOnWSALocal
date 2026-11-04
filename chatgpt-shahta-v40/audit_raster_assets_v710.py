@@ -29,7 +29,9 @@ def audit(directory=ASSETS):
             assert width >= 32 and height >= 32, f"Too small: {name} {im.size}"
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
                 assert im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}"
-                assert "A" in im.convert("RGBA").getbands()
+                alpha = im.convert("RGBA").getchannel("A")
+                lo, hi = alpha.getextrema()
+                assert lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}"
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, five-screen art.")
 
 if __name__ == "__main__":
