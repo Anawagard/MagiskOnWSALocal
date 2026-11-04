@@ -1,4 +1,4 @@
-"""Source-only integration rehearsal for the v7.2-v7.7 modernist patch chain.
+"""Source-only integration rehearsal for the v7.2-v7.9 modernist patch chain.
 
 Run from any directory: python3 chatgpt-shahta-v40/verify_modernist_patch_chain.py
 Copies the Android project into a temporary directory; never runs Gradle,
@@ -44,7 +44,7 @@ def locate_project():
 
 PROJECT = locate_project()
 PREPARE = [HERE / "patch_full_redesign_v70.py", HERE / "patch_modernist_v71.py"]
-PATCHES = [HERE / f"patch_modernist_v{v}.py" for v in range(72, 78)]
+PATCHES = [HERE / f"patch_modernist_v{v}.py" for v in range(72, 80)]
 if not PROJECT.is_dir():
     raise SystemExit(
         f"BLOCKED: v7.1 Android baseline not found at {PROJECT}. "
@@ -115,6 +115,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         'getSharedPreferences("mine_save_v1"',
         'public void save()',
         'private void rebirth()',
+        'int toastY = page==0 ? 178 : 623;',
     ):
         assert marker in after, f"Missing post-chain invariant: {marker}"
     assert after.count("c.translate(13f,18f);") == 3
