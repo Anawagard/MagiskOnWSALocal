@@ -87,11 +87,18 @@ def audit(directory=ASSETS):
                         f"Ore has too few visible pixels: {name}")
                 # Sample only fully visible stone pixels. Channel spread is a
                 # conservative source-only proxy for actual surface texture.
-                channel_min = [min(px[c] for px in visible) for c in range(3)]
-                channel_max = [max(px[c] for px in visible) for c in range(3)]
-                stone_range = max(hi - lo for lo, hi in zip(channel_min, channel_max))
+                # Use robust 5th–95th percentile spread: a handful of bright
+                # speckles must not make an otherwise flat placeholder pass.
+                def percentile_spread(channel):
+                    samples = sorted(px[channel] for px in visible)
+                    lo = samples[(len(samples) - 1) * 5 // 100]
+                    hi = samples[(len(samples) - 1) * 95 // 100]
+                    return hi - lo
+
+                stone_range = max(percentile_spread(c) for c in range(3))
                 require(stone_range >= 24,
-                        f"Ore interior is nearly flat: {name} (range={stone_range})")
+                        f"Ore interior lacks widespread texture: {name} "
+                        f"(5–95% range={stone_range})")
             if name.startswith("ore_") or name in ("miner.png", "fractures.png"):
                 require(im.mode in ("RGBA", "LA", "P"), f"Missing alpha-capable sprite: {name}")
                 alpha = im.convert("RGBA").getchannel("A")
