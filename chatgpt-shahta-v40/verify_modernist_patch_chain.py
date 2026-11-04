@@ -85,7 +85,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # These are gameplay contracts; a visual-only patch must not rewrite them.
     def method_body(source, signature):
         import re
-        matches = list(re.finditer(r"(?m)^\\s*" + re.escape(signature) + r"\\s*\\{", source))
+        matches = list(re.finditer(r"(?m)^\s*" + re.escape(signature) + r"\s*\{", source))
         assert len(matches) == 1, f"Expected one method: {signature}; found {len(matches)}"
         start = matches[0].start()
         opening = source.index("{", matches[0].start())
