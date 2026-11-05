@@ -65,7 +65,8 @@ for w,h in sizes:
         checks += 1
 
 # Horizontal viewport bounds matter as much as the vertical header clip.
-# Test near-edge and subpixel out-of-bounds coordinates after letterboxing.\n# Avoid the exact right edge: float roundtrips can yield 360 + one ULP.
+# Test near-edge and subpixel out-of-bounds coordinates after letterboxing.
+# Avoid the exact right edge: float roundtrips can yield 360 + one ULP.
 for w,h in sizes:
     for sx in (-1,-.001,360.001,361):
         px,py = map_to_screen(sx,340,w,h)
@@ -78,5 +79,13 @@ for w,h in sizes:
         assert isclose(xy[0],(sx-13)/.93,abs_tol=1e-5),(w,h,sx,xy)
         assert isclose(xy[1],(340-78)/.94,abs_tol=1e-5),(w,h,sx,xy)
         checks += 1
+
+# Exercise corners near both boundaries, not just the horizontal midline.
+for w,h in sizes:
+    for sx in (-.001, 360.001):
+        for sy in (205.001, 340, 712.999):
+            px,py = map_to_screen(sx,sy,w,h)
+            assert hit_feature(px,py,w,h) is None,(w,h,sx,sy)
+            checks += 1
 
 print(f"PASS: {checks} clip/touch boundary assertions on {len(sizes)} sizes")
