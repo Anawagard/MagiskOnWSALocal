@@ -5,7 +5,7 @@ This script reads files only and fails closed on missing or corrupt sprites.
 """
 from pathlib import Path
 from hashlib import sha256
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "chatgpt-shahta-v33/project/app/src/main/assets/shahta_v70"
@@ -208,6 +208,22 @@ def audit(directory=ASSETS):
                             f"Ore has clipped alpha fringe near border {fringe}: {name}")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
+    # Enabled/disabled skins must remain visibly distinguishable in the game.
+    # Pixel-perfect deduplication alone misses near-identical button states;
+    # compare the actual alpha-composited appearance on graphite UI panels.
+    def graphite_button(name):
+        with Image.open(directory / name) as source:
+            rgba = source.convert("RGBA")
+            return Image.alpha_composite(
+                Image.new("RGBA", rgba.size, (23, 32, 47, 255)), rgba
+            ).convert("RGB")
+
+    enabled = graphite_button("button.png")
+    disabled = graphite_button("button_off.png")
+    state_delta = sum(ImageStat.Stat(ImageChops.difference(enabled, disabled)).mean) / 3
+    require(state_delta >= 6.0,
+            f"Button states are visually indistinguishable on graphite: "
+            f"mean RGB delta={state_delta:.2f}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
