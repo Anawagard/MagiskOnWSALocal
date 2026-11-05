@@ -52,7 +52,18 @@ class RasterAuditEdgeCases(unittest.TestCase):
         # corner that would appear as a square artifact during rendering.
         im.putpixel((299, 299), (180, 190, 200, 255))
         im.save(path)
-        with self.assertRaisesRegex(RuntimeError, "nontransparent corner"):
+        with self.assertRaisesRegex(RuntimeError, "nontransparent border pixel"):
+            audit_module.audit(self.root)
+
+    def test_ore_with_opaque_top_edge_pixel_is_rejected(self):
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            im = image.convert("RGBA")
+        # A border defect between corners escaped the earlier corner-only
+        # validation and can become a bright seam when sprites are scaled.
+        im.putpixel((150, 0), (180, 190, 200, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "nontransparent border pixel"):
             audit_module.audit(self.root)
 
     def test_fully_opaque_stone_is_rejected(self):
