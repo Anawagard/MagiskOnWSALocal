@@ -169,6 +169,19 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
             audit_module.audit(self.root)
 
+    def test_button_state_difference_only_on_top_half_is_rejected(self):
+        # The previous left/right check accepted this 50%-area horizontal
+        # band, despite the entire lower half looking unchanged.
+        enabled = Image.new("RGBA", (160, 64), (35, 45, 60, 255))
+        enabled.save(self.root / "button.png")
+        disabled = enabled.copy()
+        for y in range(32):
+            for x in range(160):
+                disabled.putpixel((x, y), (230, 230, 230, 255))
+        disabled.save(self.root / "button_off.png")
+        with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
