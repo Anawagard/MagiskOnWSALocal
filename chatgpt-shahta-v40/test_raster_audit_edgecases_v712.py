@@ -44,6 +44,17 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "too few visible pixels"):
             audit_module.audit(self.root)
 
+    def test_ore_with_opaque_bottom_right_corner_is_rejected(self):
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            im = image.convert("RGBA")
+        # Keep all normal ore texture intact, but add a stray pixel in a
+        # corner that would appear as a square artifact during rendering.
+        im.putpixel((299, 299), (180, 190, 200, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "nontransparent corner"):
+            audit_module.audit(self.root)
+
     def test_fully_opaque_stone_is_rejected(self):
         path = self.root / "ore_23.png"
         im = Image.new("RGBA", (300, 300))
