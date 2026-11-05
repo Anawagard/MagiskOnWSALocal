@@ -131,6 +131,16 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Fracture overlay is nearly invisible"):
             audit_module.audit(self.root)
 
+    def test_nearly_identical_button_states_are_rejected(self):
+        # Two different PNG files may evade exact-content deduplication while
+        # looking identical to players, obscuring the disabled state.
+        with Image.open(self.root / "button.png") as image:
+            enabled = image.convert("RGBA")
+        enabled.putpixel((80, 32), (220, 230, 240, 255))
+        enabled.save(self.root / "button_off.png")
+        with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
