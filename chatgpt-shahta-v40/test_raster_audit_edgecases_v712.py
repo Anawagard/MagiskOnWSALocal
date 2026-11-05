@@ -68,7 +68,7 @@ class RasterAuditEdgeCases(unittest.TestCase):
 
     def test_nearly_invisible_miner_is_rejected(self):
         path = self.root / "miner.png"
-        im = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+        im = Image.new("RGBA", (240, 340), (0, 0, 0, 0))
         # A noisy one-percent patch can easily exceed the PNG size gate.
         # It must still fail the silhouette-coverage contract.
         for y in range(48, 61):
@@ -77,6 +77,14 @@ class RasterAuditEdgeCases(unittest.TestCase):
                 im.putpixel((x, y), (v, 255 - v, 90, 255))
         im.save(path)
         with self.assertRaisesRegex(RuntimeError, "Miner silhouette coverage"):
+            audit_module.audit(self.root)
+
+    def test_wrong_miner_dimensions_are_rejected(self):
+        path = self.root / "miner.png"
+        with Image.open(path) as image:
+            resized = image.resize((239, 340))
+        resized.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Incorrect miner sprite dimensions"):
             audit_module.audit(self.root)
 
     def test_wrong_background_encoding_is_rejected(self):
