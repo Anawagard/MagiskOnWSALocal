@@ -66,6 +66,17 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "nontransparent border pixel"):
             audit_module.audit(self.root)
 
+    def test_ore_alpha_fringe_one_pixel_inside_border_is_rejected(self):
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            im = image.convert("RGBA")
+        # A transparent outer row alone does not protect bilinear sampling
+        # against an accidentally clipped antialiased silhouette.
+        im.putpixel((150, 1), (170, 190, 210, 24))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "clipped alpha fringe"):
+            audit_module.audit(self.root)
+
     def test_fully_opaque_stone_is_rejected(self):
         path = self.root / "ore_23.png"
         im = Image.new("RGBA", (300, 300))
