@@ -66,6 +66,9 @@ def audit(directory=ASSETS):
                 require(im.size == (360, 570),
                         f"Incorrect cave background dimensions: {name} {im.size}")
                 require(im.mode == "RGB", f"Background must be RGB: {name} ({im.mode})")
+            elif name == "miner.png":
+                require(im.size == (240, 340),
+                        f"Incorrect miner sprite dimensions: {name} {im.size}")
             elif name.startswith("ore_"):
                 require(im.size == (300, 300),
                         f"Incorrect ore dimensions: {name} {im.size}")
