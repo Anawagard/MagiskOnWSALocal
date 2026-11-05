@@ -127,7 +127,7 @@ class RasterAuditContract(unittest.TestCase):
             rgba = im.convert("RGBA")
         rgba.putpixel((0, 0), (40, 50, 60, 255))
         rgba.save(path)
-        with self.assertRaisesRegex(RuntimeError, "top-left corner"):
+        with self.assertRaisesRegex(RuntimeError, "nontransparent border pixel"):
             audit_module.audit(self.root)
 
     def test_palette_png_without_transparency_is_rejected(self):
