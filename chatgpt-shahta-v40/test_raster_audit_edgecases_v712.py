@@ -145,8 +145,8 @@ class RasterAuditEdgeCases(unittest.TestCase):
         # A bright badge on 12.5% of the button can raise the global mean
         # RGB delta above six, while 87.5% of the control looks unchanged.
         # The disabled state must differ across a meaningful surface area.
-        with Image.open(self.root / "button.png") as image:
-            enabled = image.convert("RGBA")
+        enabled = Image.new("RGBA", (160, 64), (35, 45, 60, 255))
+        enabled.save(self.root / "button.png")
         disabled = enabled.copy()
         for y in range(8, 56):
             for x in range(0, 20):
