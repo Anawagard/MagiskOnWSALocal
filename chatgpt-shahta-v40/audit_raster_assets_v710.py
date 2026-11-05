@@ -153,6 +153,15 @@ def audit(directory=ASSETS):
                 alpha = im.convert("RGBA").getchannel("A")
                 lo, hi = alpha.getextrema()
                 require(lo < 255 and hi > 0, f"Sprite lacks transparent pixels: {name}")
+                if name == "fractures.png":
+                    # A damage overlay with only one stray opaque pixel technically
+                    # has alpha, but is invisible in gameplay. Keep the lower
+                    # threshold conservative for deliberately sparse cracks.
+                    visible = sum(count for level, count in enumerate(alpha.histogram())
+                                  if level >= 96)
+                    fraction = visible / (width * height)
+                    require(fraction >= 0.002,
+                            f"Fracture overlay is nearly invisible: {fraction:.2%}")
                 if name == "miner.png":
                     # A nearly blank miner export can have both zero and nonzero
                     # alpha yet still be invisible at gameplay scale.
