@@ -42,11 +42,21 @@ def audit(directory=ASSETS):
             # Ignore hidden RGB in fully transparent pixels. Two PNGs can look
             # identical in Android while carrying different invisible colours;
             # hashing raw RGBA would incorrectly treat them as unique art.
-            # Composite against opaque black to fingerprint rendered pixels.
-            rendered = Image.alpha_composite(
-                Image.new("RGBA", im.size, (0, 0, 0, 255)), im.convert("RGBA")
-            )
-            digest = sha256(rendered.convert("RGB").tobytes()).hexdigest()
+            # Fingerprint on both black and white backgrounds. A black-only
+            # composite loses alpha information for black artwork, so distinct
+            # silhouettes could be incorrectly flagged as duplicate sprites.
+            # Two matte colours preserve rendered colour *and* transparency
+            # while still ignoring RGB values under fully transparent pixels.
+            rgba = im.convert("RGBA")
+            fingerprint = sha256()
+            fingerprint.update(width.to_bytes(4, "big"))
+            fingerprint.update(height.to_bytes(4, "big"))
+            for matte in ((0, 0, 0, 255), (255, 255, 255, 255)):
+                rendered = Image.alpha_composite(
+                    Image.new("RGBA", im.size, matte), rgba
+                )
+                fingerprint.update(rendered.convert("RGB").tobytes())
+            digest = fingerprint.hexdigest()
             require(digest not in fingerprints,
                     f"Duplicate raster content: {name} and {fingerprints.get(digest)}")
             fingerprints[digest] = name
