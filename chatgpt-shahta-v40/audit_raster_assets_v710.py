@@ -39,7 +39,14 @@ def audit(directory=ASSETS):
                     f"Unexpected encoding for {name}: {im.format}, expected {expected_format}")
             # Fingerprint decoded pixels, not compressed bytes: catches copied art
             # even when the files have different metadata or compression settings.
-            digest = sha256(im.convert("RGBA").tobytes()).hexdigest()
+            # Ignore hidden RGB in fully transparent pixels. Two PNGs can look
+            # identical in Android while carrying different invisible colours;
+            # hashing raw RGBA would incorrectly treat them as unique art.
+            # Composite against opaque black to fingerprint rendered pixels.
+            rendered = Image.alpha_composite(
+                Image.new("RGBA", im.size, (0, 0, 0, 255)), im.convert("RGBA")
+            )
+            digest = sha256(rendered.convert("RGB").tobytes()).hexdigest()
             require(digest not in fingerprints,
                     f"Duplicate raster content: {name} and {fingerprints.get(digest)}")
             fingerprints[digest] = name
