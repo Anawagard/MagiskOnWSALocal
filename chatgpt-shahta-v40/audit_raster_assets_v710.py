@@ -228,20 +228,24 @@ def audit(directory=ASSETS):
     changed = sum(1 for r, g, b in difference.getdata()
                   if max(r, g, b) >= 12)
     changed_fraction = changed / (enabled.width * enabled.height)
-    # A high-contrast stripe on only one side may satisfy the global area
-    # threshold while the opposite half remains indistinguishable. Require
-    # both halves to communicate the disabled state independently.
-    half_areas = []
-    for x0, x1 in ((0, enabled.width // 2), (enabled.width // 2, enabled.width)):
-        half = difference.crop((x0, 0, x1, enabled.height))
-        count = sum(1 for r, g, b in half.getdata() if max(r, g, b) >= 12)
-        half_areas.append(count / (half.width * half.height))
+    # A horizontal band can change both left/right halves while leaving
+    # the lower half visually unchanged. Validate all four quadrants so
+    # disabled-state feedback is spatially distributed in both axes.
+    quadrant_areas = []
+    for y0, y1 in ((0, enabled.height // 2),
+                   (enabled.height // 2, enabled.height)):
+        for x0, x1 in ((0, enabled.width // 2),
+                       (enabled.width // 2, enabled.width)):
+            region = difference.crop((x0, y0, x1, y1))
+            count = sum(1 for r, g, b in region.getdata()
+                        if max(r, g, b) >= 12)
+            quadrant_areas.append(count / (region.width * region.height))
     require(state_delta >= 6.0 and changed_fraction >= 0.15
-            and min(half_areas) >= 0.05,
+            and min(quadrant_areas) >= 0.05,
             f"Button states are visually indistinguishable on graphite: "
             f"mean RGB delta={state_delta:.2f}, "
             f"changed area={changed_fraction:.1%}, "
-            f"half areas={half_areas[0]:.1%}/{half_areas[1]:.1%}")
+            f"quadrant areas={[f'{v:.1%}' for v in quadrant_areas]}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
