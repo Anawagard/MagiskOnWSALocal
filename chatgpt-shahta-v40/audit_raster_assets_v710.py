@@ -220,10 +220,18 @@ def audit(directory=ASSETS):
 
     enabled = graphite_button("button.png")
     disabled = graphite_button("button_off.png")
-    state_delta = sum(ImageStat.Stat(ImageChops.difference(enabled, disabled)).mean) / 3
-    require(state_delta >= 6.0,
+    difference = ImageChops.difference(enabled, disabled)
+    state_delta = sum(ImageStat.Stat(difference).mean) / 3
+    # A small bright badge can inflate the average while the rest of the
+    # button remains identical. Require meaningful differences across the
+    # surface, not only a localized decorative mark.
+    changed = sum(1 for r, g, b in difference.getdata()
+                  if max(r, g, b) >= 12)
+    changed_fraction = changed / (enabled.width * enabled.height)
+    require(state_delta >= 6.0 and changed_fraction >= 0.15,
             f"Button states are visually indistinguishable on graphite: "
-            f"mean RGB delta={state_delta:.2f}")
+            f"mean RGB delta={state_delta:.2f}, "
+            f"changed area={changed_fraction:.1%}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
