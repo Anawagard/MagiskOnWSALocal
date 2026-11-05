@@ -168,10 +168,22 @@ def audit(directory=ASSETS):
                     coverage = opaque / (width * height)
                     require(0.12 <= coverage <= 0.80,
                             f"Ore silhouette coverage invalid: {name} ({coverage:.1%})")
-                    for corner in ((0, 0), (width - 1, 0), (0, height - 1),
-                                   (width - 1, height - 1)):
-                        require(alpha.getpixel(corner) == 0,
-                                f"Ore has nontransparent corner {corner}: {name}")
+                    # A stray pixel anywhere on the outer image border can
+                    # produce visible seams in scaled or rotated ore sprites.
+                    # Checking only the four corners misses these defects.
+                    border = [
+                        (x, 0) for x in range(width)
+                    ] + [
+                        (x, height - 1) for x in range(width)
+                    ] + [
+                        (0, y) for y in range(1, height - 1)
+                    ] + [
+                        (width - 1, y) for y in range(1, height - 1)
+                    ]
+                    stray = next(((x, y) for x, y in border
+                                  if alpha.getpixel((x, y)) != 0), None)
+                    require(stray is None,
+                            f"Ore has nontransparent border pixel {stray}: {name}")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
