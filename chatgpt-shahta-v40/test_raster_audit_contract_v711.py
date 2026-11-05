@@ -89,6 +89,18 @@ class RasterAuditContract(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Duplicate raster content"):
             audit_module.audit(self.root)
 
+    def test_hidden_rgb_does_not_disguise_duplicate_ore(self):
+        # Transparent pixels can contain arbitrary invisible RGB data.
+        # Android renders both sprites identically, so audit must reject them.
+        source = self.root / "ore_22.png"
+        target = self.root / "ore_23.png"
+        with Image.open(source) as image:
+            changed = image.convert("RGBA")
+        changed.putpixel((0, 0), (173, 41, 229, 0))
+        changed.save(target)
+        with self.assertRaisesRegex(RuntimeError, "Duplicate raster content"):
+            audit_module.audit(self.root)
+
     def test_flat_ore_is_rejected(self):
         im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
         ImageDraw.Draw(im).ellipse((42, 42, 258, 258), fill=(110, 110, 110, 255))
