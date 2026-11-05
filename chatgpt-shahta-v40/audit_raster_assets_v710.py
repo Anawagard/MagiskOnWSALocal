@@ -193,6 +193,19 @@ def audit(directory=ASSETS):
                                   if alpha.getpixel((x, y)) != 0), None)
                     require(stray is None,
                             f"Ore has nontransparent border pixel {stray}: {name}")
+                    # The outermost row can be transparent while the next row
+                    # contains a clipped anti-aliased fringe. Reserve two
+                    # transparent pixels on all sides for safe interpolation.
+                    inner_border = (
+                        [(x, 1) for x in range(width)]
+                        + [(x, height - 2) for x in range(width)]
+                        + [(1, y) for y in range(2, height - 2)]
+                        + [(width - 2, y) for y in range(2, height - 2)]
+                    )
+                    fringe = next(((x, y) for x, y in inner_border
+                                   if alpha.getpixel((x, y)) != 0), None)
+                    require(fringe is None,
+                            f"Ore has clipped alpha fringe near border {fringe}: {name}")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
