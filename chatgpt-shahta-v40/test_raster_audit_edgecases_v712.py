@@ -45,12 +45,12 @@ class RasterAuditEdgeCases(unittest.TestCase):
             audit_module.audit(self.root)
 
     def test_flat_ore_strip_with_enough_coverage_is_rejected(self):
-        # 300x40 opaque strip covers 13.3% of the image and includes the
+        # 296x40 opaque strip covers 13.2% of the image and includes the
         # centre, so it previously passed coverage and centre checks.
         path = self.root / "ore_23.png"
         im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
         for y in range(130, 170):
-            for x in range(300):
+            for x in range(2, 298):
                 v = (x * 13 + y * 19) % 160
                 im.putpixel((x, y), (50 + v, 40 + v, 30 + v, 255))
         im.save(path)
