@@ -26,7 +26,7 @@ def make_image(name, index):
         size = {
             "panel.png": (400, 96), "button.png": (160, 64),
             "button_off.png": (160, 64), "header.png": (360, 88),
-            "nav.png": (360, 50), "miner.png": (128, 128),
+            "nav.png": (360, 50), "miner.png": (240, 340),
         }[name]
     mode = "RGB" if background else "RGBA"
     im = Image.new(mode, size, (0, 0, 0) if background else (0, 0, 0, 0))
