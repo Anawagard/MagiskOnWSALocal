@@ -24,10 +24,10 @@ def feature_input(x,screen_y):
         return None
     return (x-13)/.93,((screen_y-60)-18)/.94
 
-screens=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+screens=[(360,720),(320,720),(320,568),(360,640),(393,873),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 checks=0
 for width,height in screens:
-    for tab in range(5):
+    # Round-trip all viewport corners and near-edge controls, including\n    # narrow displays with horizontal or vertical letterboxing.\n    scale,offset_x,offset_y=viewport(width,height)\n    assert scale>0 and offset_x>=-1e-8 and offset_y>=-1e-8\n    for x,y in ((0,0),(W,0),(0,H),(W,H),(1,1),(W-1,H-1)):\n        px,py=physical(x,y,width,height)\n        rx,ry=logical(px,py,width,height)\n        assert isclose(rx,x,abs_tol=1e-5),(width,height,x,rx)\n        assert isclose(ry,y,abs_tol=1e-5),(width,height,y,ry)\n        assert -1e-5<=px<=width+1e-5 and -1e-5<=py<=height+1e-5\n        checks+=1\n    for tab in range(5):
         x=36+72*tab
         px,py=physical(x,111,width,height)
         rx,ry=logical(px,py,width,height)
