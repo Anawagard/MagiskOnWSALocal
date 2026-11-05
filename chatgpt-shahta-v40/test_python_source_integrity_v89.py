@@ -10,20 +10,22 @@ HERE = Path(__file__).resolve().parent
 scripts = sorted(HERE.glob("*.py"))
 assert scripts, "No source scripts found"
 def assert_unique_definitions(body, context):
-    """Detect shadowed functions, classes, and class methods."""
+    """Detect shadowed definitions in each lexical function/class scope."""
     definitions = [node for node in body
                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
     names = [node.name for node in definitions]
     assert len(names) == len(set(names)), f"Duplicate definitions in {context}"
     for node in definitions:
-        if isinstance(node, ast.ClassDef):
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             assert_unique_definitions(node.body, f"{context}.{node.name}")
 
 
 # Negative fixtures ensure the detector actually rejects shadowing.
 for sample in ("def f(): pass\ndef f(): pass",
                "class C:\n def f(self): pass\n def f(self): pass",
-               "class C: pass\nclass C: pass"):
+               "class C: pass\nclass C: pass",
+               "def outer():\n def inner(): pass\n def inner(): pass",
+               "async def outer():\n async def inner(): pass\n async def inner(): pass"):
     try:
         assert_unique_definitions(ast.parse(sample).body, "fixture")
     except AssertionError:
