@@ -64,4 +64,19 @@ for w,h in sizes:
         assert hit_feature(w/2,oy/2,w,h) is None
         checks += 1
 
+# Horizontal viewport bounds matter as much as the vertical header clip.
+# Test exact edges and subpixel out-of-bounds coordinates after letterboxing.
+for w,h in sizes:
+    for sx in (-1,-.001,360.001,361):
+        px,py = map_to_screen(sx,340,w,h)
+        assert hit_feature(px,py,w,h) is None,(w,h,sx)
+        checks += 1
+    for sx in (0,.001,13,180,359.999,360):
+        px,py = map_to_screen(sx,340,w,h)
+        xy = hit_feature(px,py,w,h)
+        assert xy is not None,(w,h,sx)
+        assert isclose(xy[0],(sx-13)/.93,abs_tol=1e-5),(w,h,sx,xy)
+        assert isclose(xy[1],(340-78)/.94,abs_tol=1e-5),(w,h,sx,xy)
+        checks += 1
+
 print(f"PASS: {checks} clip/touch boundary assertions on {len(sizes)} sizes")
