@@ -228,10 +228,20 @@ def audit(directory=ASSETS):
     changed = sum(1 for r, g, b in difference.getdata()
                   if max(r, g, b) >= 12)
     changed_fraction = changed / (enabled.width * enabled.height)
-    require(state_delta >= 6.0 and changed_fraction >= 0.15,
+    # A high-contrast stripe on only one side may satisfy the global area
+    # threshold while the opposite half remains indistinguishable. Require
+    # both halves to communicate the disabled state independently.
+    half_areas = []
+    for x0, x1 in ((0, enabled.width // 2), (enabled.width // 2, enabled.width)):
+        half = difference.crop((x0, 0, x1, enabled.height))
+        count = sum(1 for r, g, b in half.getdata() if max(r, g, b) >= 12)
+        half_areas.append(count / (half.width * half.height))
+    require(state_delta >= 6.0 and changed_fraction >= 0.15
+            and min(half_areas) >= 0.05,
             f"Button states are visually indistinguishable on graphite: "
             f"mean RGB delta={state_delta:.2f}, "
-            f"changed area={changed_fraction:.1%}")
+            f"changed area={changed_fraction:.1%}, "
+            f"half areas={half_areas[0]:.1%}/{half_areas[1]:.1%}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
 
 if __name__ == "__main__":
