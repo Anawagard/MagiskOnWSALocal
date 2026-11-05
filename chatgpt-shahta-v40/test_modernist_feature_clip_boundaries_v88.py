@@ -21,7 +21,7 @@ assert 'for name in ("drawForge","drawGuild","drawCollection"):' in patch
 assert 'screens=[(360,720),(320,720),(320,568)' in geometry
 
 W,H = 360,720
-sizes = ((320,568),(320,720),(360,640),(393,873),(720,1280),
+sizes = ((320,568),(320,720),(360,640),(360,720),(393,852),(393,873),(720,1280),
          (1080,2400),(1272,2772),(1440,3200))
 checks = 0
 
@@ -87,5 +87,16 @@ for w,h in sizes:
             px,py = map_to_screen(sx,sy,w,h)
             assert hit_feature(px,py,w,h) is None,(w,h,sx,sy)
             checks += 1
+
+# The visible clip is half-open in raster space: a control cannot be hit
+# if its centre lies outside the rendered content viewport. Sample the
+# entire screen-height domain, including navigation and footer regions.
+for w,h in sizes:
+    for sy in range(0, 721, 3):
+        px,py = map_to_screen(180,sy,w,h)
+        hit = hit_feature(px,py,w,h)
+        visible = 205 <= sy <= 713
+        assert (hit is not None) == visible,(w,h,sy,hit)
+        checks += 1
 
 print(f"PASS: {checks} clip/touch boundary assertions on {len(sizes)} sizes")
