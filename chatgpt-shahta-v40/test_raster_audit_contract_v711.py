@@ -101,6 +101,19 @@ class RasterAuditContract(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Duplicate raster content"):
             audit_module.audit(self.root)
 
+    def test_different_alpha_masks_are_not_false_duplicates(self):
+        # Both skins are pure black on a black matte, but have visibly
+        # different translucency on a light background. Black-only hashes
+        # incorrectly reject this legitimate pair as duplicate artwork.
+        for offset, name in ((0, "button.png"), (47, "button_off.png")):
+            image = Image.new("RGBA", (160, 64), (0, 0, 0, 0))
+            for y in range(64):
+                for x in range(160):
+                    opacity = 48 + ((x * 19 + y * 37 + x * y + offset) % 160)
+                    image.putpixel((x, y), (0, 0, 0, opacity))
+            image.save(self.root / name)
+        audit_module.audit(self.root)
+
     def test_flat_ore_is_rejected(self):
         im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
         ImageDraw.Draw(im).ellipse((42, 42, 258, 258), fill=(110, 110, 110, 255))
