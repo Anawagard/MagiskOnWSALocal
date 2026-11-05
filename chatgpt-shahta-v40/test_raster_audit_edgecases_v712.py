@@ -101,6 +101,25 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Miner silhouette coverage"):
             audit_module.audit(self.root)
 
+    def test_nearly_invisible_fracture_overlay_is_rejected(self):
+        path = self.root / "fractures.png"
+        im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        # Preserve an alpha-capable PNG and enough compressed detail to pass
+        # the file-size check, but expose far less than 0.2% of the pixels.
+        for y in range(10, 20):
+            for x in range(10, 20):
+                v = (x * 47 + y * 71) % 256
+                im.putpixel((x, y), (v, 255 - v, 90, 200))
+        # Invisible RGB noise must not count as a visible crack.
+        for y in range(300):
+            for x in range(300):
+                if not (10 <= x < 20 and 10 <= y < 20):
+                    v = (x * 17 + y * 23) % 256
+                    im.putpixel((x, y), (v, 255 - v, 50, 0))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Fracture overlay is nearly invisible"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
