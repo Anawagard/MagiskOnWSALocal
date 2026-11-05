@@ -206,6 +206,18 @@ def audit(directory=ASSETS):
                                    if alpha.getpixel((x, y)) != 0), None)
                     require(fringe is None,
                             f"Ore has clipped alpha fringe near border {fringe}: {name}")
+                    # Coverage alone accepts a thin horizontal strip that
+                    # occupies 12% of the canvas but looks nothing like ore.
+                    # Check the opaque silhouette's two-dimensional extent.
+                    solid_mask = alpha.point(lambda value: 255 if value >= 240 else 0)
+                    bounds = solid_mask.getbbox()
+                    require(bounds is not None, f"Ore has no opaque silhouette: {name}")
+                    left, top, right, bottom = bounds
+                    span_x = (right - left) / width
+                    span_y = (bottom - top) / height
+                    require(span_x >= 0.35 and span_y >= 0.35,
+                            f"Ore silhouette is too narrow or flat: {name} "
+                            f"(width={span_x:.1%}, height={span_y:.1%})")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
     # Enabled/disabled skins must remain visibly distinguishable in the game.
