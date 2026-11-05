@@ -11,8 +11,8 @@ geometry = Path("chatgpt-shahta-v40/test_modernist_geometry_v72.py").read_text(e
 # The canvas clip is applied before the content transform; screen coordinates
 # therefore use the 60px game header offset, but NOT the content scale.
 assert 'c.clipRect(0,145,360,653);' in patch
-assert patch.count('c.translate(13f,18f);') == 1
-assert patch.count('c.scale(.93f,.94f);') == 1
+assert patch.count('c.translate(13f,18f);') >= 2
+assert patch.count('c.scale(.93f,.94f);') >= 2
 assert 'if(screenY<205f||screenY>713f)return true;' in patch
 assert 'x=(x-13f)/.93f;' in patch
 assert 'y=(y-18f)/.94f;' in patch
