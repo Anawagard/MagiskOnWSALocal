@@ -168,8 +168,10 @@ def audit(directory=ASSETS):
                     coverage = opaque / (width * height)
                     require(0.12 <= coverage <= 0.80,
                             f"Ore silhouette coverage invalid: {name} ({coverage:.1%})")
-                    require(alpha.getpixel((0, 0)) == 0,
-                            f"Ore has opaque top-left corner: {name}")
+                    for corner in ((0, 0), (width - 1, 0), (0, height - 1),
+                                   (width - 1, height - 1)):
+                        require(alpha.getpixel(corner) == 0,
+                                f"Ore has nontransparent corner {corner}: {name}")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
     print(f"PASS: {len(required)} raster assets decoded; 24 biomes, 24 ores, menu and UI art.")
