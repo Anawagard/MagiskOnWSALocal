@@ -141,6 +141,20 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
             audit_module.audit(self.root)
 
+    def test_localized_button_badge_does_not_disguise_identical_state(self):
+        # A bright badge on 12.5% of the button can raise the global mean
+        # RGB delta above six, while 87.5% of the control looks unchanged.
+        # The disabled state must differ across a meaningful surface area.
+        with Image.open(self.root / "button.png") as image:
+            enabled = image.convert("RGBA")
+        disabled = enabled.copy()
+        for y in range(8, 56):
+            for x in range(0, 20):
+                disabled.putpixel((x, y), (255, 255, 255, 255))
+        disabled.save(self.root / "button_off.png")
+        with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
