@@ -60,7 +60,7 @@ class ArchiveNamespaceTests(unittest.TestCase):
         self.check_invalid([("app//build.gradle", "file", 0)])
 
     def test_control_character(self):
-        self.check_invalid([("app/bad\\x01.gradle", "file", 0)])
+        self.check_invalid([("app/bad" + chr(1) + ".gradle", "file", 0)])
 
     def test_case_insensitive_collision(self):
         self.check_invalid([("app/Build.gradle", "file", 0),
