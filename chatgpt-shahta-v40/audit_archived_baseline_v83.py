@@ -10,6 +10,7 @@ import io
 from pathlib import Path
 import re
 import tarfile
+import unicodedata
 from pathlib import PurePosixPath
 
 MAX_ARCHIVE_FILES = 20000
@@ -31,7 +32,11 @@ def inspect_tar_members(archive):
         # specially; POSIX path normalization also collapses repeated slashes.
         parts = name.split("/")
         if (any(not part or part.endswith((".", " ")) or
-                ":" in part or any(ord(ch) < 32 or ord(ch) == 127 for ch in part)
+                ":" in part or part.upper().split(".")[0] in (
+                    {"CON", "PRN", "AUX", "NUL"} |
+                    {f"COM{i}" for i in range(1, 10)} |
+                    {f"LPT{i}" for i in range(1, 10)}
+                ) or any(ord(ch) < 32 or ord(ch) == 127 for ch in part)
                 for part in parts if part) or
                 "//" in name or name.startswith("./")):
             raise ValueError("Non-portable archive path: " + repr(name))
@@ -39,14 +44,14 @@ def inspect_tar_members(archive):
         # Implicit parent directories must also agree on spelling. Otherwise
         # App/a and app/b merge silently on case-insensitive filesystems.
         for index, part in enumerate(path.parts):
-            key = tuple(p.casefold() for p in path.parts[:index + 1])
+            key = tuple(unicodedata.normalize("NFC", p).casefold() for p in path.parts[:index + 1])
             spelling = tuple(path.parts[:index + 1])
             previous = canonical_parts.setdefault(key, spelling)
             if previous != spelling:
                 raise ValueError("Case-insensitive parent alias: " + normalized)
         # Case-insensitive filesystems can alias otherwise distinct TAR paths.
         # Reject them before any source tree is extracted on Windows/macOS.
-        portable = normalized.casefold()
+        portable = unicodedata.normalize("NFC", normalized).casefold()
         if portable in portable_names:
             raise ValueError("Case-insensitive archive collision: " + normalized)
         portable_names.add(portable)
