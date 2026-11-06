@@ -46,6 +46,22 @@ class ArchiveNamespaceTests(unittest.TestCase):
     def test_dot_segments(self):
         self.check_invalid([("a/../escape", "file", 0)])
 
+    def test_windows_drive_alias(self):
+        self.check_invalid([("C:/app/build.gradle", "file", 0)])
+
+    def test_windows_ads_alias(self):
+        self.check_invalid([("app/build.gradle:alternate", "file", 0)])
+
+    def test_trailing_dot_or_space(self):
+        self.check_invalid([("app./build.gradle", "file", 0)])
+        self.check_invalid([("app /build.gradle", "file", 0)])
+
+    def test_repeated_slash(self):
+        self.check_invalid([("app//build.gradle", "file", 0)])
+
+    def test_control_character(self):
+        self.check_invalid([("app/bad\\x01.gradle", "file", 0)])
+
     def test_symlink(self):
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w") as out:
