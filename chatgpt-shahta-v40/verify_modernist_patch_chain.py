@@ -108,8 +108,8 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # newer, incompatible project as the integration baseline.
     gradle_source = gradle.read_text(encoding="utf-8")
     import re
-    codes = re.findall(r"(?m)^\\s*versionCode\\s+(\\d+)\\s*$", gradle_source)
-    names = re.findall(r"(?m)^\\s*versionName\\s+['\\\"]([^'\\\"]+)['\\\"]\\s*$", gradle_source)
+    codes = re.findall(r"(?m)^\s*versionCode\s+(\d+)\s*$", gradle_source)
+    names = re.findall(r"""(?m)^\s*versionName\s+['"]([^'"]+)['"]\s*$""", gradle_source)
     assert len(codes) == len(names) == 1, (
         f"Ambiguous Gradle version metadata: codes={codes}, names={names}"
     )
