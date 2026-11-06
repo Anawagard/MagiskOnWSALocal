@@ -10,6 +10,41 @@ import io
 from pathlib import Path
 import re
 import tarfile
+from pathlib import PurePosixPath
+
+MAX_ARCHIVE_FILES = 20000
+MAX_ARCHIVE_BYTES = 512 * 1024 * 1024
+
+def inspect_tar_members(archive):
+    """Validate TAR paths, namespace collisions and bounded payload."""
+    files, seen, total = {}, set(), 0
+    for member in archive:
+        name = member.name
+        path = PurePosixPath(name)
+        if (not name or "\\" in name or path.is_absolute() or
+                any(part in ("..", ".") for part in name.split("/")) or
+                member.issym() or member.islnk() or
+                not (member.isfile() or member.isdir())):
+            raise ValueError("Unsafe archive entry: " + name)
+        normalized = path.as_posix()
+        if normalized in seen:
+            raise ValueError("Duplicate archive entry: " + normalized)
+        if any(parent.as_posix() in files for parent in path.parents if parent.as_posix() != "."):
+            raise ValueError("File used as directory: " + normalized)
+        if member.isfile() and any(existing.startswith(normalized + "/") for existing in seen):
+            raise ValueError("File shadows directory: " + normalized)
+        seen.add(normalized)
+        if len(seen) > MAX_ARCHIVE_FILES:
+            raise ValueError("Too many archive entries")
+        if member.isfile():
+            if member.size < 0 or member.size > 100 * 1024 * 1024:
+                raise ValueError("Unexpected archive file size: " + normalized)
+            total += member.size
+            if total > MAX_ARCHIVE_BYTES:
+                raise ValueError("Archive payload too large")
+            files[normalized] = member.size
+    return files
+
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "chatgpt-shahta-v32/source.tar.br.base64"
@@ -25,25 +60,7 @@ def audit():
     packed = base64.b64decode(ARCHIVE.read_bytes(), validate=True)
     raw = brotli.decompress(packed)
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
-        files = {}
-        seen = set()
-        for member in archive.getmembers():
-            # Reject aliases and special entries before any future extraction.
-            # PurePosixPath is required: archive names always use POSIX separators.
-            from pathlib import PurePosixPath
-            path = PurePosixPath(member.name)
-            if (path.is_absolute() or ".." in path.parts or
-                    member.issym() or member.islnk() or
-                    not (member.isfile() or member.isdir())):
-                raise ValueError("Unsafe archive entry: " + member.name)
-            normalized = path.as_posix()
-            if normalized in seen:
-                raise ValueError("Duplicate archive entry: " + normalized)
-            seen.add(normalized)
-            if member.isfile():
-                if member.size < 0 or member.size > 100 * 1024 * 1024:
-                    raise ValueError("Unexpected archive file size: " + normalized)
-                files[normalized] = member.size
+        files = inspect_tar_members(archive)
         for target in TARGETS:
             if target not in files:
                 raise AssertionError(f"Archive missing {target}; examples: {list(files)[:12]}")
