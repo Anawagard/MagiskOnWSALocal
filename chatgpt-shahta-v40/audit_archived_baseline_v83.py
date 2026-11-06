@@ -36,7 +36,7 @@ def inspect_tar_members(archive):
         # specially; POSIX path normalization also collapses repeated slashes.
         parts = name.split("/")
         if (any(not part or part.endswith((".", " ")) or
-                ":" in part or part.upper().split(".")[0] in (
+                any(ch in part for ch in '<>"|?*:') or part.upper().split(".")[0] in (
                     {"CON", "PRN", "AUX", "NUL"} |
                     {f"COM{i}" for i in range(1, 10)} |
                     {f"LPT{i}" for i in range(1, 10)}
