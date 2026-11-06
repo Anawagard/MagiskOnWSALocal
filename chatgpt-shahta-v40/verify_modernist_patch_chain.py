@@ -153,7 +153,9 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         'int toastY = page==0 ? 178 : 623;',
     ):
         assert marker in after, f"Missing post-chain invariant: {marker}"
-    assert 'v72NineSlice(canvas,"panel.png",18,178,324,26,252);' not in after, "Stale v7.8 toast placement remains"\n    assert 'v72NineSlice(canvas,"panel.png",18,240,324,26,252);' not in after, "Stale v7.7 toast placement remains"\n    assert after.count("c.translate(13f,18f);") == 3
+    assert 'v72NineSlice(canvas,"panel.png",18,178,324,26,252);' not in after, "Stale v7.8 toast placement remains"
+    assert 'v72NineSlice(canvas,"panel.png",18,240,324,26,252);' not in after, "Stale v7.7 toast placement remains"
+    assert after.count("c.translate(13f,18f);") == 3
     assert after.count("c.scale(.93f,.94f);") == 3
     print(f"PASS: {len(chain)} patches applied in order to disposable source tree; "
           "only expected source/version files changed; saves, package/signing retained; no build.")
