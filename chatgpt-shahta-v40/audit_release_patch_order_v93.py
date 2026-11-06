@@ -35,6 +35,11 @@ def audit(workflow: str, existing: set[str]) -> tuple[list[str], list[str]]:
     positions = [commands.index(name) for name in MODERN if name in commands]
     if len(positions) != len(MODERN) or positions != sorted(positions):
         missing.append("visual patches absent or out of order")
+    test_positions = [commands.index(name) for name in TESTS if name in commands]
+    if len(test_positions) != len(TESTS) or test_positions != sorted(test_positions):
+        missing.append("source tests absent or out of order")
+    if test_positions and positions and min(test_positions) <= max(positions):
+        missing.append("source tests must run after visual patches")
     if len(set(commands)) != len(commands):
         missing.append("duplicate Python commands")
     return commands, missing
