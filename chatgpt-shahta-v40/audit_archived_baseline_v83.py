@@ -17,7 +17,7 @@ MAX_ARCHIVE_BYTES = 512 * 1024 * 1024
 
 def inspect_tar_members(archive):
     """Validate TAR paths, namespace collisions and bounded payload."""
-    files, seen, total = {}, set(), 0
+    files, seen, portable_names, total = {}, set(), set(), 0
     for member in archive:
         name = member.name
         path = PurePosixPath(name)
@@ -36,6 +36,12 @@ def inspect_tar_members(archive):
                 "//" in name or name.startswith("./")):
             raise ValueError("Non-portable archive path: " + repr(name))
         normalized = path.as_posix()
+        # Case-insensitive filesystems can alias otherwise distinct TAR paths.
+        # Reject them before any source tree is extracted on Windows/macOS.
+        portable = normalized.casefold()
+        if portable in portable_names:
+            raise ValueError("Case-insensitive archive collision: " + normalized)
+        portable_names.add(portable)
         if normalized in seen:
             raise ValueError("Duplicate archive entry: " + normalized)
         if any(parent.as_posix() in files for parent in path.parents if parent.as_posix() != "."):
