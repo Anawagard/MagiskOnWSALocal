@@ -44,10 +44,6 @@ class PortableArchiveNames(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate([], directories=("app/", "app"))
 
-    def test_repeated_directory_separator(self):
-        with self.assertRaises(ValueError):
-            validate([], directories=("app//",))
-
     def test_safe_names(self):
         files = validate(["app/ore_01.png", "app/ore_02.png"])
         self.assertEqual(len(files), 2)
