@@ -14,7 +14,11 @@ def audit(text: str) -> None:
     # A manual-only workflow must not run on pushes, pull requests, schedules,
     # or workflow chaining. YAML's 'on' is intentionally inspected as text to
     # avoid YAML 1.1 parsers silently interpreting it as boolean True.
-    match = re.search(r"(?m)^on:\s*(?:\r?\n)", text)
+    # Reject duplicate top-level event mappings: YAML parsers may silently
+    # accept the last one, bypassing the manual-only release gate.
+    event_keys = re.findall(r"(?m)^on\s*:", text)
+    assert len(event_keys) == 1, f"Expected exactly one on: mapping, got {len(event_keys)}"
+    match = re.search(r"(?m)^on:[ \t]*(?:\r?\n)", text)
     assert match, "Missing explicit top-level on: mapping"
     tail = text[match.end():]
     block = re.split(r"(?m)^[^\s#][^\n]*:\s*(?:\r?\n|$)", tail, maxsplit=1)[0]
@@ -36,6 +40,13 @@ def audit(text: str) -> None:
 
 
 def test_negative_cases(text: str) -> None:
+    duplicate = text + "\non:\n  push:\n"
+    try:
+        audit(duplicate)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Duplicate top-level on: mapping not rejected")
     for trigger in ("push", "pull_request", "schedule", "workflow_run"):
         injected = text.replace("  workflow_dispatch:", f"  {trigger}:\n  workflow_dispatch:", 1)
         try:
