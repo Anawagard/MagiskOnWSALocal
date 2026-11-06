@@ -102,9 +102,24 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     protected_methods = ("public void save()", "private void rebirth()")
     protected_before = {name: method_body(before, name) for name in protected_methods}
     prepared = "v70Asset(" in before and "v71Scale(" in before
+    # Fail closed on ambiguous or inconsistent version metadata before any
+    # source patch executes. In particular, a prepared v7.1 checkout must
+    # retain the approved v7.0.1 version rather than silently accepting a
+    # newer, incompatible project as the integration baseline.
+    gradle_source = gradle.read_text(encoding="utf-8")
+    import re
+    codes = re.findall(r"(?m)^\\s*versionCode\\s+(\\d+)\\s*$", gradle_source)
+    names = re.findall(r"(?m)^\\s*versionName\\s+['\\\"]([^'\\\"]+)['\\\"]\\s*$", gradle_source)
+    assert len(codes) == len(names) == 1, (
+        f"Ambiguous Gradle version metadata: codes={codes}, names={names}"
+    )
+    expected_version = ("48", "7.0.1") if prepared else ("46", "6.9")
+    assert (codes[0], names[0]) == expected_version, (
+        f"Unexpected baseline version: {(codes[0], names[0])}; "
+        f"expected {expected_version}"
+    )
     if not prepared:
         assert "v70Asset(" not in before and "v71Scale(" not in before, "Partially patched baseline"
-        assert "versionCode 46" in gradle.read_text() and "versionName '6.9'" in gradle.read_text(), "Raw baseline must be v6.9"
     # A partially modernized checkout is not a valid baseline: applying patches
     # again can silently duplicate draw calls or shift touch geometry.
     modern_markers = [
