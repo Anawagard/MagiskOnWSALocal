@@ -26,6 +26,15 @@ def inspect_tar_members(archive):
                 member.issym() or member.islnk() or
                 not (member.isfile() or member.isdir())):
             raise ValueError("Unsafe archive entry: " + name)
+        # Reject platform-dependent aliases before a future extraction step.
+        # Windows treats colons, trailing dots/spaces and control characters
+        # specially; POSIX path normalization also collapses repeated slashes.
+        parts = name.split("/")
+        if (any(not part or part.endswith((".", " ")) or
+                ":" in part or any(ord(ch) < 32 or ord(ch) == 127 for ch in part)
+                for part in parts if part) or
+                "//" in name or name.startswith("./")):
+            raise ValueError("Non-portable archive path: " + repr(name))
         normalized = path.as_posix()
         if normalized in seen:
             raise ValueError("Duplicate archive entry: " + normalized)
