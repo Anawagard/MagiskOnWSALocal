@@ -28,6 +28,16 @@ class PortableArchiveNames(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 validate(["app/" + name])
 
+    def test_windows_forbidden_characters(self):
+        for character in '<>"|?*:':
+            with self.subTest(character=character), self.assertRaises(ValueError):
+                validate(["app/ore" + character + "01.png"])
+
+    def test_windows_forbidden_directory_characters(self):
+        for character in '<>"|?*:':
+            with self.subTest(character=character), self.assertRaises(ValueError):
+                validate(["app/biome" + character + "/ore.png"])
+
     def test_unicode_canonical_equivalence(self):
         with self.assertRaises(ValueError):
             validate(["app/caf\u00e9.txt", "app/cafe\u0301.txt"])
