@@ -55,6 +55,40 @@ class RestoreTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 restore(archive, destination)
 
+    def test_rejects_parent_traversal_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            entries = [(name, b"source") for name in TARGETS]
+            entries.append(("../outside.txt", b"escape"))
+            archive = self.make_archive(root, entries)
+            destination = root / "project"
+            with self.assertRaises(ValueError):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+            self.assertFalse((root / "outside.txt").exists())
+
+    def test_rejects_duplicate_archive_entry_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            entries = [(name, b"source") for name in TARGETS]
+            entries.append((TARGETS[0], b"overwrite"))
+            archive = self.make_archive(root, entries)
+            destination = root / "project"
+            with self.assertRaises(ValueError):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
+    def test_rejects_file_shadowing_directory_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            entries = [(name, b"source") for name in TARGETS]
+            entries.append(("app/src/main/java", b"not-a-directory"))
+            archive = self.make_archive(root, entries)
+            destination = root / "project"
+            with self.assertRaises(ValueError):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
