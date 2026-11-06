@@ -16,11 +16,47 @@ SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spaw
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
+def check_execution_safety(tree, label):
+    """Reject direct and aliased process execution, including imported os helpers."""
+    os_aliases = {"os"}
+    shell_aliases = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "os":
+                    os_aliases.add(alias.asname or "os")
+        elif isinstance(node, ast.ImportFrom) and node.module == "os":
+            for alias in node.names:
+                if alias.name in {name for _, name in SHELL_CALLS}:
+                    shell_aliases.add(alias.asname or alias.name)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        target = node.func
+        if isinstance(target, ast.Name) and target.id in DYNAMIC_CALLS | shell_aliases:
+            raise RuntimeError(f"{label}: unsafe execution: {target.id}")
+        if (isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name)
+                and target.value.id in os_aliases
+                and ("os", target.attr) in SHELL_CALLS):
+            raise RuntimeError(f"{label}: unsafe os execution: {target.attr}")
+
+# Verify the alias detector before auditing the real patch chain.
+for fixture in ("import os as operating\\noperating.system('echo no')",
+                "from os import popen as launch\\nlaunch('echo no')",
+                "from os import execve\\nexecve('x', [], {})"):
+    try:
+        check_execution_safety(ast.parse(fixture), "negative fixture")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("Unsafe execution fixture was accepted")
+
 for path in PATCHES:
     if not path.is_file():
         raise SystemExit(f"BLOCKED: missing patch: {path.name}")
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
+    check_execution_safety(tree, path.name)
     imports = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
