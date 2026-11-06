@@ -26,12 +26,24 @@ def audit():
     raw = brotli.decompress(packed)
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
         files = {}
+        seen = set()
         for member in archive.getmembers():
-            path = Path(member.name)
-            if path.is_absolute() or ".." in path.parts or member.issym() or member.islnk():
+            # Reject aliases and special entries before any future extraction.
+            # PurePosixPath is required: archive names always use POSIX separators.
+            from pathlib import PurePosixPath
+            path = PurePosixPath(member.name)
+            if (path.is_absolute() or ".." in path.parts or
+                    member.issym() or member.islnk() or
+                    not (member.isfile() or member.isdir())):
                 raise ValueError("Unsafe archive entry: " + member.name)
+            normalized = path.as_posix()
+            if normalized in seen:
+                raise ValueError("Duplicate archive entry: " + normalized)
+            seen.add(normalized)
             if member.isfile():
-                files[path.as_posix().removeprefix("./")] = member.size
+                if member.size < 0 or member.size > 100 * 1024 * 1024:
+                    raise ValueError("Unexpected archive file size: " + normalized)
+                files[normalized] = member.size
         for target in TARGETS:
             if target not in files:
                 raise AssertionError(f"Archive missing {target}; examples: {list(files)[:12]}")
