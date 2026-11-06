@@ -6,9 +6,13 @@ import unittest
 from audit_archived_baseline_v83 import inspect_tar_members
 
 
-def validate(names):
+def validate(names, directories=()):
     stream = io.BytesIO()
     with tarfile.open(fileobj=stream, mode="w") as tar:
+        for directory in directories:
+            info = tarfile.TarInfo(directory)
+            info.type = tarfile.DIRTYPE
+            tar.addfile(info)
         for name in names:
             info = tarfile.TarInfo(name)
             info.size = 1
@@ -31,6 +35,18 @@ class PortableArchiveNames(unittest.TestCase):
     def test_unicode_parent_equivalence(self):
         with self.assertRaises(ValueError):
             validate(["app/caf\u00e9/a.txt", "app/cafe\u0301/b.txt"])
+
+    def test_canonical_directory_headers(self):
+        files = validate(["app/ore_01.png"], directories=("app/",))
+        self.assertEqual(files, {"app/ore_01.png": 1})
+
+    def test_duplicate_directory_alias(self):
+        with self.assertRaises(ValueError):
+            validate([], directories=("app/", "app"))
+
+    def test_repeated_directory_separator(self):
+        with self.assertRaises(ValueError):
+            validate([], directories=("app//",))
 
     def test_safe_names(self):
         files = validate(["app/ore_01.png", "app/ore_02.png"])
