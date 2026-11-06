@@ -37,9 +37,29 @@ def restore(archive_path: Path, destination: Path) -> int:
                     target.mkdir(parents=True, exist_ok=True)
                 elif member.isfile():
                     target.parent.mkdir(parents=True, exist_ok=True)
+                    # Verify the bytes written, not only the TAR metadata.
+                    # A truncated stream must never leave a seemingly valid
+                    # restored Android project behind.
+                    import hashlib
+                    digest = hashlib.sha256()
+                    written = 0
                     with tar.extractfile(member) as source, target.open("xb") as sink:
-                        import shutil
-                        shutil.copyfileobj(source, sink)
+                        while True:
+                            block = source.read(1024 * 1024)
+                            if not block:
+                                break
+                            sink.write(block)
+                            digest.update(block)
+                            written += len(block)
+                    if written != member.size or target.stat().st_size != member.size:
+                        raise ValueError(
+                            f"Truncated archive member {member.name}: "
+                            f"expected {member.size}, wrote {written}"
+                        )
+                    with target.open("rb") as restored:
+                        check = hashlib.file_digest(restored, "sha256").digest()
+                    if check != digest.digest():
+                        raise ValueError(f"Restored bytes differ from TAR stream: {member.name}")
             return len(files)
         except BaseException:
             import shutil
