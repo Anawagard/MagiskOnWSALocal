@@ -1,12 +1,13 @@
 """Offline source restoration regression tests; never invoke Android tooling."""
 import base64
 import io
+import hashlib
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
 
-from restore_source_only import restore, TARGETS
+from restore_source_only import restore, TARGETS, ARCHIVE
 
 try:
     import brotli
@@ -26,6 +27,32 @@ class RestoreTests(unittest.TestCase):
         path = root / "source.tar.br.base64"
         path.write_bytes(base64.b64encode(brotli.compress(stream.getvalue())))
         return path
+
+    def test_real_archived_baseline_byte_exact(self):
+        """Exercise the actual archived v3.2 tree, not only synthetic fixtures.
+
+        A source-only regression: no Gradle, Android SDK, emulator or network.
+        """
+        if not ARCHIVE.is_file():
+            self.skipTest("Archived v3.2 source is not present in this checkout")
+        with tempfile.TemporaryDirectory() as folder:
+            destination = Path(folder) / "project"
+            restored_count = restore(ARCHIVE, destination)
+            decoded = brotli.decompress(base64.b64decode(ARCHIVE.read_bytes(), validate=True))
+            expected = {}
+            with tarfile.open(fileobj=io.BytesIO(decoded), mode="r:") as tar:
+                for member in tar:
+                    if member.isfile():
+                        with tar.extractfile(member) as stream:
+                            expected[member.name] = hashlib.sha256(stream.read()).hexdigest()
+            self.assertEqual(restored_count, len(expected))
+            actual = {
+                file.relative_to(destination).as_posix(): hashlib.sha256(file.read_bytes()).hexdigest()
+                for file in destination.rglob("*") if file.is_file()
+            }
+            self.assertEqual(actual, expected)
+            for required in TARGETS:
+                self.assertIn(required, actual)
 
     def test_restore_complete_sources(self):
         with tempfile.TemporaryDirectory() as folder:
