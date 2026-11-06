@@ -69,6 +69,18 @@ class ArchiveNamespaceTests(unittest.TestCase):
     def test_case_insensitive_directory_collision(self):
         self.check_invalid([("App", "dir", 0), ("app", "dir", 0)])
 
+    def test_implicit_parent_case_alias(self):
+        self.check_invalid([("App/a.txt", "file", 0),
+                            ("app/b.txt", "file", 0)])
+
+    def test_explicit_implicit_parent_case_alias(self):
+        self.check_invalid([("App", "dir", 0),
+                            ("app/a.txt", "file", 0)])
+
+    def test_nested_implicit_parent_case_alias(self):
+        self.check_invalid([("app/Src/a.txt", "file", 0),
+                            ("app/src/b.txt", "file", 0)])
+
     def test_valid_distinct_casefold_paths(self):
         with archive_of([("app/A.gradle", "file", 0),
                          ("app/B.gradle", "file", 0)]) as tar:
