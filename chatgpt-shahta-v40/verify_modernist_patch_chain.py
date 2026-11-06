@@ -155,6 +155,21 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         assert marker in after, f"Missing post-chain invariant: {marker}"
     assert 'v72NineSlice(canvas,"panel.png",18,178,324,26,252);' not in after, "Stale v7.8 toast placement remains"
     assert 'v72NineSlice(canvas,"panel.png",18,240,324,26,252);' not in after, "Stale v7.7 toast placement remains"
+    # Validate the final toast geometry, not only the existence of a marker.
+    # Mine toast is above the content area; feature-page toast is below the
+    # last shop card and above the lower interaction boundary (y=653).
+    import re
+    toast_match = re.search(r"int toastY\\s*=\\s*page\\s*==\\s*0\\s*\\?\\s*(\\d+)\\s*:\\s*(\\d+)\\s*;", after)
+    assert toast_match is not None, "Missing page-aware toast coordinates"
+    mine_y, feature_y = map(int, toast_match.groups())
+    toast_height = 26
+    assert mine_y == 178 and feature_y == 623, "Unexpected toast placement"
+    assert mine_y + toast_height <= 205, "Mine toast overlaps content"
+    assert feature_y >= 615 and feature_y + toast_height <= 653, "Feature toast overlaps cards or controls"
+    assert after.count("int toastY = page==0 ? 178 : 623;") == 1, "Duplicate toast placement"
+    assert after.count('v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);') == 1
+    assert after.count('rect(canvas,26,toastY+5,3,16,0xff65e1d0);') == 1
+    assert after.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);') == 1
     assert after.count("c.translate(13f,18f);") == 3
     assert after.count("c.scale(.93f,.94f);") == 3
     print(f"PASS: {len(chain)} patches applied in order to disposable source tree; "
