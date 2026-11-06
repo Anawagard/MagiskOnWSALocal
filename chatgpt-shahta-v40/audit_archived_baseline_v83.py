@@ -21,6 +21,10 @@ def inspect_tar_members(archive):
     files, seen, portable_names, canonical_parts, total = {}, set(), set(), {}, 0
     for member in archive:
         name = member.name
+        # TAR directory headers conventionally end in one slash. Accept that
+        # canonical form, but reject repeated slashes and empty components.
+        if member.isdir() and name.endswith("/") and not name.endswith("//"):
+            name = name[:-1]
         path = PurePosixPath(name)
         if (not name or "\\" in name or path.is_absolute() or
                 any(part in ("..", ".") for part in name.split("/")) or
