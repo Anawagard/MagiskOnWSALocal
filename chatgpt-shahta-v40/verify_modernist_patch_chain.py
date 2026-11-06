@@ -159,7 +159,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # Mine toast is above the content area; feature-page toast is below the
     # last shop card and above the lower interaction boundary (y=653).
     import re
-    toast_match = re.search(r"int toastY\\s*=\\s*page\\s*==\\s*0\\s*\\?\\s*(\\d+)\\s*:\\s*(\\d+)\\s*;", after)
+    toast_match = re.search(r"int toastY\s*=\s*page\s*==\s*0\s*\?\s*(\d+)\s*:\s*(\d+)\s*;", after)
     assert toast_match is not None, "Missing page-aware toast coordinates"
     mine_y, feature_y = map(int, toast_match.groups())
     toast_height = 26
