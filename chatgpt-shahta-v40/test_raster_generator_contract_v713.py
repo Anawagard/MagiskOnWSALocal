@@ -38,6 +38,18 @@ class RasterGeneratorContract(unittest.TestCase):
                 self.assertEqual(len(rgb), 3)
                 self.assertTrue(all(isinstance(c, int) and 0 <= c <= 255 for c in rgb))
 
+    def test_missing_baseline_blocks_before_asset_directory_creation(self):
+        """Missing source files must not create an empty Android project."""
+        required = ("app/build.gradle", "MineView.java", "MainActivity.java")
+        for name in required:
+            self.assertIn(name, self.source)
+        guard = self.source.index("if _missing:")
+        fail = self.source.index("raise SystemExit(", guard)
+        create = self.source.index("OUT.mkdir(")
+        self.assertLess(guard, fail)
+        self.assertLess(fail, create)
+        self.assertIn("Restore sources before generating raster assets", self.source)
+
     def test_no_unseeded_random_generator(self):
         # A random generator with no seed breaks reproducibility of the art.
         for node in ast.walk(self.tree):
