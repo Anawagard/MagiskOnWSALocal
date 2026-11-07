@@ -136,6 +136,45 @@ def cave(index,color,path,w=360,h=570):
                 d.line([(x,y),(x+int(r.integers(-10,11)),y+15),
                         (x+int(r.integers(-16,17)),y+32)],
                        fill=(232,119,72,110),width=2)
+    # Six depth-dependent geological signatures differentiate biomes that share
+    # the same foreground motif. Keep these confined to the side walls so
+    # navigation labels and the central mining corridor remain readable.
+    signature=index//4
+    if signature==0:
+        # Fine parallel quartz seams.
+        for j in range(9):
+            y=78+j*46
+            d.line([(5,y),(45,y-8),(72,y-4)],fill=(*color,75),width=1)
+    elif signature==1:
+        # Sparse stratified dark inclusions.
+        for j in range(16):
+            y=int(r.integers(75,h-55))
+            x=int(r.choice([r.integers(6,58),r.integers(w-58,w-6)]))
+            d.ellipse((x-3,y-2,x+4,y+2),fill=(8,17,27,125))
+    elif signature==2:
+        # Narrow, cool mineral fault lines.
+        for j in range(8):
+            y=int(r.integers(75,h-85))
+            d.line([(w-9,y),(w-37,y+12),(w-57,y+9)],
+                   fill=(106,198,204,82),width=2)
+    elif signature==3:
+        # Warm oxidized deposits on both edges.
+        for j in range(12):
+            y=int(r.integers(72,h-70))
+            x=12 if j%2==0 else w-12
+            d.ellipse((x-9,y-4,x+9,y+4),fill=(190,104,65,65))
+    elif signature==4:
+        # Thin intersecting cleavage traces.
+        for j in range(12):
+            y=int(r.integers(75,h-75))
+            x=24 if j%2==0 else w-24
+            d.line([(x-12,y-9),(x+8,y+12)],fill=(*color,88),width=1)
+    else:
+        # Bright pinprick crystals on the peripheral walls.
+        for j in range(25):
+            y=int(r.integers(70,h-65))
+            x=int(r.choice([r.integers(8,60),r.integers(w-60,w-8)]))
+            d.point((x,y),fill=(209,240,237,130))
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
