@@ -108,6 +108,34 @@ def audit():
         raise AssertionError("Automatic trigger found")
     if re.search(r"(?m)^on:\s*\[[^\]\n]*(push|pull_request|pull_request_target|schedule|workflow_run)", workflow):
         raise AssertionError("Automatic inline trigger found")
+    # Fail closed: manual-only means *no other event*, not merely no push/PR.
+    # Match the root 'on:' mapping (including quoted YAML keys) and its
+    # two-space-indented event names; reject aliases and inline/scalar forms.
+    trigger = re.search(r'(?m)^[\\x27\\x22]?on[\\x27\\x22]?:\\s*(.*)
+        if patch not in workflow:
+            raise AssertionError("Release workflow missing " + patch)
+    print(f"PASS: {len(files)} archived files; Android sources, Gradle, manual-only release chain present")
+    print("NOTE: this is a v3.2 source archive, NOT a prepared v6.9/v7.1 baseline.")
+    print("Replaying the release workflow's source patches locally is still required.")
+if __name__ == "__main__":
+    audit()
+, workflow)
+    if trigger is None or trigger.group(1).strip():
+        raise AssertionError("Game workflow must use a mapping of manual triggers")
+    following = workflow[trigger.end():].splitlines()
+    events = []
+    for line in following:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith((" ", "\\t")):
+            break
+        match = re.match(r'^  ([\\x27\\x22]?)([A-Za-z_][A-Za-z_0-9]*)\\1\\s*:', line)
+        if match:
+            events.append(match.group(2))
+        elif line.startswith("  ") and not line.startswith("    "):
+            raise AssertionError("Unrecognized game workflow event declaration")
+    if events != ["workflow_dispatch"]:
+        raise AssertionError(f"Game workflow must be workflow_dispatch only, got: {events}")
     for patch in ("patch_game.py", "patch_full_redesign_v70.py", "patch_modernist_v71.py"):
         if patch not in workflow:
             raise AssertionError("Release workflow missing " + patch)
