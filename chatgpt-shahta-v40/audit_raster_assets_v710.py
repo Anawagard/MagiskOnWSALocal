@@ -220,6 +220,30 @@ def audit(directory=ASSETS):
                             f"(width={span_x:.1%}, height={span_y:.1%})")
                     require(alpha.getpixel((width // 2, height // 2)) >= 240,
                             f"Ore center unexpectedly transparent: {name}")
+                    # A noisy mask can satisfy area, extent and centre tests
+                    # while most of its pixels are isolated debris. The central
+                    # ore body must form one substantial 4-connected silhouette.
+                    # Count opaque pixels only, ignoring anti-aliased edges.
+                    from collections import deque
+                    opaque_pixels = set()
+                    for y in range(top, bottom):
+                        for x in range(left, right):
+                            if alpha.getpixel((x, y)) >= 240:
+                                opaque_pixels.add((x, y))
+                    center = (width // 2, height // 2)
+                    queue = deque([center])
+                    connected = {center}
+                    while queue:
+                        x, y = queue.popleft()
+                        for neighbor in ((x - 1, y), (x + 1, y),
+                                         (x, y - 1), (x, y + 1)):
+                            if neighbor in opaque_pixels and neighbor not in connected:
+                                connected.add(neighbor)
+                                queue.append(neighbor)
+                    connected_fraction = len(connected) / len(opaque_pixels)
+                    require(connected_fraction >= 0.85,
+                            f"Ore has disconnected opaque fragments: {name} "
+                            f"(central component={connected_fraction:.1%})")
     # Enabled/disabled skins must remain visibly distinguishable in the game.
     # Pixel-perfect deduplication alone misses near-identical button states;
     # compare the actual alpha-composited appearance on graphite UI panels.
