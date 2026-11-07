@@ -165,6 +165,33 @@ def ore(index,color,path):
     alpha=ImageChops.multiply(highlights.getchannel("A"),mask)
     highlights.putalpha(alpha)
     im=Image.alpha_composite(im,highlights)
+    # Distinct mineral microstructures are baked into the bitmap, never drawn
+    # as extra per-frame Canvas geometry. Keep all marks inside the alpha mask.
+    grain=Image.new("RGBA",(w,h),(0,0,0,0))
+    gd=ImageDraw.Draw(grain,"RGBA")
+    if index % 3 == 0:
+        # Sedimentary ore: fine, staggered horizontal laminae.
+        for j in range(46):
+            x=int(r.integers(50,246)); y=int(r.integers(48,249))
+            length=int(r.integers(8,31))
+            gd.line((x,y,x+length,y+int(r.integers(-3,4))),
+                    fill=(229,232,220,75),width=1)
+    elif index % 3 == 1:
+        # Crystalline ore: intersecting short angular cleavages.
+        for j in range(38):
+            x=int(r.integers(48,244)); y=int(r.integers(45,245))
+            dx=int(r.integers(5,19)); dy=int(r.integers(7,23))
+            gd.line([(x-dx,y+dy),(x,y),(x+dx,y+dy//2)],
+                    fill=(225,241,242,90),width=1)
+    else:
+        # Metallic ore: discontinuous diagonal striations.
+        for j in range(55):
+            x=int(r.integers(52,242)); y=int(r.integers(48,246))
+            length=int(r.integers(5,20))
+            gd.line((x,y,x+length,y-length//2),
+                    fill=(14,23,35,92),width=2)
+    grain.putalpha(ImageChops.multiply(grain.getchannel("A"),mask))
+    im=Image.alpha_composite(im,grain)
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
