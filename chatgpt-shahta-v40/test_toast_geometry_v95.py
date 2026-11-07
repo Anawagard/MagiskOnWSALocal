@@ -65,6 +65,37 @@ class ToastGeometryTests(unittest.TestCase):
                                        width, height)[1]
                 self.assertLessEqual(feature[3], bottom_y)
 
+    def test_patch_replacement_is_unique_and_localized(self):
+        """The v7.9 source edit must replace one exact toast block only."""
+        tree = ast.parse(self.source)
+        assignments = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target = node.targets[0]
+                if isinstance(target, ast.Name) and target.id in ("old", "new"):
+                    self.assertNotIn(target.id, assignments)
+                    assignments[target.id] = ast.literal_eval(node.value)
+        self.assertEqual(set(assignments), {"old", "new"})
+        old, new = assignments["old"], assignments["new"]
+        self.assertEqual(old.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        self.assertEqual(new.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        self.assertEqual(old.count("v72NineSlice("), 1)
+        self.assertEqual(new.count("v72NineSlice("), 1)
+        self.assertEqual(new.count("int toastY = page==0 ? 178 : 623;"), 1)
+        # Replacing the old block in any otherwise unchanged source must
+        # leave all surrounding code byte-for-byte identical.
+        prefix = "public void onTouchEventSentinel() {}\\n"
+        suffix = "\\nprivate void saveSentinel() {}"
+        baseline = prefix + old + suffix
+        self.assertEqual(baseline.count(old), 1)
+        modified = baseline.replace(old, new, 1)
+        self.assertTrue(modified.startswith(prefix))
+        self.assertTrue(modified.endswith(suffix))
+        self.assertEqual(modified.count(old), 0)
+        self.assertEqual(modified.count(new), 1)
+        self.assertNotIn("onTouchEvent(", new)
+        self.assertNotIn("getSharedPreferences(", new)
+
     def test_patch_changes_only_toast_drawing_not_touch_handlers(self):
         tree = ast.parse(self.source)
         old = new = None
