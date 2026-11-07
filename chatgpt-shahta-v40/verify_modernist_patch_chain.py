@@ -29,7 +29,7 @@ def locate_project():
     candidates = []
     for parent in (REPO, REPO.parent):
         for gradle in parent.glob("*/project/app/build.gradle"):
-            candidate = gradle.parent.parent.parent
+            candidate = gradle.parent.parent  # build.gradle lives under project/app/
             if (candidate / "app/src/main/java/com/bezdna/mine/MineView.java").is_file() and (
                 candidate / "app/src/main/java/com/bezdna/mine/MainActivity.java"
             ).is_file():
