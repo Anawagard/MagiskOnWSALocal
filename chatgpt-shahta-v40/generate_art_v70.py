@@ -9,6 +9,14 @@ from PIL import Image, ImageDraw, ImageFilter, ImageChops
 # Resolve relative to this script, not the shell working directory.
 # This keeps generation and audit pointed at the same Android assets folder.
 ROOT=Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
+# Never fabricate an empty Android project when the historical baseline is absent.
+# The manual release workflow restores the project before generating art.
+_REQUIRED = ("app/build.gradle", "app/src/main/java/com/bezdna/mine/MineView.java",
+             "app/src/main/java/com/bezdna/mine/MainActivity.java")
+_missing = [name for name in _REQUIRED if not (ROOT / name).is_file()]
+if _missing:
+    raise SystemExit(f"BLOCKED: Android baseline missing at {ROOT}; required: {_missing}. "
+                     "Restore sources before generating raster assets; no files written.")
 OUT=ROOT/"app/src/main/assets/shahta_v70"
 OUT.mkdir(parents=True,exist_ok=True)
 SCENES=[
