@@ -16,6 +16,15 @@ import runpy
 import shutil
 import tempfile
 
+# This integration verifier relies on assertions for release-critical contracts.
+# Under python -O / PYTHONOPTIMIZE those checks disappear entirely; fail
+# before touching even the disposable source tree rather than reporting PASS.
+if not __debug__:
+    raise SystemExit(
+        "BLOCKED: source-only verification requires Python assertions; "
+        "rerun without -O/-OO or PYTHONOPTIMIZE."
+    )
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 DEFAULT_PROJECT = REPO / "chatgpt-shahta-v33" / "project"
