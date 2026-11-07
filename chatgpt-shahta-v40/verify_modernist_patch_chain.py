@@ -23,7 +23,19 @@ def locate_project():
     """Resolve the real Android baseline, never treating patch scripts as a project."""
     configured = os.environ.get("SHAHTA_BASELINE_PROJECT")
     if configured:
-        return Path(configured).expanduser().resolve()
+        selected = Path(configured).expanduser().resolve()
+        required_override = (
+            "app/build.gradle",
+            "app/src/main/java/com/bezdna/mine/MineView.java",
+            "app/src/main/java/com/bezdna/mine/MainActivity.java",
+        )
+        missing_override = [name for name in required_override if not (selected / name).is_file()]
+        if missing_override:
+            raise SystemExit(
+                f"BLOCKED: SHAHTA_BASELINE_PROJECT={selected} is not a complete Android project; "
+                f"missing: {missing_override}"
+            )
+        return selected
     # A leftover or empty project directory is not a usable baseline.
     # Validate the expected source files before preferring the default.
     required = (
