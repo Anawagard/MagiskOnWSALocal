@@ -243,9 +243,12 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     arr+=np.maximum(0,1-np.abs(xx-w*.28)/(w*.8))[:,:,None]*2
     im=image_array(arr).convert("RGBA")
     d=ImageDraw.Draw(im,"RGBA")
-    accent=(93,224,210,255) if bright else (119,166,190,230)
+    # Honour the per-surface border palette instead of giving every panel
+    # the same grey stroke. Bright controls keep a turquoise focus rail.
+    border_rgb=tuple(int(np.clip(channel,0,255)) for channel in border)
+    accent=(93,224,210,255) if bright else (*border_rgb,230)
     d.rounded_rectangle((1,1,w-2,h-2),radius=12,
-                        outline=(115,146,163,118),width=2)
+                        outline=(*border_rgb,150 if bright else 118),width=2)
     d.line((15,3,w-15,3),fill=(*accent[:3],85),width=1)
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
