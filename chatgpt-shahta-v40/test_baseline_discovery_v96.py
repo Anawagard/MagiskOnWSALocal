@@ -57,6 +57,14 @@ class BaselineDiscoveryTests(unittest.TestCase):
         ns.update(REPO=self.root, DEFAULT_PROJECT=self.root / "missing" / "project")
         self.assertEqual(ns["locate_project"](), project.resolve())
 
+    def test_incomplete_default_does_not_mask_valid_baseline(self):
+        default = self.root / "chatgpt-shahta-v33" / "project"
+        default.mkdir(parents=True)
+        valid = make_project(self.root, "chatgpt-shahta-v34")
+        ns = load_locator()
+        ns.update(REPO=self.root, DEFAULT_PROJECT=default)
+        self.assertEqual(ns["locate_project"](), valid.resolve())
+
     def test_explicit_project_override(self):
         project = make_project(self.root)
         os.environ["SHAHTA_BASELINE_PROJECT"] = str(project)
