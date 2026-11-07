@@ -35,7 +35,7 @@ class ToastGeometryTests(unittest.TestCase):
         cls.source = PATCH.read_text(encoding="utf-8")
         ast.parse(cls.source, filename=str(PATCH))
         cls.mine_y, cls.feature_y = map(int, re.search(
-            r"int toastY = page==0 \\? (\\d+) : (\\d+);", cls.source
+            r"int toastY = page==0 \? (\d+) : (\d+);", cls.source
         ).groups())
 
     def test_all_five_pages_have_clear_overlay_regions(self):
