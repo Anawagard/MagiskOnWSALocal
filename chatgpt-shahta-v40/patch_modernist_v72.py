@@ -150,6 +150,10 @@ once("    private void drawPage(Canvas c,int tab){",
 once("        float y=(screenY-60f)/1.0f;",
      """        float y=screenY-60f;
         if(page>=2&&page<=4){
+            // The legacy feature-page controls are drawn only inside the
+            // clipped y=145..653 content viewport, shifted down by 60.
+            // Do not activate invisible buttons behind the new section header.
+            if(screenY<205f||screenY>713f)return true;
             x=(x-13f)/.93f;
             y=(y-18f)/.94f;
         }""")
@@ -160,6 +164,7 @@ for name in ("drawForge","drawGuild","drawCollection"):
     assert s.count("private void "+name+"Legacy(Canvas c)")==1,name
 assert s.count("c.translate(13f,18f);")==3
 assert s.count("c.scale(.93f,.94f);")==3
+assert s.count("if(screenY<205f||screenY>713f)return true;")==1
 assert s.count("x=(x-13f)/.93f;")==1
 assert s.count("y=(y-18f)/.94f;")==1
 assert s.count("private void v72NineSlice(")==1

@@ -19,11 +19,25 @@ def feature_screen(x,y):
     return 13+.93*x,60+18+.94*y
 
 def feature_input(x,screen_y):
+    # Keep identical with patch_modernist_v72.py: header is not interactive.
+    if screen_y<205 or screen_y>713:
+        return None
     return (x-13)/.93,((screen_y-60)-18)/.94
 
-screens=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+screens=[(360,720),(320,720),(320,568),(360,640),(393,873),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 checks=0
 for width,height in screens:
+    # Round-trip all viewport corners and near-edge controls, including
+    # narrow displays with horizontal or vertical letterboxing.
+    scale,offset_x,offset_y=viewport(width,height)
+    assert scale>0 and offset_x>=-1e-8 and offset_y>=-1e-8
+    for x,y in ((0,0),(W,0),(0,H),(W,H),(1,1),(W-1,H-1)):
+        px,py=physical(x,y,width,height)
+        rx,ry=logical(px,py,width,height)
+        assert isclose(rx,x,abs_tol=1e-5),(width,height,x,rx)
+        assert isclose(ry,y,abs_tol=1e-5),(width,height,y,ry)
+        assert -1e-5<=px<=width+1e-5 and -1e-5<=py<=height+1e-5
+        checks+=1
     for tab in range(5):
         x=36+72*tab
         px,py=physical(x,111,width,height)
@@ -67,5 +81,17 @@ for width,height in screens:
         rx,ry=feature_input(lx,ly)
         assert isclose(rx,x,abs_tol=1e-4),(width,height,x,rx)
         assert isclose(ry,y,abs_tol=1e-4),(width,height,y,ry)
+        checks+=1
+    # Invisible legacy controls under the modern section header must never
+    # receive touches. The clipped content is visible only at y=205..713.
+    for sy in (145,174,192,204,714,719):
+        px,py=physical(180,sy,width,height)
+        lx,ly=logical(px,py,width,height)
+        assert feature_input(lx,ly) is None,(width,height,sy)
+        checks+=1
+    for sy in (206,340,712):
+        px,py=physical(180,sy,width,height)
+        lx,ly=logical(px,py,width,height)
+        assert feature_input(lx,ly) is not None,(width,height,sy)
         checks+=1
 print(f'PASS: {checks} geometry assertions across {len(screens)} resolutions; no APK built')
