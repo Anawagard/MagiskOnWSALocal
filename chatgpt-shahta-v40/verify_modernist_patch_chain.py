@@ -24,8 +24,7 @@ def locate_project():
     configured = os.environ.get("SHAHTA_BASELINE_PROJECT")
     if configured:
         return Path(configured).expanduser().resolve()
-    if DEFAULT_PROJECT.is_dir():
-        return DEFAULT_PROJECT
+    # A leftover or empty project directory is not a usable baseline.\n    # Validate the expected source files before preferring the default.\n    required = (\n        "app/build.gradle",\n        "app/src/main/java/com/bezdna/mine/MineView.java",\n        "app/src/main/java/com/bezdna/mine/MainActivity.java",\n    )\n    if all((DEFAULT_PROJECT / name).is_file() for name in required):\n        return DEFAULT_PROJECT.resolve()
     candidates = []
     for parent in (REPO, REPO.parent):
         for gradle in parent.glob("*/project/app/build.gradle"):
