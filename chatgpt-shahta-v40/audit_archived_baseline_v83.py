@@ -102,8 +102,12 @@ def audit():
     workflow = WORKFLOW.read_text(encoding="utf-8")
     if not re.search(r"(?m)^  workflow_dispatch:\s*$", workflow):
         raise AssertionError("Game workflow is not manual-only")
-    if re.search(r"(?m)^  (push|pull_request|schedule):", workflow):
+    # Also reject inline YAML trigger lists (on: [push]) and quoted keys.
+    # The release workflow must not run on commits or pull requests.
+    if re.search(r"(?m)^  [\x27\x22]?(push|pull_request|pull_request_target|schedule|workflow_run)[\x27\x22]?\\s*:", workflow):
         raise AssertionError("Automatic trigger found")
+    if re.search(r"(?m)^on:\\s*\\[[^\\]\\n]*(push|pull_request|pull_request_target|schedule|workflow_run)", workflow):
+        raise AssertionError("Automatic inline trigger found")
     for patch in ("patch_game.py", "patch_full_redesign_v70.py", "patch_modernist_v71.py"):
         if patch not in workflow:
             raise AssertionError("Release workflow missing " + patch)
