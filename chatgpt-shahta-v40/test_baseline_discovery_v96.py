@@ -72,6 +72,25 @@ class BaselineDiscoveryTests(unittest.TestCase):
         ns.update(REPO=self.root / "unused", DEFAULT_PROJECT=self.root / "missing")
         self.assertEqual(ns["locate_project"](), project.resolve())
 
+    def test_explicit_incomplete_project_fails_closed(self):
+        incomplete = self.root / "incomplete" / "project"
+        incomplete.mkdir(parents=True)
+        os.environ["SHAHTA_BASELINE_PROJECT"] = str(incomplete)
+        ns = load_locator()
+        ns.update(REPO=self.root, DEFAULT_PROJECT=self.root / "missing")
+        with self.assertRaisesRegex(SystemExit, "not a complete Android project"):
+            ns["locate_project"]()
+
+    def test_explicit_override_does_not_fallback(self):
+        make_project(self.root)
+        incomplete = self.root / "incomplete" / "project"
+        incomplete.mkdir(parents=True)
+        os.environ["SHAHTA_BASELINE_PROJECT"] = str(incomplete)
+        ns = load_locator()
+        ns.update(REPO=self.root, DEFAULT_PROJECT=self.root / "chatgpt-shahta-v33" / "project")
+        with self.assertRaisesRegex(SystemExit, "missing"):
+            ns["locate_project"]()
+
     def test_ambiguous_baselines_fail_closed(self):
         first = make_project(self.root, "chatgpt-shahta-v33")
         second = make_project(self.root, "chatgpt-shahta-v34")
