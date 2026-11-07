@@ -135,14 +135,27 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         )
     chain = PATCHES if prepared else PREPARE + PATCHES
     original_cwd = Path.cwd()
+    touch_after_layout = None
+    def touch_body(source):
+        # v7.2 intentionally introduces inverse touch coordinates.
+        # Later presentation-only patches must preserve the handler exactly.
+        match = re.search(r"public\s+boolean\s+onTouchEvent\s*\([^)]*\)", source)
+        assert match is not None, "Missing Android touch handler"
+        return method_body(source, match.group(0))
     try:
         os.chdir(root)
         for patch in chain:
             print(f"APPLY source-only {patch.name}", flush=True)
             runpy.run_path(str(patch), run_name="__main__")
+            if patch.name == "patch_modernist_v72.py":
+                touch_after_layout = touch_body(java.read_text(encoding="utf-8"))
     finally:
         os.chdir(original_cwd)
     after = java.read_text(encoding="utf-8")
+    assert touch_after_layout is not None, "v7.2 layout baseline not captured"
+    assert touch_body(after) == touch_after_layout, (
+        "Post-v7.2 visual patches unexpectedly changed the touch handler"
+    )
     updated_files = snapshot(target)
     java_rel = java.relative_to(target).as_posix()
     assert updated_files.keys() == baseline_files.keys(), "Patch chain added or removed project files"
