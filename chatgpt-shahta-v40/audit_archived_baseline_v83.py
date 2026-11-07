@@ -88,7 +88,10 @@ TARGETS = (
 )
 def audit():
     import brotli
-    assert ARCHIVE.is_file() and WORKFLOW.is_file()
+    if not ARCHIVE.is_file():
+        raise FileNotFoundError(f"Missing archived Android baseline: {ARCHIVE}")
+    if not WORKFLOW.is_file():
+        raise FileNotFoundError(f"Missing manual game workflow: {WORKFLOW}")
     packed = base64.b64decode(ARCHIVE.read_bytes(), validate=True)
     raw = brotli.decompress(packed)
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
