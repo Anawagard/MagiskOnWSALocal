@@ -28,8 +28,8 @@ def load_locator():
     return namespace
 
 
-def make_project(root):
-    project = root / "chatgpt-shahta-v33" / "project"
+def make_project(root, version="chatgpt-shahta-v33"):
+    project = root / version / "project"
     java = project / "app/src/main/java/com/bezdna/mine"
     java.mkdir(parents=True)
     (java / "MineView.java").write_text("class MineView {}", encoding="utf-8")
@@ -65,8 +65,8 @@ class BaselineDiscoveryTests(unittest.TestCase):
         self.assertEqual(ns["locate_project"](), project.resolve())
 
     def test_ambiguous_baselines_fail_closed(self):
-        first = make_project(self.root / "a")
-        second = make_project(self.root / "b")
+        first = make_project(self.root, "chatgpt-shahta-v33")
+        second = make_project(self.root, "chatgpt-shahta-v34")
         # The search examines REPO and its parent, and matches immediate
         # children of each. Both projects therefore share a parent.
         ns = load_locator()
@@ -74,6 +74,8 @@ class BaselineDiscoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "multiple Android baselines"):
             ns["locate_project"]()
         self.assertNotEqual(first, second)
+        self.assertTrue((first / "app/build.gradle").is_file())
+        self.assertTrue((second / "app/build.gradle").is_file())
 
 
 if __name__ == "__main__":
