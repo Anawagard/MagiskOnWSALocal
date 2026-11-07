@@ -139,7 +139,9 @@ def cave(index,color,path,w=360,h=570):
     # Six depth-dependent geological signatures differentiate biomes that share
     # the same foreground motif. Keep these confined to the side walls so
     # navigation labels and the central mining corridor remain readable.
-    signature=index//4
+    # Menu scenes use indices 31..34; map them to distinct geological
+    # signatures instead of letting all fall through the final branch.
+    signature=index//4 if index < 24 else (index-30)%6
     if signature==0:
         # Fine parallel quartz seams.
         for j in range(9):
