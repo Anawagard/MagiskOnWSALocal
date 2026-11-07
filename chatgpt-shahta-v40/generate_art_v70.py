@@ -98,6 +98,44 @@ def cave(index,color,path,w=360,h=570):
         for j in range(8):
             x=int(r.integers(0,360));cy=int(r.integers(70,510))
             d.line([(x,cy),(x+8,cy+17),(x-2,cy+31)],fill=(255,139,63,95),width=3)
+    # Biome-specific foreground geology: four distinct silhouettes repeated
+    # with independent palettes and seeded placement across all 24 biomes.
+    # Drawn once into the bitmap; no additional runtime Canvas operations.
+    motif=index%4
+    if motif==0:
+        # Jagged crystalline shelves with a narrow luminous ridge.
+        for side in (0,1):
+            for j in range(9):
+                y=int(85+j*43+r.integers(-12,13))
+                edge=0 if side==0 else w
+                tip=edge+(1 if side==0 else -1)*int(r.integers(17,54))
+                d.polygon([(edge,y-18),(tip,y),(edge,y+23)],
+                          fill=(20,32,44,160))
+                d.line([(edge,y-18),(tip,y)],fill=(*color,125),width=2)
+    elif motif==1:
+        # Layered sedimentary ledges and fine fossil-like inclusions.
+        for j in range(12):
+            y=int(65+j*39+r.integers(-9,10))
+            span=int(r.integers(34,98))
+            d.line([(0,y),(span,y+int(r.integers(-5,6)))],
+                   fill=(*color,94),width=3)
+            d.line([(w-span,y+8),(w,y+11)],fill=(8,15,25,125),width=4)
+    elif motif==2:
+        # Rounded mineral nodules with hard opaque cores.
+        for j in range(25):
+            x=int(r.choice([r.integers(5,82),r.integers(w-82,w-5)]))
+            y=int(r.integers(68,h-65)); radius=int(r.integers(3,11))
+            d.ellipse((x-radius,y-radius,x+radius,y+radius),
+                      fill=(11,24,33,155),outline=(*color,128),width=2)
+    else:
+        # Fractured volcanic seams, kept outside the central play corridor.
+        for side in (0,1):
+            for j in range(11):
+                x=int(r.integers(4,65)) if side==0 else int(r.integers(w-65,w-4))
+                y=int(r.integers(60,h-60))
+                d.line([(x,y),(x+int(r.integers(-10,11)),y+15),
+                        (x+int(r.integers(-16,17)),y+32)],
+                       fill=(232,119,72,110),width=2)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
