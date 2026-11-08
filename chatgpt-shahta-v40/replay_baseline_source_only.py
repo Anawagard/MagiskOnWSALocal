@@ -55,6 +55,24 @@ def source_steps(workflow):
         ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
     return commands
 
+def verify_replayed_source(root, initial):
+    """Check restored release identity, persistence and signing without Gradle."""
+    project = root / "chatgpt-shahta-v33/project"
+    gradle = (root / GRADLE).read_text(encoding="utf-8")
+    source = (root / JAVA).read_text(encoding="utf-8")
+    if not re.search(r"(?m)^\s*versionCode\s+46\s*$", gradle) or not re.search(
+        r"""(?m)^\s*versionName\s+['"]6\.9['"]\s*$""", gradle
+    ):
+        raise AssertionError("Replayed project is not v6.9")
+    for marker in ("public void save()", "private void rebirth()",
+                   'getSharedPreferences("mine_save_v1"'):
+        if marker not in source:
+            raise AssertionError(f"Missing game-state contract: {marker}")
+    if "signingConfig signingConfigs.shahtaDebug" not in gradle:
+        raise AssertionError("Pinned debug signing missing")
+    if (project / "app/src/main/java/com/bezdna/mine/MainActivity.java").read_bytes() == initial:
+        raise AssertionError("Expected historical save import/export updates missing")
+
 def main():
     if not __debug__:
         raise SystemExit("BLOCKED: run without Python -O")
@@ -70,20 +88,7 @@ def main():
             print(f"SOURCE {index}/{len(steps)} {relative}", flush=True)
             subprocess.run([sys.executable, str(REPO / relative)], cwd=root,
                            check=True, timeout=180, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
-        gradle = (root / GRADLE).read_text(encoding="utf-8")
-        source = (root / JAVA).read_text(encoding="utf-8")
-        if not re.search(r"(?m)^\s*versionCode\s+46\s*$", gradle) or not re.search(
-            r"""(?m)^\s*versionName\s+['"]6\.9['"]\s*$""", gradle
-        ):
-            raise AssertionError("Replayed project is not v6.9")
-        for marker in ("public void save()", "private void rebirth()",
-                       'getSharedPreferences("mine_save_v1"'):
-            if marker not in source:
-                raise AssertionError(f"Missing game-state contract: {marker}")
-        if "signingConfig signingConfigs.shahtaDebug" not in gradle:
-            raise AssertionError("Pinned debug signing missing")
-        if (project / "app/src/main/java/com/bezdna/mine/MainActivity.java").read_bytes() == initial:
-            raise AssertionError("Expected historical save import/export updates missing")
+        verify_replayed_source(root, initial)
         print(f"PASS: {count} archived files, {len(steps)} source-only steps, v6.9 "
               "and persistence/signing markers; disposable tree removed; no APK")
         print("NOTE: WAV audio files are absent; this is not a buildable release.")
