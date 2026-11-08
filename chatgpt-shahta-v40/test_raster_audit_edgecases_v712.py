@@ -237,6 +237,22 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Duplicate raster content|Near-duplicate ore sprites"):
             audit_module.audit(self.root)
 
+    def test_vertically_flipped_cave_clone_is_rejected(self):
+        from PIL import ImageOps
+        with Image.open(self.root / "biome_22.jpg") as image:
+            ImageOps.flip(image.convert("RGB")).save(
+                self.root / "biome_23.jpg", quality=95)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
+            audit_module.audit(self.root)
+
+    def test_rotated_ore_clone_is_rejected(self):
+        from PIL import ImageOps
+        with Image.open(self.root / "ore_22.png") as image:
+            ImageOps.flip(ImageOps.mirror(image.convert("RGBA"))).save(
+                self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
