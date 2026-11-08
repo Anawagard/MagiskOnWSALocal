@@ -35,6 +35,11 @@ class ReplayOrderTests(unittest.TestCase):
         ])
         self.assertEqual(replay.source_steps(workflow), self.steps)
 
+    def test_generator_must_immediately_precede_raster_patch(self):
+        reordered = [self.steps[0], self.steps[2], self.steps[1], self.steps[3]]
+        with self.assertRaisesRegex(ValueError, "immediately precede"):
+            replay.source_steps(self.workflow(reordered))
+
     def test_missing_audio_patch_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "audio"):
             replay.source_steps(self.workflow([
