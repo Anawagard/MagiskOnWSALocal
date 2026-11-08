@@ -149,6 +149,17 @@ class RestoreTests(unittest.TestCase):
             self.assertFalse(destination.exists())
             self.assertFalse((root / "outside").exists())
 
+    def test_valid_brotli_with_invalid_tar_never_creates_destination(self):
+        """Malformed TAR data must fail validation before any extraction."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            archive = root / "invalid-tar.br.base64"
+            archive.write_bytes(base64.b64encode(brotli.compress(b"not a tar archive")))
+            destination = root / "project"
+            with self.assertRaisesRegex(ValueError, "Invalid TAR source archive"):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
     def test_invalid_base64_never_creates_destination(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
