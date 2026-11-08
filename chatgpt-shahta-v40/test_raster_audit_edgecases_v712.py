@@ -216,6 +216,27 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
             audit_module.audit(self.root)
 
+    def test_mirrored_ore_clone_is_rejected(self):
+        # A flipped ore silhouette must not count as a unique mineral,
+        # even though its PNG pixels and file hash differ.
+        from PIL import ImageOps
+        source = self.root / "ore_22.png"
+        target = self.root / "ore_23.png"
+        with Image.open(source) as image:
+            ImageOps.mirror(image.convert("RGBA")).save(target)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
+    def test_reencoded_ore_clone_is_rejected(self):
+        # Metadata and lossless PNG encoding can change without altering
+        # visible art. The audit must catch the duplicate appearance.
+        source = self.root / "ore_22.png"
+        target = self.root / "ore_23.png"
+        with Image.open(source) as image:
+            image.convert("RGBA").save(target, compress_level=0)
+        with self.assertRaisesRegex(RuntimeError, "Duplicate raster content|Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
