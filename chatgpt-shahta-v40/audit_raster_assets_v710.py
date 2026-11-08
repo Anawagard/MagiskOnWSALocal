@@ -27,6 +27,7 @@ def audit(directory=ASSETS):
     require(not missing, f"Missing raster assets ({len(missing)}): {missing}")
     fingerprints = {}
     background_previews = {}
+    ore_previews = {}
     for name in sorted(required):
         file = directory / name
         require(file.stat().st_size > 1024, f"Suspiciously small sprite: {name}")
@@ -148,6 +149,31 @@ def audit(directory=ASSETS):
                                 f"{name} and {previous_name} "
                                 f"(mean RGB delta={mean_delta:.3f})")
                 background_previews[name] = preview
+            if name.startswith("ore_"):
+                # Detect copied or horizontally flipped ore artwork even when
+                # an exporter changes PNG metadata or lightly recompresses it.
+                # Compare both alpha and visible RGB on graphite; comparing
+                # RGB alone would miss changes to a stone's silhouette.
+                from PIL import ImageOps
+                rgba_preview = im.convert("RGBA").resize((60, 60))
+                graphite = Image.new("RGBA", rgba_preview.size, (23, 32, 47, 255))
+                visible_preview = Image.alpha_composite(graphite, rgba_preview).convert("RGB")
+                alpha_preview = rgba_preview.getchannel("A")
+                for previous_name, (previous_rgb, previous_alpha) in ore_previews.items():
+                    for orientation, rgb_candidate, alpha_candidate in (
+                        ("original", previous_rgb, previous_alpha),
+                        ("mirrored", ImageOps.mirror(previous_rgb),
+                         ImageOps.mirror(previous_alpha)),
+                    ):
+                        rgb_delta = sum(ImageStat.Stat(ImageChops.difference(
+                            visible_preview, rgb_candidate)).mean) / 3
+                        alpha_delta = ImageStat.Stat(ImageChops.difference(
+                            alpha_preview, alpha_candidate)).mean[0]
+                        require(max(rgb_delta, alpha_delta) >= 1.0,
+                                f"Near-duplicate ore sprites ({orientation}): "
+                                f"{name} and {previous_name} "
+                                f"(RGB={rgb_delta:.3f}, alpha={alpha_delta:.3f})")
+                ore_previews[name] = (visible_preview, alpha_preview)
             if name.startswith("ore_"):
                 # RGB conversion paints transparent PNG pixels black. Measuring
                 # the full image can therefore incorrectly approve a flat,
