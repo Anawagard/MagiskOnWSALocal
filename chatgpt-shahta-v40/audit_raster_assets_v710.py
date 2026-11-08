@@ -26,6 +26,7 @@ def audit(directory=ASSETS):
     missing = sorted(required - present)
     require(not missing, f"Missing raster assets ({len(missing)}): {missing}")
     fingerprints = {}
+    background_previews = {}
     for name in sorted(required):
         file = directory / name
         require(file.stat().st_size > 1024, f"Suspiciously small sprite: {name}")
@@ -125,6 +126,19 @@ def audit(directory=ASSETS):
                     require(max(spreads) >= 24,
                             f"Background lacks distributed texture: {name} "
                             f"(5-95% range={max(spreads)})")
+            if name.startswith(("biome_", "menu_")):
+                # Byte/pixel hashes alone accept a copied cave background with
+                # one changed pixel or a different JPEG quality setting.
+                # Compare low-resolution appearance to reject near-clones while
+                # tolerating genuinely different cave scenes and palettes.
+                preview = im.convert("RGB").resize((36, 57))
+                for previous_name, previous in background_previews.items():
+                    delta = ImageChops.difference(preview, previous)
+                    mean_delta = sum(ImageStat.Stat(delta).mean) / 3
+                    require(mean_delta >= 1.0,
+                            f"Near-duplicate cave backgrounds: {name} and "
+                            f"{previous_name} (mean RGB delta={mean_delta:.3f})")
+                background_previews[name] = preview
             if name.startswith("ore_"):
                 # RGB conversion paints transparent PNG pixels black. Measuring
                 # the full image can therefore incorrectly approve a flat,
