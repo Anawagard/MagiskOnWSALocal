@@ -70,7 +70,7 @@ def verify_replayed_source(root, initial):
                    'getSharedPreferences("mine_save_v1"'):
         if marker not in source:
             raise AssertionError(f"Missing game-state contract: {marker}")
-    if "signingConfig signingConfigs.shahtaDebug" not in gradle:
+    if not re.search(r"(?m)^\\s*signingConfig\\s+signingConfigs\\.shahtaDebug\\s*$", gradle):
         raise AssertionError("Pinned debug signing missing")
     if (project / "app/src/main/java/com/bezdna/mine/MainActivity.java").read_bytes() == initial:
         raise AssertionError("Expected historical save import/export updates missing")
