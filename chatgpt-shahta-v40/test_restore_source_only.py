@@ -117,5 +117,39 @@ class RestoreTests(unittest.TestCase):
             self.assertFalse(destination.exists())
 
 
+    def test_invalid_base64_never_creates_destination(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            archive = root / "invalid.tar.br.base64"
+            archive.write_bytes(b"not-valid-base64!!!")
+            destination = root / "project"
+            with self.assertRaises(ValueError):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
+    def test_truncated_brotli_never_creates_destination(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            archive = self.make_archive(root, [(name, b"source") for name in TARGETS])
+            encoded = base64.b64decode(archive.read_bytes(), validate=True)
+            archive.write_bytes(base64.b64encode(encoded[:max(1, len(encoded) // 2)]))
+            destination = root / "project"
+            with self.assertRaises(Exception):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
+    def test_rejects_absolute_member_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            entries = [(name, b"source") for name in TARGETS]
+            entries.append(("/tmp/shahta-absolute-escape", b"escape"))
+            archive = self.make_archive(root, entries)
+            destination = root / "project"
+            with self.assertRaises(ValueError):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
+
+
 if __name__ == "__main__":
     unittest.main()
