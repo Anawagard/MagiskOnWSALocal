@@ -42,8 +42,12 @@ def source_steps(workflow):
         raise ValueError("Duplicate release patch step")
     if not any(p.endswith("/patch_real_audio.py") for p in commands):
         raise ValueError("Missing v3.7 source audio patch")
-    if not any(p.endswith("/generate_raster_v69.py") for p in commands):
+    generator = "chatgpt-shahta-v40/generate_raster_v69.py"
+    terminal = "chatgpt-shahta-v40/patch_raster_v69.py"
+    if generator not in commands:
         raise ValueError("Missing v6.9 raster generator")
+    if commands[-2:] != [generator, terminal]:
+        raise ValueError("v6.9 raster generator must immediately precede terminal patch")
     for relative in commands:
         script = REPO / relative
         if not script.is_file():
