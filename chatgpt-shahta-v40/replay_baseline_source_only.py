@@ -64,6 +64,8 @@ def verify_replayed_source(root, initial):
         r"""(?m)^\s*versionName\s+['"]6\.9['"]\s*$""", gradle
     ):
         raise AssertionError("Replayed project is not v6.9")
+    if not re.search(r"""(?m)^\s*applicationId\s+[\'"]com\.bezdna\.mine[\'"]\s*$""", gradle):
+        raise AssertionError("Original package ID missing")
     for marker in ("public void save()", "private void rebirth()",
                    'getSharedPreferences("mine_save_v1"'):
         if marker not in source:
