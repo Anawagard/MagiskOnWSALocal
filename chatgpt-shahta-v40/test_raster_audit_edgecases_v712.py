@@ -195,6 +195,16 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
             audit_module.audit(self.root)
 
+    def test_recompressed_cave_clone_is_rejected(self):
+        # A JPEG re-encode changes compressed bytes and decoded pixels,
+        # but should not count as a distinct biome illustration.
+        source = self.root / "biome_22.jpg"
+        target = self.root / "biome_23.jpg"
+        with Image.open(source) as image:
+            image.convert("RGB").save(target, quality=82)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
