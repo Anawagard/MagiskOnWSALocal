@@ -205,6 +205,17 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
             audit_module.audit(self.root)
 
+    def test_mirrored_cave_clone_is_rejected(self):
+        # A horizontal reflection changes every asymmetric pixel yet
+        # reuses the same cave art rather than providing a distinct biome.
+        from PIL import ImageOps
+        source = self.root / "biome_22.jpg"
+        target = self.root / "biome_23.jpg"
+        with Image.open(source) as image:
+            ImageOps.mirror(image.convert("RGB")).save(target, quality=95)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
