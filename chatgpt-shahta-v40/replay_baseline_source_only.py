@@ -66,9 +66,12 @@ def verify_replayed_source(root, initial):
         raise AssertionError("Replayed project is not v6.9")
     if not re.search(r"""(?m)^\s*applicationId\s+[\'"]com\.bezdna\.mine[\'"]\s*$""", gradle):
         raise AssertionError("Original package ID missing")
+    # Comment-only lines must not satisfy persistence contracts.
+    active_source = "\n".join(line for line in source.splitlines()
+                              if not line.lstrip().startswith(("//", "*", "/*")))
     for marker in ("public void save()", "private void rebirth()",
                    'getSharedPreferences("mine_save_v1"'):
-        if marker not in source:
+        if marker not in active_source:
             raise AssertionError(f"Missing game-state contract: {marker}")
     if not re.search(r"(?m)^\s*signingConfig\s+signingConfigs\.shahtaDebug\s*$", gradle):
         raise AssertionError("Pinned debug signing missing")
