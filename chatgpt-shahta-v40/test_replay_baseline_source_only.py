@@ -99,6 +99,13 @@ class ReplayContractTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "game-state contract"):
             replay.verify_replayed_source(self.root, b"original")
 
+    def test_rejects_commented_out_save_key(self):
+        self.java.write_text(self.java.read_text().replace(
+            'getSharedPreferences("mine_save_v1", 0);',
+            '// getSharedPreferences("mine_save_v1", 0);'))
+        with self.assertRaisesRegex(AssertionError, "game-state contract"):
+            replay.verify_replayed_source(self.root, b"original")
+
     def test_rejects_signing_drift(self):
         self.gradle.write_text(self.gradle.read_text().replace("shahtaDebug", "release"))
         with self.assertRaisesRegex(AssertionError, "debug signing"):
