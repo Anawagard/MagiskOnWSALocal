@@ -104,6 +104,14 @@ class ReplayContractTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "debug signing"):
             replay.verify_replayed_source(self.root, b"original")
 
+    def test_rejects_commented_out_debug_signing(self):
+        self.gradle.write_text(self.gradle.read_text().replace(
+            "signingConfig signingConfigs.shahtaDebug",
+            "// signingConfig signingConfigs.shahtaDebug"
+        ), encoding="utf-8")
+        with self.assertRaisesRegex(AssertionError, "debug signing"):
+            replay.verify_replayed_source(self.root, b"original")
+
     def test_rejects_missing_import_export_change(self):
         with self.assertRaisesRegex(AssertionError, "import/export"):
             replay.verify_replayed_source(self.root, b"updated import/export")
