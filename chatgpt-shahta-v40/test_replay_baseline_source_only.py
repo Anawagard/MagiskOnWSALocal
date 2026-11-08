@@ -67,5 +67,42 @@ class ReplayOrderTests(unittest.TestCase):
             replay.source_steps(self.workflow(self.steps))
 
 
+class ReplayContractTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.gradle = self.root / replay.GRADLE
+        self.java = self.root / replay.JAVA
+        self.activity = self.root / "chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MainActivity.java"
+        for path in (self.gradle, self.java, self.activity):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        self.gradle.write_text('versionCode 46\\nversionName "6.9"\\nsigningConfig signingConfigs.shahtaDebug\\n', encoding="utf-8")
+        self.java.write_text('public void save() {}\\nprivate void rebirth() {}\\ngetSharedPreferences("mine_save_v1", 0);\\n', encoding="utf-8")
+        self.activity.write_bytes(b"updated import/export")
+
+    def test_valid_replay_contract(self):
+        replay.verify_replayed_source(self.root, b"original")
+
+    def test_rejects_version_drift(self):
+        self.gradle.write_text(self.gradle.read_text().replace("versionCode 46", "versionCode 47"))
+        with self.assertRaisesRegex(AssertionError, "not v6.9"):
+            replay.verify_replayed_source(self.root, b"original")
+
+    def test_rejects_missing_save_key(self):
+        self.java.write_text(self.java.read_text().replace("mine_save_v1", "mine_save_v2"))
+        with self.assertRaisesRegex(AssertionError, "game-state contract"):
+            replay.verify_replayed_source(self.root, b"original")
+
+    def test_rejects_signing_drift(self):
+        self.gradle.write_text(self.gradle.read_text().replace("shahtaDebug", "release"))
+        with self.assertRaisesRegex(AssertionError, "debug signing"):
+            replay.verify_replayed_source(self.root, b"original")
+
+    def test_rejects_missing_import_export_change(self):
+        with self.assertRaisesRegex(AssertionError, "import/export"):
+            replay.verify_replayed_source(self.root, b"updated import/export")
+
+
 if __name__ == "__main__":
     unittest.main()
