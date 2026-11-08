@@ -19,7 +19,13 @@ def restore(archive_path: Path, destination: Path) -> int:
     import brotli
     if destination.exists():
         raise FileExistsError(f"Destination already exists: {destination}")
-    packed = base64.b64decode(archive_path.read_bytes(), validate=True)
+    # Normalize malformed Base64 into the documented validation error type.
+    # binascii.Error otherwise escapes and breaks the source-only regression.
+    import binascii
+    try:
+        packed = base64.b64decode(archive_path.read_bytes(), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("Invalid Base64 source archive") from exc
     decoded = brotli.decompress(packed)
     # Inspect the *entire* archive before creating any destination files.
     with tarfile.open(fileobj=io.BytesIO(decoded), mode="r:") as tar:
