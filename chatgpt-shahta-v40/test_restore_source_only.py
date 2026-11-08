@@ -117,6 +117,38 @@ class RestoreTests(unittest.TestCase):
             self.assertFalse(destination.exists())
 
 
+    def test_rejects_case_insensitive_alias_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            entries = [(name, b"source") for name in TARGETS]
+            entries.append((TARGETS[0].swapcase(), b"alias"))
+            archive = self.make_archive(root, entries)
+            destination = root / "project"
+            with self.assertRaisesRegex(ValueError, "Case-insensitive"):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+
+    def test_rejects_symlink_member_before_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            stream = io.BytesIO()
+            with tarfile.open(fileobj=stream, mode="w") as tar:
+                for name in TARGETS:
+                    info = tarfile.TarInfo(name)
+                    info.size = 6
+                    tar.addfile(info, io.BytesIO(b"source"))
+                link = tarfile.TarInfo("app/src/main/java/escape")
+                link.type = tarfile.SYMTYPE
+                link.linkname = "../../outside"
+                tar.addfile(link)
+            archive = root / "source.tar.br.base64"
+            archive.write_bytes(base64.b64encode(brotli.compress(stream.getvalue())))
+            destination = root / "project"
+            with self.assertRaisesRegex(ValueError, "Unsafe archive entry"):
+                restore(archive, destination)
+            self.assertFalse(destination.exists())
+            self.assertFalse((root / "outside").exists())
+
     def test_invalid_base64_never_creates_destination(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
