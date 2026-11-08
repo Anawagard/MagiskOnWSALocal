@@ -133,11 +133,20 @@ def audit(directory=ASSETS):
                 # tolerating genuinely different cave scenes and palettes.
                 preview = im.convert("RGB").resize((36, 57))
                 for previous_name, previous in background_previews.items():
-                    delta = ImageChops.difference(preview, previous)
-                    mean_delta = sum(ImageStat.Stat(delta).mean) / 3
-                    require(mean_delta >= 1.0,
-                            f"Near-duplicate cave backgrounds: {name} and "
-                            f"{previous_name} (mean RGB delta={mean_delta:.3f})")
+                    # Mirroring an existing cave does not create a new biome.
+                    # Check the original orientation and horizontal reflection
+                    # at the same resolution, without modifying source art.
+                    from PIL import ImageOps
+                    for orientation, candidate in (
+                        ("original", previous),
+                        ("mirrored", ImageOps.mirror(previous)),
+                    ):
+                        delta = ImageChops.difference(preview, candidate)
+                        mean_delta = sum(ImageStat.Stat(delta).mean) / 3
+                        require(mean_delta >= 1.0,
+                                f"Near-duplicate cave backgrounds ({orientation}): "
+                                f"{name} and {previous_name} "
+                                f"(mean RGB delta={mean_delta:.3f})")
                 background_previews[name] = preview
             if name.startswith("ore_"):
                 # RGB conversion paints transparent PNG pixels black. Measuring
