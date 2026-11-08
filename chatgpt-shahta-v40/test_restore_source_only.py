@@ -134,7 +134,7 @@ class RestoreTests(unittest.TestCase):
             encoded = base64.b64decode(archive.read_bytes(), validate=True)
             archive.write_bytes(base64.b64encode(encoded[:max(1, len(encoded) // 2)]))
             destination = root / "project"
-            with self.assertRaises(Exception):
+            with self.assertRaisesRegex(ValueError, "Invalid or truncated Brotli"):
                 restore(archive, destination)
             self.assertFalse(destination.exists())
 
