@@ -56,9 +56,16 @@ def restore(archive_path: Path, destination: Path) -> int:
                             f"Truncated archive member {member.name}: "
                             f"expected {member.size}, wrote {written}"
                         )
+                    # hashlib.file_digest requires Python 3.11; retain
+                    # compatibility with Python 3.9/3.10 for offline audits.
+                    verified = hashlib.sha256()
                     with target.open("rb") as restored:
-                        check = hashlib.file_digest(restored, "sha256").digest()
-                    if check != digest.digest():
+                        while True:
+                            block = restored.read(1024 * 1024)
+                            if not block:
+                                break
+                            verified.update(block)
+                    if verified.digest() != digest.digest():
                         raise ValueError(f"Restored bytes differ from TAR stream: {member.name}")
             return len(files)
         except BaseException:
