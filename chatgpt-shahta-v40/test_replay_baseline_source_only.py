@@ -77,7 +77,7 @@ class ReplayContractTests(unittest.TestCase):
         self.activity = self.root / "chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MainActivity.java"
         for path in (self.gradle, self.java, self.activity):
             path.parent.mkdir(parents=True, exist_ok=True)
-        self.gradle.write_text('versionCode 46\nversionName "6.9"\nsigningConfig signingConfigs.shahtaDebug\n', encoding="utf-8")
+        self.gradle.write_text('applicationId "com.bezdna.mine"\nversionCode 46\nversionName "6.9"\nsigningConfig signingConfigs.shahtaDebug\n', encoding="utf-8")
         self.java.write_text('public void save() {}\nprivate void rebirth() {}\ngetSharedPreferences("mine_save_v1", 0);\n', encoding="utf-8")
         self.activity.write_bytes(b"updated import/export")
 
@@ -87,6 +87,11 @@ class ReplayContractTests(unittest.TestCase):
     def test_rejects_version_drift(self):
         self.gradle.write_text(self.gradle.read_text().replace("versionCode 46", "versionCode 47"))
         with self.assertRaisesRegex(AssertionError, "not v6.9"):
+            replay.verify_replayed_source(self.root, b"original")
+
+    def test_rejects_package_id_drift(self):
+        self.gradle.write_text(self.gradle.read_text().replace("com.bezdna.mine", "com.example.mine"))
+        with self.assertRaisesRegex(AssertionError, "package ID"):
             replay.verify_replayed_source(self.root, b"original")
 
     def test_rejects_missing_save_key(self):
