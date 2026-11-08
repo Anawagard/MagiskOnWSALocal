@@ -25,6 +25,25 @@ for name, palette in (("biome", scenes), ("ore", ores)):
         if len(color) != 3 or any(type(v) is not int or not 0 <= v <= 255 for v in color):
             raise AssertionError(f"Invalid {name} RGB palette: {color}")
 
+# Validate the expressions used by the generator, not only a duplicated
+# mathematical model in this test. This catches a renderer regression where
+# the checks below would otherwise keep passing unchanged.
+cave_fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "cave")
+ore_fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "ore")
+assign_signature = [n for n in ast.walk(cave_fn)
+                    if isinstance(n, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == "signature" for t in n.targets)]
+if len(assign_signature) != 1:
+    raise AssertionError("Expected exactly one geological signature assignment")
+expected_signature = ast.parse("index // 4 if index < 24 else (index - 30) % 6", mode="eval").body
+if ast.dump(assign_signature[0].value) != ast.dump(expected_signature):
+    raise AssertionError("Renderer geological signature formula changed")
+ore_conditions = [ast.dump(n.test) for n in ast.walk(ore_fn) if isinstance(n, ast.If)]
+for expression in ("index % 3 == 0", "index % 3 == 1"):
+    expected = ast.dump(ast.parse(expression, mode="eval").body)
+    if expected not in ore_conditions:
+        raise AssertionError(f"Ore renderer lost microtexture branch: {expression}")
+
 # Each biome has one of four foreground motifs and one of six signatures.
 pairs = [(i % 4, i // 4) for i in range(24)]
 if len(set(pairs)) != 24:
