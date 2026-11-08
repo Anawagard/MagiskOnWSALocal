@@ -30,8 +30,14 @@ def restore(archive_path: Path, destination: Path) -> int:
         decoded = brotli.decompress(packed)
     except brotli.error as exc:
         raise ValueError("Invalid or truncated Brotli source archive") from exc
+    # Reject a malformed TAR before creating the destination. Preserve the
+    # original parser failure for diagnostics while exposing a stable API.
+    try:
+        tar = tarfile.open(fileobj=io.BytesIO(decoded), mode="r:")
+    except tarfile.TarError as exc:
+        raise ValueError("Invalid TAR source archive") from exc
     # Inspect the *entire* archive before creating any destination files.
-    with tarfile.open(fileobj=io.BytesIO(decoded), mode="r:") as tar:
+    with tar:
         files = inspect_tar_members(tar)
         missing = set(TARGETS) - files.keys()
         if missing:
