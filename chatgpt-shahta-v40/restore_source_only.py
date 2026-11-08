@@ -26,7 +26,10 @@ def restore(archive_path: Path, destination: Path) -> int:
         packed = base64.b64decode(archive_path.read_bytes(), validate=True)
     except (binascii.Error, ValueError) as exc:
         raise ValueError("Invalid Base64 source archive") from exc
-    decoded = brotli.decompress(packed)
+    try:
+        decoded = brotli.decompress(packed)
+    except brotli.error as exc:
+        raise ValueError("Invalid or truncated Brotli source archive") from exc
     # Inspect the *entire* archive before creating any destination files.
     with tarfile.open(fileobj=io.BytesIO(decoded), mode="r:") as tar:
         files = inspect_tar_members(tar)
