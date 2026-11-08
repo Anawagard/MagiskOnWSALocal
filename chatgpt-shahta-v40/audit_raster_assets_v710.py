@@ -141,6 +141,8 @@ def audit(directory=ASSETS):
                     for orientation, candidate in (
                         ("original", previous),
                         ("mirrored", ImageOps.mirror(previous)),
+                        ("vertical-flip", ImageOps.flip(previous)),
+                        ("rotated-180", ImageOps.flip(ImageOps.mirror(previous))),
                     ):
                         delta = ImageChops.difference(preview, candidate)
                         mean_delta = sum(ImageStat.Stat(delta).mean) / 3
@@ -164,6 +166,10 @@ def audit(directory=ASSETS):
                         ("original", previous_rgb, previous_alpha),
                         ("mirrored", ImageOps.mirror(previous_rgb),
                          ImageOps.mirror(previous_alpha)),
+                        ("vertical-flip", ImageOps.flip(previous_rgb),
+                         ImageOps.flip(previous_alpha)),
+                        ("rotated-180", ImageOps.flip(ImageOps.mirror(previous_rgb)),
+                         ImageOps.flip(ImageOps.mirror(previous_alpha))),
                     ):
                         rgb_delta = sum(ImageStat.Stat(ImageChops.difference(
                             visible_preview, rgb_candidate)).mean) / 3
