@@ -77,8 +77,8 @@ class ReplayContractTests(unittest.TestCase):
         self.activity = self.root / "chatgpt-shahta-v33/project/app/src/main/java/com/bezdna/mine/MainActivity.java"
         for path in (self.gradle, self.java, self.activity):
             path.parent.mkdir(parents=True, exist_ok=True)
-        self.gradle.write_text('versionCode 46\\nversionName "6.9"\\nsigningConfig signingConfigs.shahtaDebug\\n', encoding="utf-8")
-        self.java.write_text('public void save() {}\\nprivate void rebirth() {}\\ngetSharedPreferences("mine_save_v1", 0);\\n', encoding="utf-8")
+        self.gradle.write_text('versionCode 46\nversionName "6.9"\nsigningConfig signingConfigs.shahtaDebug\n', encoding="utf-8")
+        self.java.write_text('public void save() {}\nprivate void rebirth() {}\ngetSharedPreferences("mine_save_v1", 0);\n', encoding="utf-8")
         self.activity.write_bytes(b"updated import/export")
 
     def test_valid_replay_contract(self):
