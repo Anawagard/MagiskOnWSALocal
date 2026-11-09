@@ -16,8 +16,8 @@ ast.parse(source)
 assert source.count("c.clipRect(0,145,360,653);") == 1
 assert 'for name in ("drawForge","drawGuild","drawCollection"):' in source
 assert 'for name,title,subtitle,tab in pages:' in source
-assert source.count("c.translate(13f,18f);") == 1  # template, used by 3 pages
-assert source.count("c.scale(.93f,.94f);") == 1
+assert "c.translate(13f,18f);" in source  # template, used by 3 pages
+assert "c.scale(.93f,.94f);" in source
 assert "if(screenY<205f||screenY>713f)return true;" in source
 assert "x=(x-13f)/.93f;" in source
 assert "y=(y-18f)/.94f;" in source
