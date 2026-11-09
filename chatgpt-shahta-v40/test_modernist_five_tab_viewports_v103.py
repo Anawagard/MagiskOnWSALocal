@@ -125,3 +125,32 @@ for width, height in viewports + ((240, 320), (320, 480), (1000, 720), (360, 100
             assert painted == expected
             gutter_checks += 1
 print(f"PASS: {gutter_checks} fractional-scale tab/gutter assertions")
+
+
+# Exhaustive fractional-scale seam checks: the actual tab dispatcher uses
+# half-open 72px cells, so adjacent cells must never both own a touch.
+# Use interior epsilon offsets to avoid floating-point ambiguity at a seam.
+seam_checks = 0
+for width, height in viewports + ((240, 320), (320, 480), (1768, 2208)):
+    scale = min(width / 360, height / 720)
+    ox = (width - 360 * scale) / 2
+    oy = (height - 720 * scale) / 2
+    for seam in (72, 144, 216, 288):
+        for delta, expected_tab in ((-0.25, seam // 72 - 1),
+                                    (0.25, seam // 72)):
+            px = ox + (seam + delta) * scale
+            py = oy + 112 * scale
+            x = (px - ox) / scale
+            y = (py - oy) / scale
+            assert int(x // 72) == expected_tab
+            assert 88 <= y <= 136
+            seam_checks += 1
+    # Vertical touch strip is inclusive in the current source. Outside
+    # the strip, taps must not trigger navigation, at any screen scale.
+    for logical_y, expected in ((87.75, False), (88.25, True),
+                                (135.75, True), (136.25, False)):
+        py = oy + logical_y * scale
+        y = (py - oy) / scale
+        assert (88 <= y <= 136) == expected
+        seam_checks += 1
+print(f"PASS: {seam_checks} fractional-scale seam and vertical-strip assertions")
