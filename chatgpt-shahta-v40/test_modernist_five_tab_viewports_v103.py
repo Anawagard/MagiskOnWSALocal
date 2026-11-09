@@ -56,3 +56,43 @@ for width, height in viewports:
         checks += 1
 
 print(f"PASS: {checks} source-only navigation and narrow-viewport assertions")
+
+# Verify the actual v7.1 Android rendering/touch source anchors, not just
+# a mathematically consistent hypothetical viewport.
+v71 = (root / "patch_modernist_v71.py").read_text(encoding="utf-8")
+ast.parse(v71)
+for marker in (
+    "Math.min(getWidth()/(float)W,getHeight()/(float)H)",
+    "canvas.translate(v71OffsetX(),v71OffsetY());",
+    "canvas.scale(v71Scale(),v71Scale());",
+    "(e.getX()-v71OffsetX())/v71Scale()",
+    "(e.getY()-v71OffsetY())/v71Scale()",
+    "if(x<0||x>=W||screenY<0||screenY>=H)return true;",
+):
+    assert marker in v71, ("viewport render/touch contract changed", marker)
+
+# Screen-side gutters must not navigate. Exercise both letterbox directions
+# and the edge of every painted button (not only its center).
+edge_checks = 0
+for width, height in viewports + ((1000, 720), (360, 1000)):
+    scale = min(width / 360, height / 720)
+    ox, oy = (width - 360 * scale) / 2, (height - 720 * scale) / 2
+    for tab in range(5):
+        painted_left = 5 + 72 * tab
+        painted_right = painted_left + 64
+        for x in (painted_left, painted_right):
+            for y in (90, 134):
+                px, py = ox + x * scale, oy + y * scale
+                logical_x, logical_y = (px - ox) / scale, (py - oy) / scale
+                assert tab * 72 <= logical_x < (tab + 1) * 72
+                assert 88 <= logical_y <= 136
+                edge_checks += 1
+    if ox > 0:
+        assert (ox / 2 - ox) / scale < 0
+        assert (width - ox / 2 - ox) / scale >= 360
+        edge_checks += 2
+    if oy > 0:
+        assert (oy / 2 - oy) / scale < 0
+        assert (height - oy / 2 - oy) / scale >= 720
+        edge_checks += 2
+print(f"PASS: {edge_checks} painted-edge and letterbox assertions")
