@@ -110,6 +110,27 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "disconnected opaque fragments"):
             audit_module.audit(self.root)
 
+    def test_diagonal_only_ore_fragments_are_rejected(self):
+        # Diagonally touching pixels are not a connected rock silhouette:
+        # bilinear filtering can reveal gaps even when 8-connectivity passes.
+        path = self.root / "ore_23.png"
+        im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        # The central 110x110 body occupies 12,100 opaque pixels.
+        for y in range(95, 205):
+            for x in range(95, 205):
+                v = (x * 13 + y * 19) % 160
+                im.putpixel((x, y), (50 + v, 40 + v, 30 + v, 255))
+        # 50x50 satellite touches the central body at (204, 204) only
+        # diagonally via (205, 205). It is 17.1% of opaque pixels,
+        # crossing the 15% detached-fragment tolerance when isolated.
+        for y in range(205, 255):
+            for x in range(205, 255):
+                v = (x * 17 + y * 11) % 160
+                im.putpixel((x, y), (50 + v, 40 + v, 30 + v, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "disconnected opaque fragments"):
+            audit_module.audit(self.root)
+
     def test_fully_opaque_stone_is_rejected(self):
         path = self.root / "ore_23.png"
         im = Image.new("RGBA", (300, 300))
