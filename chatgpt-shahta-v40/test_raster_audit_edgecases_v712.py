@@ -331,6 +331,23 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
             audit_module.audit(self.root)
 
+    def test_diagonal_reflection_ore_clone_is_rejected(self):
+        # Transposing a square ore image mirrors across its main diagonal.
+        # This is distinct from the quarter-turn rotations already checked.
+        with Image.open(self.root / "ore_22.png") as image:
+            image.convert("RGBA").transpose(Image.Transpose.TRANSPOSE).save(
+                self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
+    def test_anti_diagonal_reflection_ore_clone_is_rejected(self):
+        # The second diagonal completes the eight square symmetries.
+        with Image.open(self.root / "ore_22.png") as image:
+            image.convert("RGBA").transpose(Image.Transpose.TRANSVERSE).save(
+                self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
