@@ -24,7 +24,7 @@ def feature_input(x,screen_y):
         return None
     return (x-13)/.93,((screen_y-60)-18)/.94
 
-screens=[(360,720),(320,720),(320,568),(360,640),(393,873),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+screens=[(240,320),(280,560),(320,480),(320,568),(320,720),(360,640),(360,720),(393,873),(480,800),(720,1280),(1080,2400),(1272,2772),(1440,3200),(1768,2208)]
 checks=0
 for width,height in screens:
     # Round-trip all viewport corners and near-edge controls, including
@@ -81,6 +81,15 @@ for width,height in screens:
         rx,ry=feature_input(lx,ly)
         assert isclose(rx,x,abs_tol=1e-4),(width,height,x,rx)
         assert isclose(ry,y,abs_tol=1e-4),(width,height,y,ry)
+        checks+=1
+    # Test the exact clipping boundary at subpixel offsets after scaling.
+    # On tall and narrow devices the logical clip must not drift due to
+    # letterboxing or fractional screen-to-content conversion.
+    for sy in (204.999, 205.0, 205.001, 712.999, 713.0, 713.001):
+        px,py=physical(180,sy,width,height)
+        lx,ly=logical(px,py,width,height)
+        accepted=feature_input(lx,ly) is not None
+        assert accepted == (205<=sy<=713),(width,height,sy,accepted)
         checks+=1
     # Invisible legacy controls under the modern section header must never
     # receive touches. The clipped content is visible only at y=205..713.
