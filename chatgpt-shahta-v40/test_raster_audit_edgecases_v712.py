@@ -456,5 +456,32 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
             audit_module.audit(self.root)
 
+
+    def test_navigation_skin_missing_centre_is_rejected(self):
+        # Navigation must remain visible behind central tabs on narrow screens.
+        # A transparent central fifth can make a control appear untappable.
+        path = self.root / "nav.png"
+        with Image.open(path) as image:
+            nav = image.convert("RGBA")
+        for y in range(nav.height):
+            for x in range(144, 216):
+                nav.putpixel((x, y), (0, 0, 0, 0))
+        nav.save(path)
+        with self.assertRaisesRegex(RuntimeError, "UI sprite has invisible segment"):
+            audit_module.audit(self.root)
+
+    def test_button_skin_missing_right_half_is_rejected(self):
+        # A clipped nine-slice export must not leave the trailing hit target
+        # visually absent even if global visible-pixel coverage is sufficient.
+        path = self.root / "button.png"
+        with Image.open(path) as image:
+            button = image.convert("RGBA")
+        for y in range(button.height):
+            for x in range(80, button.width):
+                button.putpixel((x, y), (0, 0, 0, 0))
+        button.save(path)
+        with self.assertRaisesRegex(RuntimeError, "UI sprite has invisible segment"):
+            audit_module.audit(self.root)
+
 if __name__ == "__main__":
     unittest.main()
