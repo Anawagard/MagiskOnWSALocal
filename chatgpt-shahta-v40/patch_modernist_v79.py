@@ -19,8 +19,11 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             // Mine: the telemetry/ore gap. Other pages: below shop cards.
             // This overlay never changes onTouchEvent geometry.
             int toastY = page==0 ? 178 : 623;
+            // Dedicated notification surface: accent rail + quiet baseline.
+            // Preserve the original 324x26 panel and all touch geometry.
             v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);
-            rect(canvas,26,toastY+5,3,16,0xff65e1d0);
+            rect(canvas,26,toastY+4,3,18,0xff65e1d0);
+            rect(canvas,36,toastY+22,296,1,0xff315d60);
             leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);
         }'''
 assert s.count(old)==1, "v7.9 toast anchor missing or ambiguous"
