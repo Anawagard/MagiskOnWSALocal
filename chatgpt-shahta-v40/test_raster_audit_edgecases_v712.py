@@ -90,6 +90,26 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "clipped alpha fringe"):
             audit_module.audit(self.root)
 
+    def test_disconnected_opaque_debris_is_rejected(self):
+        # A noisy stone can pass coverage, bounding-box, and centre checks
+        # even when a substantial portion consists of floating debris.
+        path = self.root / "ore_23.png"
+        im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        # Central body: 100x100 connected opaque pixels.
+        for y in range(100, 200):
+            for x in range(100, 200):
+                v = (x * 13 + y * 19) % 160
+                im.putpixel((x, y), (50 + v, 40 + v, 30 + v, 255))
+        # Four disconnected 30x30 islands: 26.5% of all opaque pixels.
+        for x0, y0 in ((35, 35), (235, 35), (35, 235), (235, 235)):
+            for y in range(y0, y0 + 30):
+                for x in range(x0, x0 + 30):
+                    v = (x * 17 + y * 11) % 160
+                    im.putpixel((x, y), (50 + v, 40 + v, 30 + v, 255))
+        im.save(path)
+        with self.assertRaisesRegex(RuntimeError, "disconnected opaque fragments"):
+            audit_module.audit(self.root)
+
     def test_fully_opaque_stone_is_rejected(self):
         path = self.root / "ore_23.png"
         im = Image.new("RGBA", (300, 300))
