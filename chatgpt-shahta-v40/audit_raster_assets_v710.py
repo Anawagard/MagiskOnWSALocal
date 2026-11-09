@@ -174,6 +174,10 @@ def audit(directory=ASSETS):
                          previous_alpha.transpose(Image.Transpose.ROTATE_90)),
                         ("rotated-270", previous_rgb.transpose(Image.Transpose.ROTATE_270),
                          previous_alpha.transpose(Image.Transpose.ROTATE_270)),
+                        ("diagonal-reflection", previous_rgb.transpose(Image.Transpose.TRANSPOSE),
+                         previous_alpha.transpose(Image.Transpose.TRANSPOSE)),
+                        ("anti-diagonal-reflection", previous_rgb.transpose(Image.Transpose.TRANSVERSE),
+                         previous_alpha.transpose(Image.Transpose.TRANSVERSE)),
                     ):
                         rgb_delta = sum(ImageStat.Stat(ImageChops.difference(
                             visible_preview, rgb_candidate)).mean) / 3
