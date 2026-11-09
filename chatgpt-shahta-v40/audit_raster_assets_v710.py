@@ -170,6 +170,10 @@ def audit(directory=ASSETS):
                          ImageOps.flip(previous_alpha)),
                         ("rotated-180", ImageOps.flip(ImageOps.mirror(previous_rgb)),
                          ImageOps.flip(ImageOps.mirror(previous_alpha))),
+                        ("rotated-90", previous_rgb.transpose(Image.Transpose.ROTATE_90),
+                         previous_alpha.transpose(Image.Transpose.ROTATE_90)),
+                        ("rotated-270", previous_rgb.transpose(Image.Transpose.ROTATE_270),
+                         previous_alpha.transpose(Image.Transpose.ROTATE_270)),
                     ):
                         rgb_delta = sum(ImageStat.Stat(ImageChops.difference(
                             visible_preview, rgb_candidate)).mean) / 3
