@@ -430,5 +430,31 @@ class RasterAuditEdgeCases(unittest.TestCase):
             audit_module.audit(self.root)
 
 
+    def test_button_disabled_state_must_change_lower_half(self):
+        # Changing only the upper strip gives poor disabled feedback in
+        # compact layouts; all four quadrants must remain distinguishable.
+        path = self.root / "button_off.png"
+        with Image.open(self.root / "button.png") as enabled:
+            with Image.open(path) as disabled:
+                source = enabled.convert("RGBA")
+                changed = disabled.convert("RGBA")
+        changed.paste(source.crop((0, 32, 160, 64)), (0, 32))
+        changed.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
+            audit_module.audit(self.root)
+
+    def test_button_disabled_state_must_change_right_half(self):
+        # A single-sided hover/disabled treatment is not sufficient when
+        # the button skin is stretched as a nine-slice.
+        path = self.root / "button_off.png"
+        with Image.open(self.root / "button.png") as enabled:
+            with Image.open(path) as disabled:
+                source = enabled.convert("RGBA")
+                changed = disabled.convert("RGBA")
+        changed.paste(source.crop((80, 0, 160, 64)), (80, 0))
+        changed.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Button states are visually indistinguishable"):
+            audit_module.audit(self.root)
+
 if __name__ == "__main__":
     unittest.main()
