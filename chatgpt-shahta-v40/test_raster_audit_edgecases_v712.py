@@ -409,5 +409,26 @@ class RasterAuditEdgeCases(unittest.TestCase):
             audit_module.audit(self.root)
 
 
+    def test_wrong_navigation_skin_dimensions_are_rejected(self):
+        # The nav skin is a nine-slice source. A one-pixel export error can
+        # shift the corner caps and make touch feedback look misaligned.
+        path = self.root / "nav.png"
+        with Image.open(path) as image:
+            resized = image.convert("RGBA").resize((359, 50))
+        resized.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Incorrect UI sprite dimensions"):
+            audit_module.audit(self.root)
+
+    def test_wrong_button_skin_dimensions_are_rejected(self):
+        # Test the button independently from navigation: each control has
+        # its own expected source geometry.
+        path = self.root / "button.png"
+        with Image.open(path) as image:
+            resized = image.convert("RGBA").resize((161, 64))
+        resized.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Incorrect UI sprite dimensions"):
+            audit_module.audit(self.root)
+
+
 if __name__ == "__main__":
     unittest.main()
