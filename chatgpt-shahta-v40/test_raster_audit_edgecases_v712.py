@@ -253,6 +253,26 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
             audit_module.audit(self.root)
 
+    def test_vertically_flipped_ore_clone_is_rejected(self):
+        # Vertical reflections must be caught independently of horizontal
+        # mirroring; neither creates an additional authored mineral texture.
+        from PIL import ImageOps
+        with Image.open(self.root / "ore_22.png") as image:
+            ImageOps.flip(image.convert("RGBA")).save(
+                self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
+    def test_rotated_cave_clone_is_rejected(self):
+        # A 180-degree rotation preserves the background dimensions but
+        # should not be accepted as a genuinely distinct biome.
+        from PIL import ImageOps
+        with Image.open(self.root / "biome_22.jpg") as image:
+            rotated = ImageOps.flip(ImageOps.mirror(image.convert("RGB")))
+            rotated.save(self.root / "biome_23.jpg", quality=95)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
