@@ -114,6 +114,28 @@ class RasterAuditContract(unittest.TestCase):
             image.save(self.root / name)
         audit_module.audit(self.root)
 
+    def test_mirrored_ore_is_rejected(self):
+        # A horizontally mirrored duplicate is not a new ore sprite.
+        from PIL import ImageOps
+        source = self.root / "ore_22.png"
+        target = self.root / "ore_23.png"
+        with Image.open(source) as image:
+            mirrored = ImageOps.mirror(image)
+        mirrored.save(target)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
+    def test_mirrored_biome_is_rejected(self):
+        # Reusing a cave with horizontal reflection must not count as a new biome.
+        from PIL import ImageOps
+        source = self.root / "biome_22.jpg"
+        target = self.root / "biome_23.jpg"
+        with Image.open(source) as image:
+            mirrored = ImageOps.mirror(image)
+        mirrored.save(target, quality=90)
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
+            audit_module.audit(self.root)
+
     def test_flat_ore_is_rejected(self):
         im = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
         ImageDraw.Draw(im).ellipse((42, 42, 258, 258), fill=(110, 110, 110, 255))
