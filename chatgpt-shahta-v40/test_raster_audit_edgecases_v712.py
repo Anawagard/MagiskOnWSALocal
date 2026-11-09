@@ -314,6 +314,23 @@ class RasterAuditEdgeCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Near-duplicate cave backgrounds"):
             audit_module.audit(self.root)
 
+    def test_quarter_turn_ore_clone_is_rejected(self):
+        # A 90-degree turn changes a square sprite's pixel arrangement but
+        # does not create a distinct mineral illustration.
+        with Image.open(self.root / "ore_22.png") as image:
+            rotated = image.convert("RGBA").transpose(Image.Transpose.ROTATE_90)
+            rotated.save(self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
+    def test_three_quarter_turn_ore_clone_is_rejected(self):
+        # Check the inverse orientation independently to prevent regressions.
+        with Image.open(self.root / "ore_22.png") as image:
+            rotated = image.convert("RGBA").transpose(Image.Transpose.ROTATE_270)
+            rotated.save(self.root / "ore_23.png")
+        with self.assertRaisesRegex(RuntimeError, "Near-duplicate ore sprites"):
+            audit_module.audit(self.root)
+
     def test_wrong_miner_dimensions_are_rejected(self):
         path = self.root / "miner.png"
         with Image.open(path) as image:
