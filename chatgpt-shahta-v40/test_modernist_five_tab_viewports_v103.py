@@ -96,3 +96,32 @@ for width, height in viewports + ((1000, 720), (360, 1000)):
         assert (height - oy / 2 - oy) / scale >= 720
         edge_checks += 2
 print(f"PASS: {edge_checks} painted-edge and letterbox assertions")
+
+
+# Navigation must use the same logical tab after transforming every
+# physical viewport; test the transparent 5px/3px gutters separately from
+# the painted 64px button. A logical cell is 72px wide and should never
+# accidentally dispatch a neighbouring tab at fractional display scales.
+gutter_checks = 0
+for width, height in viewports + ((240, 320), (320, 480), (1000, 720), (360, 1000)):
+    scale = min(width / 360, height / 720)
+    ox, oy = (width - 360 * scale) / 2, (height - 720 * scale) / 2
+    for tab in range(5):
+        cell_left = tab * 72
+        for logical_x in (cell_left + 0.5, cell_left + 4.5,
+                          cell_left + 5.5, cell_left + 36,
+                          cell_left + 68.5, cell_left + 71.5):
+            px = ox + logical_x * scale
+            py = oy + 112 * scale
+            restored_x = (px - ox) / scale
+            restored_y = (py - oy) / scale
+            assert math.isclose(restored_x, logical_x, abs_tol=1e-7)
+            assert math.isclose(restored_y, 112, abs_tol=1e-7)
+            assert int(restored_x // 72) == tab
+            # Rendering uses [5,69] relative to each cell. The logical
+            # navigation cell is intentionally wider than its visible art.
+            painted = cell_left + 5 <= restored_x <= cell_left + 69
+            expected = 5 <= logical_x - cell_left <= 69
+            assert painted == expected
+            gutter_checks += 1
+print(f"PASS: {gutter_checks} fractional-scale tab/gutter assertions")
