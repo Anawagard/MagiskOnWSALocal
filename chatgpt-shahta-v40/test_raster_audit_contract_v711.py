@@ -153,6 +153,25 @@ class RasterAuditContract(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "nearly invisible"):
             audit_module.audit(self.root)
 
+    def test_wrong_biome_dimensions_are_rejected(self):
+        # A resized scene breaks the authored 360x570 viewport contract.
+        path = self.root / "biome_23.jpg"
+        with Image.open(path) as im:
+            resized = im.resize((359, 570))
+        resized.save(path, quality=90)
+        with self.assertRaisesRegex(RuntimeError, "Incorrect cave background dimensions"):
+            audit_module.audit(self.root)
+
+    def test_ore_encoded_as_jpeg_under_png_extension_is_rejected(self):
+        # A file extension alone does not guarantee the decoder receives
+        # alpha-capable PNG data. Fail before any Android packaging step.
+        path = self.root / "ore_23.png"
+        with Image.open(path) as im:
+            rgb = im.convert("RGB")
+        rgb.save(path, format="JPEG", quality=95)
+        with self.assertRaisesRegex(RuntimeError, "Unexpected encoding"):
+            audit_module.audit(self.root)
+
     def test_wrong_panel_size_is_rejected(self):
         path = self.root / "panel.png"
         with Image.open(path) as im:
