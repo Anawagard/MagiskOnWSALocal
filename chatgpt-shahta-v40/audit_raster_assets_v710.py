@@ -104,6 +104,20 @@ def audit(directory=ASSETS):
                     require(visible_count >= width * height * 0.05,
                             f"UI sprite is nearly invisible: {name} "
                             f"({visible_count / (width * height):.1%} visible)")
+            # Reject a visually missing tab or button half even when the
+            # overall nine-slice alpha coverage remains above its threshold.
+            if name in ("nav.png", "button.png", "button_off.png"):
+                alpha = im.convert("RGBA").getchannel("A")
+                segments = 5 if name == "nav.png" else 2
+                for segment in range(segments):
+                    left = width * segment // segments
+                    right = width * (segment + 1) // segments
+                    histogram = alpha.crop((left, 0, right, height)).histogram()
+                    visible = sum(histogram[32:])
+                    area = (right - left) * height
+                    require(visible >= area * 0.05,
+                            f"UI sprite has invisible segment: {name} "
+                            f"(segment {segment + 1}/{segments})")
             # Reject accidental blank/flat exports. Sampling decoded RGB pixels
             # catches solid-color placeholders without relying on PNG byte size.
             if name.startswith(("biome_", "menu_", "ore_")):
