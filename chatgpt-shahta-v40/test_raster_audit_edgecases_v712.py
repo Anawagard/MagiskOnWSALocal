@@ -387,5 +387,27 @@ class RasterAuditEdgeCases(unittest.TestCase):
             audit_module.audit(self.root)
 
 
+    def test_ore_penultimate_row_alpha_fringe_is_rejected(self):
+        # The bottom edge is just as vulnerable to interpolation bleed as
+        # the top edge; check a partially transparent pixel explicitly.
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            ore = image.convert("RGBA")
+        ore.putpixel((ore.width // 2, ore.height - 2), (80, 200, 210, 64))
+        ore.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Ore has clipped alpha fringe"):
+            audit_module.audit(self.root)
+
+    def test_ore_penultimate_column_alpha_fringe_is_rejected(self):
+        # Cover the right-hand edge independently of the left-hand edge.
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            ore = image.convert("RGBA")
+        ore.putpixel((ore.width - 2, ore.height // 2), (80, 200, 210, 64))
+        ore.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Ore has clipped alpha fringe"):
+            audit_module.audit(self.root)
+
+
 if __name__ == "__main__":
     unittest.main()
