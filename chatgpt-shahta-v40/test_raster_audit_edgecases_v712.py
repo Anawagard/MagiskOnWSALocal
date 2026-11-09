@@ -365,5 +365,27 @@ class RasterAuditEdgeCases(unittest.TestCase):
             audit_module.audit(self.root)
 
 
+    def test_ore_second_row_alpha_fringe_is_rejected(self):
+        # A transparent outermost border alone does not provide safe
+        # interpolation padding: the next row can still bleed at scale.
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            ore = image.convert("RGBA")
+        ore.putpixel((ore.width // 2, 1), (80, 200, 210, 64))
+        ore.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Ore has clipped alpha fringe"):
+            audit_module.audit(self.root)
+
+    def test_ore_second_column_alpha_fringe_is_rejected(self):
+        # Check the vertical edge independently from the horizontal one.
+        path = self.root / "ore_23.png"
+        with Image.open(path) as image:
+            ore = image.convert("RGBA")
+        ore.putpixel((1, ore.height // 2), (80, 200, 210, 64))
+        ore.save(path)
+        with self.assertRaisesRegex(RuntimeError, "Ore has clipped alpha fringe"):
+            audit_module.audit(self.root)
+
+
 if __name__ == "__main__":
     unittest.main()
