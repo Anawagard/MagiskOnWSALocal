@@ -34,6 +34,8 @@ replace_method("private void v72SectionHeader(Canvas c,String title,String subti
         rect(c,17,103,3,30,0xff65e1d0);
         leftFittedText(c,title,28,114,16,0xfff0fffd,253);
         leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);
+        // One-pixel raster-aligned divider keeps the title separate from content.
+        rect(c,28,139,258,1,0xff315d60);
         // Compact, consistent page identity: no medieval frames or
         // effects. The bitmap is an actual ore sprite from the 24-set.
         v72NineSlice(c,"button_off.png",298,98,44,41,214);
@@ -53,6 +55,8 @@ replace_method("private void v71ShopTile(Canvas c,int x,int y,int k,\n          
             x+17,y+12,43,43,255);
         leftFittedText(c,title,x+66,y+29,13,0xffedfffb,91);
         leftFittedText(c,"УР. "+level,x+66,y+48,10,0xff84e1d2,91);
+        // Quiet graphite/teal rule separates identity from upgrade details.
+        rect(c,x+15,y+64,135,1,0xff315d60);
         fittedText(c,detail,x+82,y+80,10,0xffc9e0e2,149);
         drawV63RankTrack(c,x+15,y+91,135,level,0,0xff58dfce);
         button(c,x+13,y+102,139,36,"УЛУЧШИТЬ",
