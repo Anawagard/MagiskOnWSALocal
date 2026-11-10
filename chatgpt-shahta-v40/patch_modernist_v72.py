@@ -92,6 +92,12 @@ once("    private void panel(Canvas c,float x,float y,float w,float h,int col){"
 replace_method("private void panel(Canvas c,float x,float y,float w,float h,int col)",r"""
     private void panel(Canvas c,float x,float y,float w,float h,int col){
         v72NineSlice(c,"panel.png",x,y,w,h,245);
+        // Short inset accent: never overdraw corners or escape compact cards.
+        // Purely decorative; no layout, hitbox, or persistence changes.
+        if(w>=48f && h>=20f){
+            float rail=Math.min(64f,w-24f);
+            rect(c,x+12f,y+2f,rail,2f,0xff56cbbd);
+        }
     }
 """)
 replace_method("private void button(Canvas c,float x,float y,float w,float h,String title,String sub,boolean enabled)",r"""
