@@ -28,6 +28,21 @@ def positions(java):
     return tuple(map(int, match.groups()))
 
 
+def validate_toast_geometry(java):
+    """Check production toast placement for every page; reusable by mutation tests."""
+    mine, shop, feature = positions(java)
+    for page in range(5):
+        y = mine if page == 0 else shop if page == 1 else feature
+        if not (0 <= y and y + 26 <= 690):
+            raise AssertionError(f"Toast outside content viewport on page {page}: {y}")
+        if page == 0 and y + 26 > 205:
+            raise AssertionError("Mine toast overlaps telemetry")
+        if page == 1 and not (615 <= y and y + 26 <= 653):
+            raise AssertionError("Shop toast overlaps card grid or controls")
+        if page >= 2 and y < 653:
+            raise AssertionError(f"Feature toast overlaps clipped content on page {page}")
+
+
 class ToastSourceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -38,19 +53,7 @@ class ToastSourceContract(unittest.TestCase):
         self.assertEqual(self.java.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);'), 1)
 
     def test_geometry_from_java(self):
-        mine, shop, feature = positions(self.java)
-        for page in range(5):
-            y = mine if page == 0 else shop if page == 1 else feature
-            with self.subTest(page=page):
-                self.assertGreaterEqual(y, 0)
-                self.assertLessEqual(y + 26, 690)
-                if page == 0:
-                    self.assertLessEqual(y + 26, 205)
-                elif page == 1:
-                    self.assertGreaterEqual(y, 615)
-                    self.assertLessEqual(y + 26, 653)
-                else:
-                    self.assertGreaterEqual(y, 653)
+        validate_toast_geometry(self.java)
 
     def test_decorations_inside_panel(self):
         self.assertIn('rect(canvas,26,toastY+4,3,18,0xff65e1d0);', self.java)
@@ -74,11 +77,13 @@ class ToastSourceContract(unittest.TestCase):
         # Deliberately move the shop toast onto the final card row.
         changed = self.java.replace("? 623 :", "? 610 :")
         self.assertNotEqual(changed, self.java)
-        self.assertLess(positions(changed)[1], 615)
+        with self.assertRaisesRegex(AssertionError, "Shop toast"):
+            validate_toast_geometry(changed)
         # Moving feature notifications into navigation must also be caught.
         changed = self.java.replace(": 655);", ": 680);")
         self.assertNotEqual(changed, self.java)
-        self.assertGreater(positions(changed)[2] + 26, 690)
+        with self.assertRaisesRegex(AssertionError, "outside content viewport"):
+            validate_toast_geometry(changed)
 
     def test_mutation_detection(self):
         original = positions(self.java)
