@@ -56,6 +56,30 @@ class ToastSourceContract(unittest.TestCase):
         self.assertIn('rect(canvas,26,toastY+4,3,18,0xff65e1d0);', self.java)
         self.assertIn('rect(canvas,36,toastY+22,296,1,0xff315d60);', self.java)
 
+    def test_accent_rails_stay_within_toast_panel(self):
+        # Inspect all literal rect calls tied to toastY, not just their presence.
+        rails = re.findall(
+            r"rect\\(canvas,(\\d+),toastY\\+(\\d+),(\\d+),(\\d+),0x[0-9a-f]+\\);",
+            self.java)
+        self.assertEqual(len(rails), 4, "All four notification accents must be checked")
+        for x, offset, width, height in rails:
+            x, offset, width, height = map(int, (x, offset, width, height))
+            with self.subTest(x=x, offset=offset):
+                self.assertGreaterEqual(x, 18)
+                self.assertLessEqual(x + width, 342)
+                self.assertGreaterEqual(offset, 0)
+                self.assertLessEqual(offset + height, 26)
+
+    def test_notification_boundaries_survive_mutation(self):
+        # Deliberately move the shop toast onto the final card row.
+        changed = self.java.replace("? 623 :", "? 610 :")
+        self.assertNotEqual(changed, self.java)
+        self.assertLess(positions(changed)[1], 615)
+        # Moving feature notifications into navigation must also be caught.
+        changed = self.java.replace(": 655);", ": 680);")
+        self.assertNotEqual(changed, self.java)
+        self.assertGreater(positions(changed)[2] + 26, 690)
+
     def test_mutation_detection(self):
         original = positions(self.java)
         self.assertNotEqual(positions(self.java.replace("? 623 :", "? 610 :")), original)
