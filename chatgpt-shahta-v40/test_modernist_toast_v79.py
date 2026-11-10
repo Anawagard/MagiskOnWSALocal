@@ -46,3 +46,27 @@ for width, height in sizes:
         assert isclose((screen[3] - oy) / scale, box[3], abs_tol=1e-6)
         checks += 1
 print(f'PASS: {checks} toast/purchase geometry checks across {len(sizes)} resolutions')
+
+# A screen-space tap must round-trip to the same logical hitbox after
+# letterboxing. This guards against invisible shifted purchase controls.
+for width, height in sizes:
+    scale = min(width / 360, height / 720)
+    ox = (width - 360 * scale) / 2
+    oy = (height - 720 * scale) / 2
+    for left, top, right, bottom in buttons:
+        for x, y in ((left, top), (right, bottom),
+                     ((left + right) / 2, (top + bottom) / 2)):
+            sx, sy = ox + x * scale, oy + y * scale
+            lx, ly = (sx - ox) / scale, (sy - oy) / scale
+            assert isclose(lx, x, abs_tol=1e-6)
+            assert isclose(ly, y, abs_tol=1e-6)
+            assert left - 1e-6 <= lx <= right + 1e-6
+            assert top - 1e-6 <= ly <= bottom + 1e-6
+    # The toast on feature pages must never visually cover purchase controls.
+    toast_screen = tuple((v * scale + (ox if i % 2 == 0 else oy))
+                         for i, v in enumerate(toasts[1]))
+    for box in buttons:
+        button_screen = tuple((v * scale + (ox if i % 2 == 0 else oy))
+                              for i, v in enumerate(box))
+        assert not overlaps(toast_screen, button_screen)
+print('PASS: 126 purchase-hitbox round trips and 42 toast exclusions')
