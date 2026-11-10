@@ -111,7 +111,9 @@ shop_tile=r"""
 """
 once("    private void drawShop(Canvas c){",shop_tile+"\n    private void drawShop(Canvas c){")
 once("if(page==1&&x>=235&&y>=80&&y<=112)",
-     "if(page==1&&x>=235&&y>=95&&y<=144)")
+     // Match the painted settings button (241,99,104,42) exactly.
+     // The previous oversized region accepted invisible edge taps.
+     "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)")
 once("""            if(y>=96&&y<144){shopPage=1-shopPage;invalidate();return true;}
             int[] yy={145,226,307,388,469,550};
             for(int i=0;i<6;i++)if(y>=yy[i]&&y<yy[i]+73&&x>225){
@@ -136,7 +138,7 @@ assert s.count("private void v71ShopTile(")==1
 assert s.count("private float v71Scale(")==1
 assert "v70Draw(c,\"miner.png\",15,293,113,160,255)" in s
 assert "if(screenY>=88&&screenY<=136)" in s
-assert "if(page==1&&x>=235&&y>=95&&y<=144)" in s
+assert "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)" in s
 assert "getSharedPreferences(\"mine_save_v1\"" in s
 assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
 assert "public void save()" in s and "private void rebirth()" in s
