@@ -101,8 +101,8 @@ class ToastSourceContract(unittest.TestCase):
     def test_toast_text_and_accents_fit_panel(self):
         # Keep the label within the same 324px-wide panel as its accents.
         match = re.search(
-            r"leftFittedText\\(canvas,toast,(\\d+),toastY\\+(\\d+),"
-            r"(\\d+),0x[0-9a-f]+,(\\d+)\\);", self.java)
+            r"leftFittedText\(canvas,toast,(\d+),toastY\+(\d+),"
+            r"(\d+),0x[0-9a-f]+,(\d+)\);", self.java)
         self.assertIsNotNone(match, "Toast text geometry must be inspectable")
         x, baseline, font_size, max_width = map(int, match.groups())
         self.assertGreaterEqual(x, 18)
