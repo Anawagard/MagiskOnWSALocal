@@ -52,6 +52,39 @@ class NotificationGeometryTests(unittest.TestCase):
                     self.assertAlmostEqual((sx - 13) / .93, x)
                     self.assertAlmostEqual((sy - 18) / .94, y)
 
+    def test_toasts_clear_footer_and_respect_safe_width(self):
+        # All five pages share a 360x720 logical viewport. The footer starts
+        # at y=690; notifications must never cover its navigation hitboxes.
+        footer = (0, 690, 360, 720)
+        for page in range(5):
+            y = 178 if page == 0 else 623 if page == 1 else 655
+            toast = (18, y, 342, y + 26)
+            with self.subTest(page=page):
+                self.assertFalse(overlap(toast, footer))
+                self.assertGreaterEqual(toast[0], 0)
+                self.assertLessEqual(toast[2], 360)
+                self.assertLess(toast[1], toast[3])
+
+    def test_toasts_remain_inside_scaled_viewport_on_narrow_devices(self):
+        # Uniform fit with centered letterboxing must preserve all four edges.
+        for width, height in ((240, 320), (320, 568), (360, 640),
+                              (393, 852), (1080, 2354), (1272, 2772)):
+            scale = min(width / 360, height / 720)
+            offset_x = (width - 360 * scale) / 2
+            offset_y = (height - 720 * scale) / 2
+            for page in range(5):
+                y = 178 if page == 0 else 623 if page == 1 else 655
+                left, top = offset_x + 18 * scale, offset_y + y * scale
+                right = offset_x + 342 * scale
+                bottom = offset_y + (y + 26) * scale
+                with self.subTest(size=(width, height), page=page):
+                    self.assertGreaterEqual(left, -1e-7)
+                    self.assertGreaterEqual(top, -1e-7)
+                    self.assertLessEqual(right, width + 1e-7)
+                    self.assertLessEqual(bottom, height + 1e-7)
+                    self.assertGreater(right - left, 0)
+                    self.assertGreater(bottom - top, 0)
+
     def test_guardrails_preserved_in_patch(self):
         for anchor in (
             'getSharedPreferences(\"mine_save_v1\"',
