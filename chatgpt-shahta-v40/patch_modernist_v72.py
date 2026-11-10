@@ -157,6 +157,9 @@ once("        float y=(screenY-60f)/1.0f;",
             // clipped y=145..653 content viewport, shifted down by 60.
             // Do not activate invisible buttons behind the new section header.
             if(screenY<205f||screenY>713f)return true;
+            // Rendered legacy content spans logical x=13..347.8.
+            // Reject touches in the invisible side gutters before inverse mapping.
+            if(x<13f||x>347.8f)return true;
             x=(x-13f)/.93f;
             y=(y-18f)/.94f;
         }""")
@@ -168,6 +171,7 @@ for name in ("drawForge","drawGuild","drawCollection"):
 assert s.count("c.translate(13f,18f);")==3
 assert s.count("c.scale(.93f,.94f);")==3
 assert s.count("if(screenY<205f||screenY>713f)return true;")==1
+assert s.count("if(x<13f||x>347.8f)return true;")==1
 assert s.count("x=(x-13f)/.93f;")==1
 assert s.count("y=(y-18f)/.94f;")==1
 assert s.count("private void v72NineSlice(")==1
