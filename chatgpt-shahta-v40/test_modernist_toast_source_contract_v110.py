@@ -73,6 +73,45 @@ class ToastSourceContract(unittest.TestCase):
                 self.assertGreaterEqual(offset, 0)
                 self.assertLessEqual(offset + height, 26)
 
+    def test_patch_changes_only_the_notification_block(self):
+        # Verify the exact old/new templates rather than trusting a comment.
+        tree = ast.parse(PATCH.read_text(encoding="utf-8"))
+        templates = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in ("old", "new"):
+                        templates[target.id] = ast.literal_eval(node.value)
+        self.assertEqual(set(templates), {"old", "new"})
+        old, new = templates["old"], templates["new"]
+        self.assertEqual(new, self.java)
+        self.assertIn("if(System.currentTimeMillis()<toastUntil)", old)
+        self.assertEqual(old.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        self.assertEqual(new.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        self.assertNotIn("onTouchEvent", new)
+        self.assertNotIn("getSharedPreferences", new)
+        self.assertNotIn("save()", new)
+        self.assertNotIn("rebirth()", new)
+        # A sentinel before and after the block must remain byte-for-byte
+        # identical when the production replacement is applied.
+        surrounding = "BEFORE\\n" + old + "\\nAFTER"
+        self.assertEqual(surrounding.replace(old, new, 1),
+                         "BEFORE\\n" + new + "\\nAFTER")
+
+    def test_toast_text_and_accents_fit_panel(self):
+        # Keep the label within the same 324px-wide panel as its accents.
+        match = re.search(
+            r"leftFittedText\\(canvas,toast,(\\d+),toastY\\+(\\d+),"
+            r"(\\d+),0x[0-9a-f]+,(\\d+)\\);", self.java)
+        self.assertIsNotNone(match, "Toast text geometry must be inspectable")
+        x, baseline, font_size, max_width = map(int, match.groups())
+        self.assertGreaterEqual(x, 18)
+        self.assertLessEqual(x + max_width, 342)
+        self.assertGreater(baseline, 0)
+        self.assertLessEqual(baseline, 26)
+        self.assertGreater(font_size, 0)
+        self.assertLessEqual(font_size, baseline)
+
     def test_notification_boundaries_survive_mutation(self):
         # Deliberately move the shop toast onto the final card row.
         changed = self.java.replace("? 623 :", "? 610 :")
