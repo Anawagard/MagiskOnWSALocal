@@ -109,9 +109,12 @@ replace_method("private void drawBottom(Canvas c)",r"""
             boolean active=page==i;
             v72NineSlice(c,active?"button.png":"button_off.png",
                 x+2,90,64,44,active?250:188);
-            v70Draw(c,V70_ICONS[i],x+24,92,20,20,255);
-            fittedText(c,V70_NAV[i],x+34,125,9,
-                active?0xffe6fff8:0xffadc0c8,61);
+            // Keep icon and label inside the 64x44 painted hit target.
+            // Larger text and brighter inactive labels improve narrow-phone
+            // readability without changing the existing navigation cells.
+            v70Draw(c,V70_ICONS[i],x+23,92,22,22,255);
+            fittedText(c,V70_NAV[i],x+34,126,10,
+                active?0xfff1fffc:0xffc7dce0,61);
             if(active)rect(c,x+14,132,40,2,0xff62e5d1);
         }
     }
