@@ -75,8 +75,13 @@ nine_slice=r"""
     // is placed on a common, narrower grid on three feature pages.
     private void v72SectionHeader(Canvas c,String title,String subtitle,int tab){
         v72NineSlice(c,"panel.png",10,94,340,49,255);
+        // A restrained two-tone identity rail, confined to the fixed header.
+        // Neither the clipped legacy content nor its inverse touch map moves.
+        rect(c,17,102,3,32,0xff65e1d0);
+        rect(c,25,138,272,1,0xff315d60);
         leftFittedText(c,title,26,114,17,0xffe9fbf8,260);
         leftFittedText(c,subtitle,26,132,10,0xff9acbc8,265);
+        // The ore illustration stays within the header, clear of both lines.
         v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),
             304,100,37,37,255);
     }
