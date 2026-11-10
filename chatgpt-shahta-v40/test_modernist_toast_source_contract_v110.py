@@ -59,7 +59,7 @@ class ToastSourceContract(unittest.TestCase):
     def test_accent_rails_stay_within_toast_panel(self):
         # Inspect all literal rect calls tied to toastY, not just their presence.
         rails = re.findall(
-            r"rect\\(canvas,(\\d+),toastY\\+(\\d+),(\\d+),(\\d+),0x[0-9a-f]+\\);",
+            r"rect\(canvas,(\d+),toastY\+(\d+),(\d+),(\d+),0x[0-9a-f]+\);",
             self.java)
         self.assertEqual(len(rails), 4, "All four notification accents must be checked")
         for x, offset, width, height in rails:
