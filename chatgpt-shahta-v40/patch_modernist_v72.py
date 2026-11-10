@@ -120,7 +120,13 @@ replace_method("private void drawBottom(Canvas c)",r"""
             v70Draw(c,V70_ICONS[i],x+23,92,22,22,255);
             fittedText(c,V70_NAV[i],x+34,126,10,
                 active?0xfff1fffc:0xffc7dce0,61);
-            if(active)rect(c,x+14,132,40,2,0xff62e5d1);
+            // Two distinct active cues survive low-brightness screens:
+            // a turquoise top marker and the existing bottom underline.
+            // Both stay inside the painted 64x44 tab; hitboxes are unchanged.
+            if(active){
+                rect(c,x+14,90,40,2,0xff62e5d1);
+                rect(c,x+14,132,40,2,0xff62e5d1);
+            }
         }
     }
 """)
