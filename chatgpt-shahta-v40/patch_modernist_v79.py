@@ -23,6 +23,9 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             // Preserve the original 324x26 panel and all touch geometry.
             v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);
             rect(canvas,26,toastY+4,3,18,0xff65e1d0);
+            // A slim illuminated top edge adds depth without obscuring the toast text.
+            rect(canvas,36,toastY+2,76,1,0xff65e1d0);
+            rect(canvas,112,toastY+2,220,1,0xff315d60);
             rect(canvas,36,toastY+22,296,1,0xff315d60);
             leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);
         }'''
