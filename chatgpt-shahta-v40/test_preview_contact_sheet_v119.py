@@ -87,6 +87,24 @@ class ContactSheetTests(unittest.TestCase):
                 self.assertEqual(named.size, indexed.size)
                 self.assertNotEqual(named.tobytes(), indexed.tobytes())
 
+    def test_long_caption_cannot_bleed_into_neighbor_tile(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            tile = root / "tile.png"
+            self.Image.new("RGBA", (30, 30), (93, 224, 210, 255)).save(tile)
+            target = root / "long_caption.png"
+            self.preview.sheet([tile, tile], 2, (90, 90), "SKIN", target,
+                               captions=["VERY_LONG_LOCALIZED_PANEL_TITLE_" * 4, "B"])
+            with self.Image.open(target) as result:
+                # Header pixels in the right tile must equal a reference
+                # rendered with an empty caption in the left tile.
+                baseline = root / "baseline.png"
+                self.preview.sheet([tile, tile], 2, (90, 90), "SKIN", baseline,
+                                   captions=["", "B"])
+                with self.Image.open(baseline) as expected:
+                    self.assertEqual(result.crop((90, 0, 180, 25)).tobytes(),
+                                     expected.crop((90, 0, 180, 25)).tobytes())
+
     def test_generator_coverage_and_no_android_import(self):
         source = PREVIEW.read_text(encoding="utf-8")
         self.assertIn('range(24)', source)
