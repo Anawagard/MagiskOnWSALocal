@@ -177,6 +177,25 @@ def cave(index,color,path,w=360,h=570):
             y=int(r.integers(70,h-65))
             x=int(r.choice([r.integers(8,60),r.integers(w-60,w-8)]))
             d.point((x,y),fill=(209,240,237,130))
+    # Biome-specific geological fingerprint: 24 different vein paths, not
+    # merely six palette swaps of the same silhouettes. Keep the central
+    # mining lane (x=85..275) clear for sprites and navigation overlays.
+    if 0 <= index < 24:
+        fingerprint=np.random.default_rng(310001+index*1009)
+        for side in (0,1):
+            edge=12 if side==0 else w-12
+            direction=1 if side==0 else -1
+            for vein in range(4+index%5):
+                y0=int(fingerprint.integers(75,h-100))
+                reach=int(fingerprint.integers(18,58))
+                bend=int(fingerprint.integers(-12,13))
+                vertices=[(edge,y0),
+                          (edge+direction*(reach//2),y0+bend),
+                          (edge+direction*reach,y0+bend+int(fingerprint.integers(12,34)))]
+                d.line(vertices,fill=(*color,85+index%4*12),width=1+index%3)
+                # Offset dark fault core gives depth without a runtime effect.
+                d.line([(x,y+3) for x,y in vertices],
+                       fill=(8,17,27,70),width=1)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
