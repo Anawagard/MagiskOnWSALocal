@@ -42,8 +42,10 @@ class ContactSheetTests(unittest.TestCase):
                 self.assertEqual(result.getpixel((50, 50)), (230, 60, 60))
                 self.assertEqual(result.getpixel((150, 50)), (50, 230, 80))
                 self.assertEqual(result.getpixel((250, 50)), (60, 100, 230))
-                # A transparent PNG must reveal graphite, not black/white.
-                self.assertEqual(result.getpixel((50, 150)), (13, 20, 31))
+                # Transparent pixels expose the checkerboard introduced by
+                # the alpha-edge preview, not the old flat graphite canvas.
+                self.assertEqual(result.getpixel((50, 150)), (49, 59, 70))
+                self.assertEqual(result.getpixel((40, 140)), (91, 102, 111))
                 self.assertEqual(result.getpixel((150, 150)), (230, 170, 60))
                 self.assertEqual(result.getpixel((250, 150)), (13, 20, 31))
 
