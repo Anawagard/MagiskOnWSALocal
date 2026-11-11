@@ -107,6 +107,32 @@ class ContactSheetTests(unittest.TestCase):
                     self.assertEqual(result.crop((90, 0, 180, 25)).tobytes(),
                                      expected.crop((90, 0, 180, 25)).tobytes())
 
+    def test_duplicate_rasters_rejected_by_pixel_content(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            a, b = root / "a.png", root / "b.png"
+            self.Image.new("RGB", (32, 32), (20, 30, 40)).save(a)
+            self.Image.new("RGB", (32, 32), (20, 30, 40)).save(b)
+            with self.assertRaisesRegex(ValueError, "raster duplicate"):
+                self.preview.audit_unique_images([a, b], "BIOME")
+            self.Image.new("RGB", (32, 32), (20, 30, 41)).save(b)
+            self.assertEqual(self.preview.audit_unique_images([a, b], "BIOME"), 2)
+
+    def test_ore_alpha_requires_transparent_and_opaque_pixels(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            ore = root / "ore.png"
+            image = self.Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+            image.putpixel((16, 16), (93, 224, 210, 255))
+            image.save(ore)
+            self.preview.audit_ore_alpha([ore])
+            self.Image.new("RGBA", (32, 32), (93, 224, 210, 255)).save(ore)
+            with self.assertRaisesRegex(ValueError, "alpha contract"):
+                self.preview.audit_ore_alpha([ore])
+            self.Image.new("RGBA", (32, 32), (93, 224, 210, 0)).save(ore)
+            with self.assertRaisesRegex(ValueError, "alpha contract"):
+                self.preview.audit_ore_alpha([ore])
+
     def test_generator_coverage_and_no_android_import(self):
         source = PREVIEW.read_text(encoding="utf-8")
         self.assertIn('range(24)', source)
