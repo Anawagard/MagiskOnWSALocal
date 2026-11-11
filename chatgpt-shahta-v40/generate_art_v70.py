@@ -336,6 +336,20 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
         d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
+    # Quiet technical-grid signature: subtle cyan circuitry etched into the
+    # top-right corner. Kept entirely in the fixed nine-slice corner region,
+    # away from central labels and touch targets. Different surfaces retain
+    # the same design language without introducing runtime Canvas work.
+    trace_rgb=(93,224,210) if bright else border_rgb
+    trace_alpha=105 if bright else 66
+    d.line([(w-57,12),(w-43,12),(w-38,17),(w-38,24)],
+           fill=(*trace_rgb,trace_alpha),width=1)
+    d.ellipse((w-40,22,w-36,26),fill=(*trace_rgb,trace_alpha+35))
+    d.line([(w-61,h-16),(w-48,h-16),(w-44,h-20)],
+           fill=(*trace_rgb,trace_alpha),width=1)
+    # Minimal dual-tone corner indexing distinguishes modernist panels from
+    # the old flat buttons without compromising high-contrast text areas.
+    d.line((19,h-12,32,h-12),fill=(*trace_rgb,trace_alpha),width=1)
     # Engraved industrial status ticks: bitmap-only detail, no touch/layout changes.
     # Confine marks to the corners so nine-slice stretching never distorts them.
     tick=(112,226,216,118) if bright else (*border_rgb,96)
