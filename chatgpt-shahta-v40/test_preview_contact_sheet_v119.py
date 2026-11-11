@@ -57,6 +57,36 @@ class ContactSheetTests(unittest.TestCase):
             self.preview.sheet([tile], 2, (90, 90), "ORE", second)
             self.assertEqual(first.read_bytes(), second.read_bytes())
 
+    def test_invalid_sheet_geometry_and_caption_mismatch(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            tile = root / "tile.png"
+            self.Image.new("RGBA", (30, 30), (93, 224, 210, 255)).save(tile)
+            dest = root / "sheet.png"
+            cases = [
+                ([], 2, (90, 90), None),
+                ([tile], 0, (90, 90), None),
+                ([tile], 2, (16, 90), None),
+                ([tile], 2, (90, 35), None),
+                ([tile], 2, (90, 90), ["ONE", "EXTRA"]),
+            ]
+            for paths, columns, cell, captions in cases:
+                with self.subTest(paths=len(paths), columns=columns, cell=cell, captions=captions):
+                    with self.assertRaises(ValueError):
+                        self.preview.sheet(paths, columns, cell, "TEST", dest, captions=captions)
+
+    def test_named_skin_captions(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            tile = root / "tile.png"
+            self.Image.new("RGBA", (40, 40), (93, 224, 210, 255)).save(tile)
+            first, second = root / "named.png", root / "indexed.png"
+            self.preview.sheet([tile], 2, (120, 100), "SKIN", first, captions=["PANEL"])
+            self.preview.sheet([tile], 2, (120, 100), "SKIN", second)
+            with self.Image.open(first) as named, self.Image.open(second) as indexed:
+                self.assertEqual(named.size, indexed.size)
+                self.assertNotEqual(named.tobytes(), indexed.tobytes())
+
     def test_generator_coverage_and_no_android_import(self):
         source = PREVIEW.read_text(encoding="utf-8")
         self.assertIn('range(24)', source)
