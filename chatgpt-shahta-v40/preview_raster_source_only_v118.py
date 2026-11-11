@@ -8,6 +8,7 @@ import argparse
 import ast
 from pathlib import Path
 import hashlib
+import shutil
 from tempfile import TemporaryDirectory
 
 SOURCE = Path(__file__).with_name("generate_art_v70.py")
@@ -117,6 +118,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True,
                         help="Existing or new directory outside the repository")
+    parser.add_argument("--keep-assets", action="store_true",
+                        help="Also export individual rendered sprites for pixel-level review")
     args = parser.parse_args()
     output = args.output.resolve()
     repo = SOURCE.resolve().parent.parent
@@ -163,7 +166,13 @@ def main():
             skin_paths.append(target)
         sheet(skin_paths, 2, (220, 135), "SKIN", output / "skins_contact.png",
               captions=[name.upper() for name, *_ in skins])
-    print(f"Created 4 contact sheets in {output}")
+        if args.keep_assets:
+            assets = output / "individual_assets"
+            assets.mkdir(parents=True, exist_ok=True)
+            for source in (*biomes, *ores, *menu_paths, *skin_paths):
+                shutil.copy2(source, assets / source.name)
+    print(f"Created 4 contact sheets in {output}" +
+          (" and 57 individual assets" if args.keep_assets else ""))
 
 
 if __name__ == "__main__":
