@@ -1,0 +1,99 @@
+"""Generate contact sheets for human review without Android, Gradle or Actions.
+
+Run: python3 chatgpt-shahta-v40/preview_raster_source_only_v118.py --output /tmp/shahta-preview
+Only pure rendering functions are extracted from generate_art_v70.py. No
+Android baseline is restored and no files are written into the repository.
+"""
+import argparse
+import ast
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+SOURCE = Path(__file__).with_name("generate_art_v70.py")
+NAMES = {"field", "image_array", "cave", "ore", "panel_art"}
+PALETTES = {"SCENES", "ORES"}
+
+
+def load_renderers():
+    import math
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter, ImageChops
+    tree = ast.parse(SOURCE.read_text(encoding="utf-8"), filename=str(SOURCE))
+    nodes = []
+    found = set()
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name in NAMES:
+            nodes.append(node)
+            found.add(node.name)
+        elif isinstance(node, ast.Assign):
+            names = {t.id for t in node.targets if isinstance(t, ast.Name)}
+            if names & PALETTES:
+                nodes.append(node)
+                found |= names & PALETTES
+    assert found == NAMES | PALETTES, f"Missing generator definitions: {(NAMES | PALETTES) - found}"
+    env = dict(math=math, np=np, Image=Image, ImageDraw=ImageDraw,
+               ImageFilter=ImageFilter, ImageChops=ImageChops,
+               R=Image.Resampling.BICUBIC)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(SOURCE), "exec"), env)
+    assert len(env["SCENES"]) == len(env["ORES"]) == 24
+    return env
+
+
+def sheet(paths, columns, cell, label, destination):
+    from PIL import Image, ImageDraw
+    rows = (len(paths) + columns - 1) // columns
+    out = Image.new("RGB", (columns * cell[0], rows * cell[1]), (13, 20, 31))
+    draw = ImageDraw.Draw(out)
+    for i, path in enumerate(paths):
+        with Image.open(path) as original:
+            thumb = original.convert("RGBA")
+            thumb.thumbnail((cell[0] - 16, cell[1] - 35), Image.Resampling.LANCZOS)
+            x = (i % columns) * cell[0] + (cell[0] - thumb.width) // 2
+            y = (i // columns) * cell[1] + 25
+            out.paste(thumb, (x, y), thumb)
+        draw.text(((i % columns) * cell[0] + 8, (i // columns) * cell[1] + 6),
+                  f"{label} {i + 1:02d}", fill=(93, 224, 210))
+    out.save(destination, optimize=True)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True,
+                        help="Existing or new directory outside the repository")
+    args = parser.parse_args()
+    output = args.output.resolve()
+    repo = SOURCE.resolve().parent.parent
+    if output == repo or repo in output.parents:
+        parser.error("--output must be outside the repository")
+    env = load_renderers()
+    output.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory() as tmp:
+        temp = Path(tmp)
+        biomes, ores = [], []
+        for i in range(24):
+            biome = temp / f"biome_{i:02d}.jpg"
+            mineral = temp / f"ore_{i:02d}.png"
+            env["cave"](i, env["SCENES"][i], biome)
+            env["ore"](i, env["ORES"][i], mineral)
+            biomes.append(biome)
+            ores.append(mineral)
+        sheet(biomes, 6, (180, 310), "BIOME", output / "biomes_contact.png")
+        sheet(ores, 6, (180, 190), "ORE", output / "ores_contact.png")
+        skins = [
+            ("panel", (23, 32, 47), (85, 125, 148), (400, 96), False),
+            ("button", (21, 103, 109), (92, 227, 207), (160, 64), True),
+            ("button_off", (32, 44, 58), (91, 112, 131), (160, 64), False),
+            ("header", (17, 27, 42), (85, 132, 156), (360, 88), False),
+            ("nav", (17, 28, 42), (90, 150, 164), (360, 50), False),
+        ]
+        skin_paths = []
+        for name, base, border, size, bright in skins:
+            target = temp / (name + ".png")
+            env["panel_art"](target, base, border, size=size, bright=bright)
+            skin_paths.append(target)
+        sheet(skin_paths, 2, (220, 135), "SKIN", output / "skins_contact.png")
+    print(f"Created 3 contact sheets in {output}")
+
+
+if __name__ == "__main__":
+    main()
