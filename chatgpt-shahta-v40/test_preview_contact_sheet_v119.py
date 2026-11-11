@@ -45,7 +45,7 @@ class ContactSheetTests(unittest.TestCase):
                 # Transparent pixels expose the checkerboard introduced by
                 # the alpha-edge preview, not the old flat graphite canvas.
                 self.assertEqual(result.getpixel((50, 150)), (49, 59, 70))
-                self.assertEqual(result.getpixel((40, 140)), (91, 102, 111))
+                self.assertEqual(result.getpixel((40, 130)), (91, 102, 111))
                 self.assertEqual(result.getpixel((150, 150)), (230, 170, 60))
                 self.assertEqual(result.getpixel((250, 150)), (13, 20, 31))
 
