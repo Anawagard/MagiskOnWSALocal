@@ -294,6 +294,14 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
         d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
+    # Engraved industrial status ticks: bitmap-only detail, no touch/layout changes.
+    # Confine marks to the corners so nine-slice stretching never distorts them.
+    tick=(112,226,216,118) if bright else (*border_rgb,96)
+    for offset in (0,5,10):
+        x=w-28+offset
+        d.line((x,11,x,16+(offset==0)*4),fill=tick,width=1)
+    d.line((w-32,h-12,w-18,h-12),fill=(*border_rgb,85),width=1)
+    d.line((w-18,h-12,w-18,h-19),fill=(*border_rgb,85),width=1)
     im.save(path,optimize=True)
 
 for i,color in enumerate(SCENES):
