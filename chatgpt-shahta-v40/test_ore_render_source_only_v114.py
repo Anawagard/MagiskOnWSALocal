@@ -38,6 +38,8 @@ class OreRasterRenderContract(unittest.TestCase):
                     and any(isinstance(t, ast.Name) and t.id == "ORES"
                             for t in node.targets)]
         cls.ore = namespace["ore"]
+        if len(palettes) != 1 or len(palettes[0]) != 24:
+            raise AssertionError("Exactly 24 ore palettes required")
         cls.colors = palettes[0]
         cls.Image = Image
         cls.np = np
@@ -57,6 +59,14 @@ class OreRasterRenderContract(unittest.TestCase):
                     self.assertEqual(int(alpha[-1, -1]), 0, index)
                     self.assertGreater(int((alpha > 200).sum()), 10000, index)
                     self.assertLess(int((alpha > 0).sum()), 70000, index)
+                    # A silhouette-only or flat-color replacement must fail:
+                    # the interior needs meaningful local mineral texture.
+                    interior = pixels[120:180, 120:180, :3].astype(self.np.float32)
+                    self.assertGreater(float(interior.std(axis=(0, 1)).max()), 4.0, index)
+                    # Check transparent margins on all four sides, not just corners.
+                    for edge in (alpha[0, :], alpha[-1, :],
+                                 alpha[:, 0], alpha[:, -1]):
+                        self.assertEqual(int(edge.max()), 0, index)
                     hashes.add(hashlib.sha256(pixels.tobytes()).digest())
             self.assertEqual(len(hashes), 24)
 
