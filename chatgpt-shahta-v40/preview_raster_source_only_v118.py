@@ -58,9 +58,14 @@ def sheet(paths, columns, cell, label, destination, captions=None):
             x = (i % columns) * cell[0] + (cell[0] - thumb.width) // 2
             y = (i // columns) * cell[1] + 25
             out.paste(thumb, (x, y), thumb)
+        caption = str(captions[i] if captions is not None else f"{label} {i + 1:02d}")
+        # Fit captions within their own tile: a long localized name must not
+        # overwrite the adjacent tile's label or spill outside the atlas.
+        available = cell[0] - 16
+        while caption and draw.textbbox((0, 0), caption)[2] > available:
+            caption = caption[:-1]
         draw.text(((i % columns) * cell[0] + 8, (i // columns) * cell[1] + 6),
-                  (captions[i] if captions is not None else f"{label} {i + 1:02d}"),
-                  fill=(93, 224, 210))
+                  caption, fill=(93, 224, 210))
     out.save(destination, optimize=True)
 
 
