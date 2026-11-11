@@ -297,6 +297,17 @@ def ore(index,color,path):
     grain.putalpha(ImageChops.multiply(grain.getchannel("A"),mask))
     im=Image.alpha_composite(im,grain)
     im=Image.alpha_composite(im,family)
+    # Baked directional rim lighting makes the stone edge more dimensional.
+    # Keep the highlight strictly inside the existing ore silhouette.
+    interior=mask.filter(ImageFilter.MinFilter(11))
+    rim=ImageChops.subtract(mask,interior)
+    rim_alpha=np.asarray(rim,dtype=np.float32)
+    yy_r,xx_r=np.mgrid[0:h,0:w].astype(np.float32)
+    facing=np.clip(.50-(xx_r-150)/310-(yy_r-149)/310,0,1)
+    alpha=np.uint8(np.clip(rim_alpha*facing*.38,0,255))
+    light=Image.new("RGBA",(w,h),(225,244,238,0))
+    light.putalpha(Image.fromarray(alpha,"L"))
+    im=Image.alpha_composite(im,light)
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
