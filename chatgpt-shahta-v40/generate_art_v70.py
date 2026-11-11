@@ -282,6 +282,11 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     arr=top[None,None,:]*(.86+.10*(1-yy/h))[:,:,None]
     arr=np.broadcast_to(arr,(h,w,3)).copy()
     arr+=np.maximum(0,1-np.abs(xx-w*.28)/(w*.8))[:,:,None]*2
+    # Deterministic fine brushed-metal grain, baked into the raster skin.
+    # Keep contrast below 3 RGB levels so labels remain readable and the
+    # same asset is produced byte-for-byte on repeated generation.
+    grain=(np.sin(xx*.79+yy*.11)*.75 + np.sin(yy*1.91)*.55)
+    arr+=grain[:,:,None]
     im=image_array(arr).convert("RGBA")
     d=ImageDraw.Draw(im,"RGBA")
     # Honour the per-surface border palette instead of giving every panel
