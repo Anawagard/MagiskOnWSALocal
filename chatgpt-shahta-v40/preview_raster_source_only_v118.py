@@ -57,6 +57,16 @@ def sheet(paths, columns, cell, label, destination, captions=None):
             thumb.thumbnail((cell[0] - 16, cell[1] - 35), Image.Resampling.LANCZOS)
             x = (i % columns) * cell[0] + (cell[0] - thumb.width) // 2
             y = (i // columns) * cell[1] + 25
+            # Checkerboard exposes alpha-edge defects in ore sprite previews.
+            if "A" in original.getbands() or "transparency" in original.info:
+                for yy in range(y, y + thumb.height, 12):
+                    for xx in range(x, x + thumb.width, 12):
+                        parity = ((xx - x) // 12 + (yy - y) // 12) % 2
+                        draw.rectangle(
+                            (xx, yy, min(xx + 11, x + thumb.width - 1),
+                             min(yy + 11, y + thumb.height - 1)),
+                            fill=(49, 59, 70) if parity else (91, 102, 111)
+                        )
             out.paste(thumb, (x, y), thumb)
         caption = str(captions[i] if captions is not None else f"{label} {i + 1:02d}")
         # Fit captions within their own tile: a long localized name must not
