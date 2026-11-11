@@ -269,8 +269,34 @@ def ore(index,color,path):
             length=int(r.integers(5,20))
             gd.line((x,y,x+length,y-length//2),
                     fill=(14,23,35,92),width=2)
+    # Six mineral families add a second, index-dependent texture signature.
+    # All features are rasterized and clipped to the original ore silhouette.
+    family=Image.new("RGBA",(w,h),(0,0,0,0))
+    fd=ImageDraw.Draw(family,"RGBA")
+    motif=index%6
+    for j in range(30):
+        x=int(r.integers(55,245)); y=int(r.integers(55,242))
+        if motif==0:  # sparse quartz flecks
+            fd.ellipse((x-2,y-2,x+2,y+2),fill=(239,246,232,92))
+        elif motif==1:  # copper oxidation pits
+            radius=int(r.integers(2,7))
+            fd.ellipse((x-radius,y-radius,x+radius,y+radius),
+                       outline=(40,87,77,120),width=2)
+        elif motif==2:  # layered silver plates
+            fd.line((x-9,y,x+9,y-3),fill=(211,231,238,112),width=2)
+        elif motif==3:  # golden granular seams
+            fd.line((x-5,y+4,x+3,y-5),fill=(248,205,109,116),width=2)
+        elif motif==4:  # dark basalt vesicles
+            radius=int(r.integers(2,6))
+            fd.ellipse((x-radius,y-radius,x+radius,y+radius),
+                       fill=(15,23,35,105))
+        else:  # amethyst angular inclusions
+            fd.line([(x-5,y),(x,y-8),(x+5,y),(x,y+7),(x-5,y)],
+                    fill=(227,202,252,106),width=1)
+    family.putalpha(ImageChops.multiply(family.getchannel("A"),mask))
     grain.putalpha(ImageChops.multiply(grain.getchannel("A"),mask))
     im=Image.alpha_composite(im,grain)
+    im=Image.alpha_composite(im,family)
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
