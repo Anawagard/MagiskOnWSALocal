@@ -39,8 +39,15 @@ def load_renderers():
     return env
 
 
-def sheet(paths, columns, cell, label, destination):
+def sheet(paths, columns, cell, label, destination, captions=None):
+    """Compose an indexed atlas; optional captions identify actual UI assets."""
+    if columns < 1 or cell[0] <= 16 or cell[1] <= 35:
+        raise ValueError("Invalid contact sheet grid or cell size")
+    if captions is not None and len(captions) != len(paths):
+        raise ValueError("Captions must match image count")
     from PIL import Image, ImageDraw
+    if not paths:
+        raise ValueError("Contact sheet requires at least one image")
     rows = (len(paths) + columns - 1) // columns
     out = Image.new("RGB", (columns * cell[0], rows * cell[1]), (13, 20, 31))
     draw = ImageDraw.Draw(out)
@@ -52,7 +59,8 @@ def sheet(paths, columns, cell, label, destination):
             y = (i // columns) * cell[1] + 25
             out.paste(thumb, (x, y), thumb)
         draw.text(((i % columns) * cell[0] + 8, (i // columns) * cell[1] + 6),
-                  f"{label} {i + 1:02d}", fill=(93, 224, 210))
+                  (captions[i] if captions is not None else f"{label} {i + 1:02d}"),
+                  fill=(93, 224, 210))
     out.save(destination, optimize=True)
 
 
@@ -91,7 +99,8 @@ def main():
             target = temp / (name + ".png")
             env["panel_art"](target, base, border, size=size, bright=bright)
             skin_paths.append(target)
-        sheet(skin_paths, 2, (220, 135), "SKIN", output / "skins_contact.png")
+        sheet(skin_paths, 2, (220, 135), "SKIN", output / "skins_contact.png",
+              captions=[name.upper() for name, *_ in skins])
     print(f"Created 3 contact sheets in {output}")
 
 
