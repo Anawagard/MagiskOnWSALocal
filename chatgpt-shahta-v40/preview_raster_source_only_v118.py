@@ -127,6 +127,18 @@ def audit_ore_alpha(paths):
                 raise ValueError(
                     f"ORE alpha contract failed for {path.name}: extrema {low, high}"
                 )
+            # A single opaque pixel plus a transparent canvas passes extrema,
+            # but produces an invisible ore in the actual mine. Measure coverage
+            # with the same alpha threshold used by sprite compositing.
+            histogram = alpha.histogram()
+            visible = sum(histogram[128:])
+            total = rgba.width * rgba.height
+            coverage = visible / total
+            if not 0.15 <= coverage <= 0.85:
+                raise ValueError(
+                    f"ORE visible coverage failed for {path.name}: "
+                    f"{coverage:.3%} (expected 15%-85%)"
+                )
 
 
 def main():
