@@ -82,10 +82,14 @@ once("else if(y>=407&&y<=469){fxEnabled=!fxEnabled;",
 # The legacy close-button Y range varies across prior patch levels.
 # Match the actual close action, not one historical set of coordinates.
 import re
-close_pattern = r"else\\s+if\\s*\\(\\s*y\\s*>=\\s*\\d+\\s*&&\\s*y\\s*<=\\s*\\d+\\s*\\)\\s*\\{\\s*settingsOpen\\s*=\\s*false\\s*;"
-close_replacement = "else if(x>=18&&x<=342&&y>=548&&y<=609){settingsOpen=false;"
-s, close_count = re.subn(close_pattern, close_replacement, s)
-assert close_count == 1, ("v7.3 close control anchor missing or ambiguous", close_count)
+# Legacy close control may be written as 'if' or 'else if', and
+# older layouts may already include an X bound. Preserve the branch kind.
+close_pattern = r"(?P<prefix>(?:else\\s+)?if)\\s*\\([^)]*\\)\\s*\\{\\s*settingsOpen\\s*=\\s*false\\s*;"
+close_matches = list(re.finditer(close_pattern, s))
+assert len(close_matches) == 1, ("v7.3 close control anchor missing or ambiguous", len(close_matches))
+s = re.sub(close_pattern,
+           lambda m: m.group("prefix") + "(x>=18&&x<=342&&y>=548&&y<=609){settingsOpen=false;",
+           s, count=1)
 
 # v7.1 already aligns the settings-open button with its painted bounds.
 open_old = "if(page==1&&x>=235&&y>=95&&y<=144){settingsOpen=true;"
