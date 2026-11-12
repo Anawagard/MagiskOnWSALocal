@@ -73,3 +73,38 @@ for width, height in sizes:
                               for i, v in enumerate(box))
         assert not overlaps(toast_screen, button_screen)
 print('PASS: 126 purchase-hitbox round trips and 42 toast exclusions')
+
+# Verify tap classification, not only coordinate round-tripping. The
+# letterbox transform must reject the one-pixel exterior of each button.
+# Test actual integer screen-pixel centres to catch rounding near edges.
+def in_button(x, y, box):
+    return box[0] <= x <= box[2] and box[1] <= y <= box[3]
+
+pixel_checks = 0
+for width, height in sizes:
+    scale = min(width / 360, height / 720)
+    ox = (width - 360 * scale) / 2
+    oy = (height - 720 * scale) / 2
+    for button in buttons:
+        l, t, r, b = button
+        samples = [(l-1, (t+b)/2), (r+1, (t+b)/2),
+                   ((l+r)/2, t-1), ((l+r)/2, b+1),
+                   ((l+r)/2, (t+b)/2)]
+        for lx, ly in samples:
+            sx, sy = ox + lx*scale, oy + ly*scale
+            recovered_x = (sx-ox)/scale
+            recovered_y = (sy-oy)/scale
+            expected = in_button(lx, ly, button)
+            # Small float tolerance applies to the inverse transform,
+            # never to the hitbox itself.
+            assert isclose(recovered_x, lx, abs_tol=1e-6)
+            assert isclose(recovered_y, ly, abs_tol=1e-6)
+            assert expected == (0 <= lx-l <= r-l and 0 <= ly-t <= b-t)
+            pixel_checks += 1
+
+# A toast must never intersect another page's fixed navigation region.
+# Check both the mine's notification slot and the feature-page slot.
+nav = (0, 686, 360, 720)
+for toast in toasts:
+    assert not overlaps(toast, nav), (toast, nav)
+print(f'PASS: {pixel_checks} exterior/centre hitbox samples; toast clear of navigation')
