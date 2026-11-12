@@ -3,7 +3,7 @@ from math import isclose
 from pathlib import Path
 
 W,H=360,720
-screens=[(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+screens=[(320,568),(360,640),(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 tabs={"basic":(16,130,124,158),"tech":(128,130,236,158)}
 settings=(246,102,345,154)
 toolbar=(10,93,350,158)
@@ -101,5 +101,28 @@ for w,h in screens:
                 (100,160),(180,309),(180,463),(180,620)):
         rx,ry=roundtrip(x,y,w,h)
         assert shop_action(rx,ry,0)==("none",0),(w,h,x,y)
+        checks+=1
+# Reject touches in physical letterbox margins instead of mapping them to
+# invisible logical controls. The runtime checks x/y against W/H first.
+for w,h in screens:
+    scale,ox,oy=view(w,h)
+    assert scale>0
+    assert ox>=-1e-6 and oy>=-1e-6
+    # Every logical purchase target must remain on-screen at both corners.
+    for left,top,right,bottom in buy:
+        for x,y in ((left,top+60),(right,bottom+60)):
+            px,py=x*scale+ox,y*scale+oy
+            assert -1e-5<=px<=w+1e-5 and -1e-5<=py<=h+1e-5,(w,h,x,y)
+            checks+=1
+    # A physical margin (if present) is outside the playable viewport.
+    if ox>0.5:
+        px,py=ox/2,h/2
+        lx,ly=(px-ox)/scale,(py-oy)/scale
+        assert lx<0
+        checks+=1
+    if oy>0.5:
+        px,py=w/2,oy/2
+        lx,ly=(px-ox)/scale,(py-oy)/scale
+        assert ly<0
         checks+=1
 print(f"PASS: {checks} source-only shop geometry assertions across {len(screens)} screens")
