@@ -14,7 +14,7 @@ for marker in (
 ):
     assert marker in patch, marker
 
-screens = [(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
+screens = [(320,568),(360,640),(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 header = (10,94,350,143)
 content_clip = (0,145,360,653)
 nav = (0,88,360,136)
@@ -34,7 +34,7 @@ for width,height in screens:
     def roundtrip(x,y):
         px,py = x*scale+ox,y*scale+oy
         return (px-ox)/scale,(py-oy)/scale
-    # Header and feature content are translated +60; top nav is not.
+    # The complete 360x720 logical canvas must fit even on narrow screens.\n    assert scale > 0 and ox >= -1e-6 and oy >= -1e-6\n    for lx,ly in ((0,0),(360,0),(0,720),(360,720)):\n        px,py=lx*scale+ox,ly*scale+oy\n        assert -1e-5 <= px <= width+1e-5 and -1e-5 <= py <= height+1e-5\n        checks += 1\n    # Header and feature content are translated +60; top nav is not.
     header_top = (header[1]+60)*scale+oy
     nav_bottom = nav[3]*scale+oy
     assert header_top > nav_bottom, (width,height)
