@@ -97,5 +97,24 @@ assert 'shahta-save-v1' in (root/"app/src/main/java/com/bezdna/mine/MainActivity
 gradle=(root/"app/build.gradle").read_text()
 assert "applicationId 'com.bezdna.mine'" in gradle
 assert "signingConfig signingConfigs.shahtaDebug" in gradle
+# Geometry contract: painted tabs and settings must remain disjoint; six
+# purchase buttons must stay inside separate cards and above the toast.
+shop_tabs=[(16,130,124,158),(128,130,236,158)]
+settings_rect=(246,102,345,154)
+assert shop_tabs[0][2]<shop_tabs[1][0]<settings_rect[0]
+assert all(tab[2]<settings_rect[0] for tab in shop_tabs)
+shop_cards=[]
+for i in range(6):
+    x,y=10+(i%2)*175,164+(i//2)*153
+    card=(x,y,x+165,y+145)
+    buy=(x+13,y+102,x+152,y+138)
+    assert card[0]<=buy[0]<buy[2]<=card[2]
+    assert card[1]<=buy[1]<buy[3]<=card[3]
+    assert buy[3]<623,('purchase overlaps shop toast',i)
+    shop_cards.append(card)
+for i,a in enumerate(shop_cards):
+    for b in shop_cards[i+1:]:
+        assert a[2]<=b[0] or b[2]<=a[0] or a[3]<=b[1] or b[3]<=a[1], ('overlapping shop cards',a,b)
+
 source.write_text(s)
 print("v7.4: independent shop tabs, no invisible toggle, aligned toolbar and settings; source-only")
