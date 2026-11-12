@@ -49,5 +49,28 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                                  after.crop((0, 100, 120, 200)).tobytes())
 
 
+    def test_control_characters_do_not_change_other_tiles(self):
+        """A caption with CR, tabs and Unicode separators cannot escape its cell."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            Image.new("RGBA", (40, 40), (12, 210, 195, 160)).save(sprite)
+            clean = root / "clean.png"
+            hostile = root / "hostile.png"
+            paths = [sprite] * 4
+            sheet(paths, 2, (120, 100), "ORE", clean,
+                  captions=["TOP", "SAFE", "BOTTOM", "SAFE"])
+            sheet(paths, 2, (120, 100), "ORE", hostile,
+                  captions=["TOP\\r\\n\\t" * 80 + "\\u2028" + "OVERFLOW",
+                            "SAFE", "BOTTOM", "SAFE"])
+            with Image.open(clean) as before, Image.open(hostile) as after:
+                self.assertEqual(after.size, (240, 200))
+                # Other columns and the following row are pixel-identical.
+                self.assertEqual(before.crop((120, 0, 240, 200)).tobytes(),
+                                 after.crop((120, 0, 240, 200)).tobytes())
+                self.assertEqual(before.crop((0, 100, 120, 200)).tobytes(),
+                                 after.crop((0, 100, 120, 200)).tobytes())
+
+
 if __name__ == "__main__":
     unittest.main()
