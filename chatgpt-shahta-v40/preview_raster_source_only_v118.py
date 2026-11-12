@@ -77,6 +77,9 @@ def sheet(paths, columns, cell, label, destination, captions=None):
                         )
             out.paste(thumb, (x, y), thumb)
         caption = str(captions[i] if captions is not None else f"{label} {i + 1:02d}")
+        # Imported/localized names may contain line breaks or control chars.
+        # Keep every caption on a single line inside its own atlas tile.
+        caption = " ".join("".join(ch if ch.isprintable() else " " for ch in caption).split())
         # Fit captions within their own tile: a long localized name must not
         # overwrite the adjacent tile's label or spill outside the atlas.
         available = cell[0] - 16
