@@ -76,7 +76,7 @@ once("if(page==1&&x>=241&&x<=345&&y>=99&&y<=141){settingsOpen=true;",
 
 # Replace the legacy page-toggle with two independently selectable tabs.
 # This prevents a tap on the already selected tab from switching pages.
-once("""            if(y>=117&&y<157&&x<234){
+once("""            if(x>=13&&x<=228&&y>=119&&y<=154){
                 shopPage=1-shopPage;invalidate();return true;
             }""",
      """            if(y>=130&&y<=158){
