@@ -50,7 +50,7 @@ class ContactSheetLocalizationTests(unittest.TestCase):
 
 
     def test_control_characters_do_not_change_other_tiles(self):
-        """A caption with CR, tabs and Unicode separators cannot escape its cell."""
+        """Real CR, LF, tabs and Unicode separators cannot escape their cell."""
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             sprite = root / "sprite.png"
@@ -61,7 +61,7 @@ class ContactSheetLocalizationTests(unittest.TestCase):
             sheet(paths, 2, (120, 100), "ORE", clean,
                   captions=["TOP", "SAFE", "BOTTOM", "SAFE"])
             sheet(paths, 2, (120, 100), "ORE", hostile,
-                  captions=["TOP\\r\\n\\t" * 80 + "\\u2028" + "OVERFLOW",
+                  captions=["TOP\r\n\t" * 80 + "\u2028" + "OVERFLOW",
                             "SAFE", "BOTTOM", "SAFE"])
             with Image.open(clean) as before, Image.open(hostile) as after:
                 self.assertEqual(after.size, (240, 200))
