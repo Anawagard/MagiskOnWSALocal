@@ -41,7 +41,7 @@ class ContactSheetLocalizationTests(unittest.TestCase):
             sheet(paths, 1, (120, 100), "ORE", normal,
                   captions=["РУДА", "SECOND"])
             sheet(paths, 1, (120, 100), "ORE", malicious,
-                  captions=["РУДА\\n" * 50 + "SECOND", "SECOND"])
+                  captions=["РУДА\n" * 50 + "SECOND", "SECOND"])
             with Image.open(normal) as before, Image.open(malicious) as after:
                 self.assertEqual(after.size, (120, 200))
                 # Caption in row one must never modify pixels in row two.
