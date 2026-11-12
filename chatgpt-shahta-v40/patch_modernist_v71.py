@@ -111,8 +111,8 @@ shop_tile=r"""
 """
 once("    private void drawShop(Canvas c){",shop_tile+"\n    private void drawShop(Canvas c){")
 once("if(page==1&&x>=235&&y>=80&&y<=112)",
-     // Match the painted settings button (241,99,104,42) exactly.
-     // The previous oversized region accepted invisible edge taps.
+     # Match the painted settings button (241,99,104,42) exactly.
+     # The previous oversized region accepted invisible edge taps.
      "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)")
 once("""            if(y>=96&&y<144){shopPage=1-shopPage;invalidate();return true;}
             int[] yy={145,226,307,388,469,550};
