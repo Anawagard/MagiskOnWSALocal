@@ -20,7 +20,7 @@ def feature_screen(x,y):
 
 def feature_input(x,screen_y):
     # Keep identical with patch_modernist_v72.py: header is not interactive.
-    if screen_y<205 or screen_y>713:
+    if screen_y<205 or screen_y>713 or x<13 or x>347.8:
         return None
     return (x-13)/.93,((screen_y-60)-18)/.94
 
@@ -81,6 +81,13 @@ for width,height in screens:
         rx,ry=feature_input(lx,ly)
         assert isclose(rx,x,abs_tol=1e-4),(width,height,x,rx)
         assert isclose(ry,y,abs_tol=1e-4),(width,height,y,ry)
+        checks+=1
+    # Reject side gutters hidden by the narrower feature-page layout.
+    for sx in (0, 12.999, 13.001, 347.799, 347.801, 359):
+        px,py=physical(sx,340,width,height)
+        lx,ly=logical(px,py,width,height)
+        accepted=feature_input(lx,ly) is not None
+        assert accepted == (13<sx<347.8),(width,height,sx,lx,accepted)
         checks+=1
     # Test the exact clipping boundary at subpixel offsets after scaling.
     # On tall and narrow devices the logical clip must not drift due to
