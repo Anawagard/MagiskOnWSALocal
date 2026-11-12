@@ -28,9 +28,11 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             rect(canvas,36,toastY+2,76,1,0xff65e1d0);
             rect(canvas,112,toastY+2,220,1,0xff315d60);
             rect(canvas,36,toastY+22,296,1,0xff315d60);
-            // Reserve a right-hand identity slot so even long notices never collide
-            // with the raster ore glyph. The same 24-sprite atlas is used across pages.
+            // Keep the text inside the 251px safe zone, with a separate ore badge.
             leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);
+            rect(canvas,301,toastY+3,25,20,0xff18383c);
+            rect(canvas,301,toastY+3,25,1,0xff65e1d0);
+            rect(canvas,301,toastY+22,25,1,0xff315d60);
             v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24),
                 305,toastY+4,18,18,225);
         }'''
@@ -42,8 +44,9 @@ TOAST_WIDTH = 324
 TOAST_X = 18
 TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
 assert len(TOAST_Y) == 5
-# Text occupies x=39..290; identity glyph occupies x=305..323.
-assert 39 + 251 < 305 and 305 + 18 <= TOAST_X + TOAST_WIDTH
+# Text occupies x=39..290; badge x=301..326 and glyph x=305..323.
+assert 39 + 251 < 301 and 301 + 25 <= TOAST_X + TOAST_WIDTH
+assert 305 >= 301 and 305 + 18 <= 301 + 25
 assert all(0 <= (page * 5) % 24 < 24 for page in TOAST_Y)
 for page_index, top in TOAST_Y.items():
     assert 0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
