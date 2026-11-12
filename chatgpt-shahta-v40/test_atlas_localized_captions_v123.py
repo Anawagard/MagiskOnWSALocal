@@ -30,5 +30,24 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                     after.crop((232, 0, 240, 24)).tobytes())
 
 
+    def test_multiline_caption_cannot_draw_into_next_row(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            Image.new("RGBA", (40, 40), (12, 210, 195, 160)).save(sprite)
+            normal = root / "normal.png"
+            malicious = root / "multiline.png"
+            paths = [sprite, sprite]
+            sheet(paths, 1, (120, 100), "ORE", normal,
+                  captions=["РУДА", "SECOND"])
+            sheet(paths, 1, (120, 100), "ORE", malicious,
+                  captions=["РУДА\\n" * 50 + "SECOND", "SECOND"])
+            with Image.open(normal) as before, Image.open(malicious) as after:
+                self.assertEqual(after.size, (120, 200))
+                # Caption in row one must never modify pixels in row two.
+                self.assertEqual(before.crop((0, 100, 120, 200)).tobytes(),
+                                 after.crop((0, 100, 120, 200)).tobytes())
+
+
 if __name__ == "__main__":
     unittest.main()
