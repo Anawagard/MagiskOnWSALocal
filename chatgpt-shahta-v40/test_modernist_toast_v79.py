@@ -7,13 +7,13 @@ from math import isclose
 from pathlib import Path
 
 patch = Path(__file__).with_name('patch_modernist_v79.py').read_text(encoding='utf-8')
-assert 'int toastY = page==0 ? 178 : 623;' in patch
+assert 'int toastY = page==0 ? 178 : (page==1 ? 623 : 655);' in patch
 assert 'v72NineSlice(canvas,"panel.png",18,toastY,324,26,252)' in patch
 assert 'leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285)' in patch
 assert 'rect(canvas,26,toastY+4,3,18,0xff65e1d0)' in patch
 assert 'rect(canvas,36,toastY+22,296,1,0xff315d60)' in patch
 # Rail and baseline must stay inside the toast panel at both anchors.
-for toast_y in (178, 623):
+for toast_y in (178, 623, 655):
     assert toast_y <= toast_y+4 < toast_y+22 <= toast_y+26
     assert 18 <= 26 and 26+3 <= 342
     assert 18 <= 36 and 36+296 <= 342
@@ -21,14 +21,14 @@ for toast_y in (178, 623):
 buttons = [(10 + (i % 2) * 175 + 13, 164 + (i // 2) * 153 + 102,
             10 + (i % 2) * 175 + 152, 164 + (i // 2) * 153 + 138)
            for i in range(6)]
-toasts = [(18, 178, 342, 204), (18, 623, 342, 649)]
+toasts = [(18, 178, 342, 204), (18, 623, 342, 649),\n          (18, 655, 342, 681)]
 
 def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 assert all(not overlaps(toasts[1], button) for button in buttons)
 assert toasts[0][3] < 205
-assert toasts[1][3] < 653
+assert toasts[1][3] < 653\nassert toasts[2][1] > 18 + .94 * 653  # feature page content ends here\nassert toasts[2][3] <= 720
 
 sizes = [(320, 568), (320, 640), (360, 720), (393, 852),
          (720, 1280), (1080, 2400), (1272, 2772)]
