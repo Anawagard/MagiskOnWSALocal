@@ -30,6 +30,25 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             rect(canvas,36,toastY+22,296,1,0xff315d60);
             leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);
         }'''
+# Geometry contract: the notification must fit the 360x720 logical canvas,
+# clear the fixed top navigation, and not cover the mine's ore hitbox.
+# Keep this source-only and independent of Android/Gradle.
+TOAST_HEIGHT = 26
+TOAST_WIDTH = 324
+TOAST_X = 18
+TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
+assert len(TOAST_Y) == 5
+for page_index, top in TOAST_Y.items():
+    assert 0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
+    assert 137 < top and top + TOAST_HEIGHT <= 682, (page_index, top)
+    if page_index == 0:
+        assert top + TOAST_HEIGHT < 210  # mine ore hitbox begins at y=210
+    elif page_index == 1:
+        assert top > 653  # shop content ends at y=653
+        assert top > 630  # settings modal ends at y=630
+    else:
+        assert top + TOAST_HEIGHT < 205  # transformed feature content starts here
+
 assert s.count(old)==1, "v7.9 toast anchor missing or ambiguous"
 assert "v71Scale()" in s
 assert "else if(x>=105&&x<=330&&y>=210&&y<=440)" in s
