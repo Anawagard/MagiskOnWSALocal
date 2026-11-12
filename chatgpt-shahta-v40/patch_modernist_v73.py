@@ -79,10 +79,21 @@ once("else if(y>=326&&y<=402){soundVolume=Math.max(0,Math.min(100,Math.round((x-
      "else if(x>=35&&x<=325&&y>=383&&y<=414){soundVolume=Math.max(0,Math.min(100,Math.round((x-42f)/276f*20f)*5));")
 once("else if(y>=407&&y<=469){fxEnabled=!fxEnabled;",
      "else if(x>=218&&x<=323&&y>=461&&y<=511){fxEnabled=!fxEnabled;")
-once("else if(y>=520&&y<=585){settingsOpen=false;",
-     "else if(x>=18&&x<=342&&y>=548&&y<=609){settingsOpen=false;")
-once("if(page==1&&x>=235&&y>=95&&y<=144){settingsOpen=true;",
-     "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141){settingsOpen=true;")
+# The legacy close-button Y range varies across prior patch levels.
+# Match the actual close action, not one historical set of coordinates.
+import re
+close_pattern = r"else\\s+if\\s*\\(\\s*y\\s*>=\\s*\\d+\\s*&&\\s*y\\s*<=\\s*\\d+\\s*\\)\\s*\\{\\s*settingsOpen\\s*=\\s*false\\s*;"
+close_replacement = "else if(x>=18&&x<=342&&y>=548&&y<=609){settingsOpen=false;"
+s, close_count = re.subn(close_pattern, close_replacement, s)
+assert close_count == 1, ("v7.3 close control anchor missing or ambiguous", close_count)
+
+# v7.1 already aligns the settings-open button with its painted bounds.
+open_old = "if(page==1&&x>=235&&y>=95&&y<=144){settingsOpen=true;"
+open_new = "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141){settingsOpen=true;"
+if open_old in s:
+    once(open_old, open_new)
+else:
+    assert s.count(open_new) == 1, "v7.3 settings-open anchor missing or ambiguous"
 # Returning to the shop from another tab must not resurrect a stale modal.
 once("previousPage=page;page=next;pageSlide=1f;",
      "previousPage=page;page=next;pageSlide=1f;settingsOpen=false;")
