@@ -21,14 +21,17 @@ for toast_y in (178, 623, 655):
 buttons = [(10 + (i % 2) * 175 + 13, 164 + (i // 2) * 153 + 102,
             10 + (i % 2) * 175 + 152, 164 + (i // 2) * 153 + 138)
            for i in range(6)]
-toasts = [(18, 178, 342, 204), (18, 623, 342, 649),\n          (18, 655, 342, 681)]
+toasts = [(18, 178, 342, 204), (18, 623, 342, 649),
+          (18, 655, 342, 681)]
 
 def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 assert all(not overlaps(toasts[1], button) for button in buttons)
 assert toasts[0][3] < 205
-assert toasts[1][3] < 653\nassert toasts[2][1] > 18 + .94 * 653  # feature page content ends here\nassert toasts[2][3] <= 720
+assert toasts[1][3] < 653
+assert toasts[2][1] > 18 + .94 * 653  # feature page content ends here
+assert toasts[2][3] <= 720
 
 sizes = [(320, 568), (320, 640), (360, 720), (393, 852),
          (720, 1280), (1080, 2400), (1272, 2772)]
