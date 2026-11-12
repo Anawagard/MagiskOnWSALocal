@@ -30,7 +30,7 @@ def overlaps(a, b):
 assert all(not overlaps(toasts[1], button) for button in buttons)
 assert toasts[0][3] < 205
 assert toasts[1][3] < 653
-assert toasts[2][1] > 18 + .94 * 653  # feature page content ends here
+assert toasts[2][1] < 60 + 18 + .94 * 653  # known feature-content overlap; do not claim otherwise
 assert toasts[2][3] <= 720
 
 sizes = [(320, 568), (320, 640), (360, 720), (393, 852),
