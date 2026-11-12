@@ -118,7 +118,7 @@ once("""            if(y>=96&&y<144){shopPage=1-shopPage;invalidate();return tru
             int[] yy={145,226,307,388,469,550};
             for(int i=0;i<6;i++)if(y>=yy[i]&&y<yy[i]+73&&x>225){
                 int k=shopPage==1?i+6:i;""",
-     """            if(y>=117&&y<157&&x<234){
+     """            if(x>=13&&x<=228&&y>=119&&y<=154){
                 shopPage=1-shopPage;invalidate();return true;
             }
             for(int i=0;i<6;i++){
@@ -134,6 +134,7 @@ for title,baseline in [("КУЗНЯ БЕЗДНЫ",113),
     once('text(c,"'+title+'",180,'+str(baseline)+',19,GOLD,true);',
          'text(c,"'+title+'",180,'+str(baseline)+',18,0xffd9f8f3,true);')
 
+assert "if(x>=13&&x<=228&&y>=119&&y<=154)" in s
 assert s.count("private void v71ShopTile(")==1
 assert s.count("private float v71Scale(")==1
 assert "v70Draw(c,\"miner.png\",15,293,113,160,255)" in s
