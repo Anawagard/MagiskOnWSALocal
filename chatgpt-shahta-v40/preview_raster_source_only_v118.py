@@ -47,7 +47,13 @@ def sheet(paths, columns, cell, label, destination, captions=None):
         raise ValueError("Invalid contact sheet grid or cell size")
     if captions is not None and len(captions) != len(paths):
         raise ValueError("Captions must match image count")
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
+    # Pillow's bitmap default font can reject Cyrillic and other UI labels.
+    # DejaVu Sans is available in standard Pillow/Linux environments.
+    try:
+        caption_font = ImageFont.truetype("DejaVuSans.ttf", 12)
+    except OSError:
+        caption_font = ImageFont.load_default()
     if not paths:
         raise ValueError("Contact sheet requires at least one image")
     rows = (len(paths) + columns - 1) // columns
@@ -74,10 +80,19 @@ def sheet(paths, columns, cell, label, destination, captions=None):
         # Fit captions within their own tile: a long localized name must not
         # overwrite the adjacent tile's label or spill outside the atlas.
         available = cell[0] - 16
-        while caption and draw.textbbox((0, 0), caption)[2] > available:
-            caption = caption[:-1]
+        def fits(value):
+            try:
+                bounds = draw.textbbox((0, 0), value, font=caption_font)
+            except UnicodeEncodeError:
+                return False
+            return bounds[2] - bounds[0] <= available
+        if not fits(caption):
+            suffix = "…" if fits("…") else "..."
+            while caption and not fits(caption + suffix):
+                caption = caption[:-1]
+            caption = caption + suffix if caption else ""
         draw.text(((i % columns) * cell[0] + 8, (i // columns) * cell[1] + 6),
-                  caption, fill=(93, 224, 210))
+                  caption, fill=(93, 224, 210), font=caption_font)
     out.save(destination, optimize=True)
 
 
