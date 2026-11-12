@@ -84,7 +84,7 @@ once("else if(y>=407&&y<=469){fxEnabled=!fxEnabled;",
 import re
 # Legacy close control may be written as 'if' or 'else if', and
 # older layouts may already include an X bound. Preserve the branch kind.
-close_pattern = r"(?P<prefix>(?:else\\s+)?if)\\s*\\([^)]*\\)\\s*\\{\\s*settingsOpen\\s*=\\s*false\\s*;"
+close_pattern = r"(?P<prefix>(?:else\s+)?if)\s*\([^)]*\)\s*\{\s*settingsOpen\s*=\s*false\s*;"
 close_matches = list(re.finditer(close_pattern, s))
 assert len(close_matches) == 1, ("v7.3 close control anchor missing or ambiguous", len(close_matches))
 s = re.sub(close_pattern,
