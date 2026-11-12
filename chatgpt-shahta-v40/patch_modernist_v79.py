@@ -1,8 +1,9 @@
 """v7.9: context-aware toast placement for all five modernist pages.
 
 Mine has a reserved gap at y=178..204. Shop notifications sit below its 2x3 card grid (last card ends at 615).
-Forge/guild/atlas notifications sit below the transformed feature content
-(maximum visual y=18+0.94*653=631.82), avoiding its action controls. Presentation-only: no hitboxes, balance, persistence,
+Forge/guild/atlas notifications occupy y=655..681. Their transformed content
+can reach y=60+18+0.94*653=691.82, so this toast may overlay the lower
+part of feature content. A dedicated non-overlapping slot is still needed. Presentation-only: no hitboxes, balance, persistence,
 package identifier or signing changes. Apply after v7.8.
 """
 from pathlib import Path
@@ -16,7 +17,7 @@ old = '''        if(System.currentTimeMillis()<toastUntil){
             leftFittedText(canvas,toast,39,196,12,0xfff0fffb,285);
         }'''
 new = '''        if(System.currentTimeMillis()<toastUntil){
-            // Mine: telemetry gap; shop: below cards; feature pages: below content.
+            // Mine: telemetry gap; shop: below cards; feature pages: lower overlay.
             // This overlay never changes onTouchEvent geometry.
             int toastY = page==0 ? 178 : (page==1 ? 623 : 655);
             // Dedicated notification surface: accent rail + quiet baseline.
