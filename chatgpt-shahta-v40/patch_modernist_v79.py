@@ -28,7 +28,7 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             rect(canvas,36,toastY+2,76,1,0xff65e1d0);
             rect(canvas,112,toastY+2,220,1,0xff315d60);
             rect(canvas,36,toastY+22,296,1,0xff315d60);
-            leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);
+            // Reserve a right-hand identity slot so even long notices never collide\n            // with the raster ore glyph. The same 24-sprite atlas is used across pages.\n            leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);\n            v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24),\n                305,toastY+4,18,18,225);
         }'''
 # Geometry contract: the notification must fit the 360x720 logical canvas,
 # clear the fixed top navigation, and not cover the mine's ore hitbox.
@@ -37,7 +37,7 @@ TOAST_HEIGHT = 26
 TOAST_WIDTH = 324
 TOAST_X = 18
 TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
-assert len(TOAST_Y) == 5
+assert len(TOAST_Y) == 5\n# Text occupies x=39..290; identity glyph occupies x=305..323.\nassert 39 + 251 < 305 and 305 + 18 <= TOAST_X + TOAST_WIDTH\nassert all(0 <= (page * 5) % 24 < 24 for page in TOAST_Y)
 for page_index, top in TOAST_Y.items():
     assert 0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
     assert 137 < top and top + TOAST_HEIGHT <= 682, (page_index, top)
