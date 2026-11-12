@@ -46,6 +46,16 @@ for marker in (
 ):
     assert marker in patch,marker
 
+# Guard against patch-chain drift: v7.4 must replace the exact
+# two-column shop toggle installed by v7.1, not a pre-redesign layout.
+v71=Path(__file__).with_name("patch_modernist_v71.py").read_text()
+legacy_toggle = """            if(x>=13&&x<=228&&y>=119&&y<=154){
+                shopPage=1-shopPage;invalidate();return true;
+            }"""
+assert legacy_toggle in v71, "v7.1 shop toggle changed"
+assert legacy_toggle in patch, "v7.4 no longer targets v7.1 shop toggle"
+assert "if(y>=117&&y<157&&x<234)" not in patch
+
 checks=0
 assert len(cards)==6 and len(buy)==6
 for name,rect in tabs.items():
