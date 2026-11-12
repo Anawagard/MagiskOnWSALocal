@@ -63,12 +63,13 @@ class RasterDeterminism(unittest.TestCase):
             ((17, 28, 42), (90, 150, 164), (360, 50), False),
         )
         with TemporaryDirectory() as folder:
-            a, b = Path(folder) / "a.png", Path(folder) / "b.png"
+            a, b = Path(folder) / "a.jpg", Path(folder) / "b.jpg"
             for i, color in enumerate(menus, 31):
                 self.render["cave"](i, color, a)
                 self.render["cave"](i, color, b)
                 self.assertEqual(self.decoded_digest(a), self.decoded_digest(b),
                                  f"Menu {i} is nondeterministic")
+            a, b = Path(folder) / "a.png", Path(folder) / "b.png"
             for index, (base, border, size, bright) in enumerate(skins):
                 self.render["panel_art"](a, base, border, size=size, bright=bright)
                 self.render["panel_art"](b, base, border, size=size, bright=bright)
