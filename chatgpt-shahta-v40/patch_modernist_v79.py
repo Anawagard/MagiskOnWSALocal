@@ -12,7 +12,6 @@ import tempfile
 
 root = Path("chatgpt-shahta-v33/project")
 source = root / "app/src/main/java/com/bezdna/mine/MineView.java"
-s = source.read_text(encoding="utf-8")
 old = '''        if(System.currentTimeMillis()<toastUntil){
             v72NineSlice(canvas,"panel.png",18,178,324,26,252);
             rect(canvas,26,183,3,16,0xff65e1d0);
