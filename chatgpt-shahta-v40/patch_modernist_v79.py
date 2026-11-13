@@ -45,23 +45,29 @@ TOAST_HEIGHT = 26
 TOAST_WIDTH = 324
 TOAST_X = 18
 TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
-assert len(TOAST_Y) == 5
-# Text occupies x=39..290; badge x=301..326 and glyph x=305..323.
-assert 39 + 251 < 301 and 301 + 25 <= TOAST_X + TOAST_WIDTH
-assert 305 >= 301 and 305 + 18 <= 301 + 25
-assert all(0 <= (page * 5) % 24 < 24 for page in TOAST_Y)
-for page_index, top in TOAST_Y.items():
-    assert 0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
-    assert 137 < top and top + TOAST_HEIGHT <= 682, (page_index, top)
-    if page_index == 0:
-        assert top + TOAST_HEIGHT < 210  # mine ore hitbox begins at y=210
-    elif page_index == 1:
-        assert top > 653  # shop content ends at y=653
-        assert top > 630  # settings modal ends at y=630
-    else:
-        assert top + TOAST_HEIGHT < 205  # transformed feature content starts here
+def validate_toast_geometry():
+    """Enforce the five-page visual contract even under Python -O."""
+    if set(TOAST_Y) != set(range(5)):
+        raise RuntimeError("v7.9: toast coordinates must cover exactly five pages")
+    if not (39 + 251 < 301 and 301 + 25 <= TOAST_X + TOAST_WIDTH):
+        raise RuntimeError("v7.9: toast text overlaps the ore badge")
+    if not (305 >= 301 and 305 + 18 <= 301 + 25):
+        raise RuntimeError("v7.9: toast badge sprite exceeds its container")
+    for page_index, top in TOAST_Y.items():
+        if not (0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
+                and 137 < top and top + TOAST_HEIGHT <= 682):
+            raise RuntimeError(f"v7.9: toast outside safe screen area on page {page_index}")
+        if page_index == 0 and not top + TOAST_HEIGHT < 210:
+            raise RuntimeError("v7.9: mine toast overlaps ore hitbox")
+        if page_index == 1 and not (top > 653 and top > 630):
+            raise RuntimeError("v7.9: shop toast overlaps content or settings")
+        if page_index >= 2 and not top + TOAST_HEIGHT < 205:
+            raise RuntimeError(f"v7.9: feature toast overlaps content on page {page_index}")
+        if not 0 <= (page_index * 5) % 24 < 24:
+            raise RuntimeError("v7.9: invalid ore badge index")
 
 def apply():
+    validate_toast_geometry()
     # Fail closed even with python -O; never write partially patched Java.
     current = source.read_text(encoding="utf-8")
     if current.count(old) != 1 or new in current:
