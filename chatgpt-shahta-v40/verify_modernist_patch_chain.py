@@ -152,7 +152,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # again can silently duplicate draw calls or shift touch geometry.
     modern_markers = [
         "v72NineSlice(", "v73", "v74", "v75", "v76",
-        "v77", "v78", "int toastY = page==0 ? 178 : (page==1 ? 623 : 655);",
+        "v77", "v78", "int toastY = page==0 ? 178 : (page==1 ? 655 : 145);",
     ]
     found_modern = [marker for marker in modern_markers if marker in before]
     if found_modern:
@@ -163,10 +163,10 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         )
     chain = PATCHES if prepared else PREPARE + PATCHES
     original_cwd = Path.cwd()
-    touch_after_layout = None
+    touch_after_interactions = None
     def touch_body(source):
-        # v7.2 intentionally introduces inverse touch coordinates.
-        # Later presentation-only patches must preserve the handler exactly.
+        # v7.2 introduces inverse coordinates; v7.3/v7.4 deliberately refine
+        # settings and shop hitboxes. Only v7.5-v7.9 must preserve them.
         match = re.search(r"public\s+boolean\s+onTouchEvent\s*\([^)]*\)", source)
         assert match is not None, "Missing Android touch handler"
         return method_body(source, match.group(0))
@@ -175,14 +175,14 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         for patch in chain:
             print(f"APPLY source-only {patch.name}", flush=True)
             runpy.run_path(str(patch), run_name="__main__")
-            if patch.name == "patch_modernist_v72.py":
-                touch_after_layout = touch_body(java.read_text(encoding="utf-8"))
+            if patch.name == "patch_modernist_v74.py":
+                touch_after_interactions = touch_body(java.read_text(encoding="utf-8"))
     finally:
         os.chdir(original_cwd)
     after = java.read_text(encoding="utf-8")
-    assert touch_after_layout is not None, "v7.2 layout baseline not captured"
-    assert touch_body(after) == touch_after_layout, (
-        "Post-v7.2 visual patches unexpectedly changed the touch handler"
+    assert touch_after_interactions is not None, "v7.4 interaction baseline not captured"
+    assert touch_body(after) == touch_after_interactions, (
+        "Post-v7.4 presentation patches unexpectedly changed the touch handler"
     )
     updated_files = snapshot(target)
     java_rel = java.relative_to(target).as_posix()
@@ -206,7 +206,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         'getSharedPreferences("mine_save_v1"',
         'public void save()',
         'private void rebirth()',
-        'int toastY = page==0 ? 178 : (page==1 ? 623 : 655);',
+        'int toastY = page==0 ? 178 : (page==1 ? 655 : 145);',
     ):
         assert marker in after, f"Missing post-chain invariant: {marker}"
     assert 'v72NineSlice(canvas,"panel.png",18,178,324,26,252);' not in after, "Stale v7.8 toast placement remains"
@@ -221,15 +221,15 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert toast_match is not None, "Missing five-page toast coordinates"
     mine_y, shop_y, feature_y = map(int, toast_match.groups())
     toast_height = 26
-    assert (mine_y, shop_y, feature_y) == (178, 623, 655), "Unexpected toast placement"
+    assert (mine_y, shop_y, feature_y) == (178, 655, 145), "Unexpected toast placement"
     assert mine_y + toast_height <= 205, "Mine toast overlaps content"
-    assert shop_y >= 615 and shop_y + toast_height <= 653, "Shop toast overlaps cards or controls"
-    assert feature_y > 653 and feature_y + toast_height < 690, "Feature toast overlaps clipped content or footer"
-    assert after.count("int toastY = page==0 ? 178 : (page==1 ? 623 : 655);") == 1
+    assert shop_y > 653 and shop_y + toast_height <= 682, "Shop toast overlaps cards or controls"
+    assert feature_y > 137 and feature_y + toast_height < 205, "Feature toast overlaps navigation or content"
+    assert after.count("int toastY = page==0 ? 178 : (page==1 ? 655 : 145);") == 1
     assert after.count('v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);') == 1
     assert after.count('rect(canvas,26,toastY+4,3,18,0xff65e1d0);') == 1
     assert after.count('rect(canvas,36,toastY+22,296,1,0xff315d60);') == 1
-    assert after.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);') == 1
+    assert after.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);') == 1
     assert after.count("c.translate(13f,18f);") == 3
     assert after.count("c.scale(.93f,.94f);") == 3
     print(f"PASS: {len(chain)} patches applied in order to disposable source tree; "
