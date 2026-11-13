@@ -5,6 +5,8 @@ Also run with python3 -O to ensure failures cannot be optimized away.
 """
 import importlib.util
 import os
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -130,6 +132,34 @@ class AtomicToastPatchTests(unittest.TestCase):
         with patch.dict(self.patch.TOAST_Y, {2: 130}):
             with self.assertRaises(RuntimeError):
                 self.patch.validate_toast_geometry()
+
+    def test_optimized_python_geometry_contract(self):
+        # Verify real -O execution: invalid geometry must still raise.
+        script = (
+            "import importlib.util,sys; "
+            "spec=importlib.util.spec_from_file_location('v79',sys.argv[1]); "
+            "m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); "
+            "m.TOAST_Y[0]=220; m.validate_toast_geometry()"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-O", "-c", script, str(SCRIPT)],
+            capture_output=True, text=True, timeout=15,
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("mine toast overlaps ore hitbox", completed.stderr)
+
+    def test_optimized_python_valid_geometry(self):
+        script = (
+            "import importlib.util,sys; "
+            "spec=importlib.util.spec_from_file_location('v79',sys.argv[1]); "
+            "m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); "
+            "m.validate_toast_geometry()"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-O", "-c", script, str(SCRIPT)],
+            capture_output=True, text=True, timeout=15,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_geometry_accepts_five_pages(self):
         self.patch.validate_toast_geometry()
