@@ -144,5 +144,17 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                 self.assertEqual(rendered.size, (64, 100))
 
 
+    def test_oversized_atlas_rejected_before_image_allocation(self):
+        """Untrusted tile geometry must fail before a giant RGB allocation."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            Image.new("RGBA", (8, 8), (12, 210, 195, 255)).save(sprite)
+            with patch.object(Image, "new", side_effect=AssertionError("allocated")):
+                with self.assertRaisesRegex(ValueError, "safe pixel budget"):
+                    sheet([sprite], 1, (100000, 100000), "ORE",
+                          root / "too_large.png")
+
+
 if __name__ == "__main__":
     unittest.main()
