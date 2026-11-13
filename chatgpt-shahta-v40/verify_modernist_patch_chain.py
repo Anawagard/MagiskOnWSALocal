@@ -12,8 +12,9 @@ import ast
 import contextlib
 import hashlib
 import os
-import runpy
 import shutil
+import subprocess
+import sys
 import tempfile
 
 # This integration verifier relies on assertions for release-critical contracts.
@@ -113,7 +114,9 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # These are gameplay contracts; a visual-only patch must not rewrite them.
     def method_body(source, signature):
         import re
-        matches = list(re.finditer(r"(?m)^\s*" + re.escape(signature) + r"\s*\{", source))
+        matches = list(re.finditer(
+            r"(?m)^\s*(?:@\w+\s+)*" + re.escape(signature) + r"\s*\{", source
+        ))
         assert len(matches) == 1, f"Expected one method: {signature}; found {len(matches)}"
         start = matches[0].start()
         opening = source.index("{", matches[0].start())
@@ -174,7 +177,11 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         os.chdir(root)
         for patch in chain:
             print(f"APPLY source-only {patch.name}", flush=True)
-            runpy.run_path(str(patch), run_name="__main__")
+            subprocess.run(
+                [sys.executable, "-X", "utf8", str(patch)], cwd=root,
+                check=True, timeout=180,
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
+            )
             if patch.name == "patch_modernist_v74.py":
                 touch_after_interactions = touch_body(java.read_text(encoding="utf-8"))
     finally:
@@ -223,7 +230,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     if prepared:
         assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
     else:
-        expected_gradle = before_gradle.decode("utf-8").replace("versionCode 46", "versionCode 48").replace("versionName '6.9'", "versionName '7.0.1'")
+        expected_gradle = gradle_source.replace("versionCode 46", "versionCode 48").replace("versionName '6.9'", "versionName '7.0.1'")
         assert gradle.read_text() == expected_gradle, "Unexpected Gradle change"
     for marker in (
         'v72NineSlice(c,"panel.png",18,93,324,83,255);',

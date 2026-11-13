@@ -41,9 +41,9 @@ def check_execution_safety(tree, label):
             raise RuntimeError(f"{label}: unsafe os execution: {target.attr}")
 
 # Verify the alias detector before auditing the real patch chain.
-for fixture in ("import os as operating\\noperating.system('echo no')",
-                "from os import popen as launch\\nlaunch('echo no')",
-                "from os import execve\\nexecve('x', [], {})"):
+for fixture in ("import os as operating\noperating.system('echo no')",
+                "from os import popen as launch\nlaunch('echo no')",
+                "from os import execve\nexecve('x', [], {})"):
     try:
         check_execution_safety(ast.parse(fixture), "negative fixture")
     except RuntimeError:

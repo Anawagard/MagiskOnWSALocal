@@ -91,8 +91,9 @@ def main():
         # The original scripts live outside it and are never modified.
         for index, relative in enumerate(steps, 1):
             print(f"SOURCE {index}/{len(steps)} {relative}", flush=True)
-            subprocess.run([sys.executable, str(REPO / relative)], cwd=root,
-                           check=True, timeout=180, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+            subprocess.run([sys.executable, "-X", "utf8", str(REPO / relative)], cwd=root,
+                           check=True, timeout=180,
+                           env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"})
         verify_replayed_source(root, initial)
         print(f"PASS: {count} archived files, {len(steps)} source-only steps, v6.9 "
               "and persistence/signing markers; disposable tree removed; no APK")

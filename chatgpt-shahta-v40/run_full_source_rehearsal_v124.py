@@ -36,9 +36,9 @@ def rehearse():
         for index, relative in enumerate(steps, 1):
             print(f"BASELINE {index}/{len(steps)} {relative}", flush=True)
             subprocess.run(
-                [sys.executable, str(REPO / relative)],
+                [sys.executable, "-X", "utf8", str(REPO / relative)],
                 cwd=root, check=True, timeout=180,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
             )
         verify_replayed_source(root, initial_activity)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
@@ -46,7 +46,7 @@ def rehearse():
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
             cwd=root, check=True, timeout=300,
             env={**os.environ, "SHAHTA_BASELINE_PROJECT": str(project),
-                 "PYTHONDONTWRITEBYTECODE": "1"},
+                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
         )
         print("PASS: restored v6.9 and applied modernist source-only chain; no APK", flush=True)
 
