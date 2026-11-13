@@ -120,12 +120,12 @@ def sheet(paths, columns, cell, label, destination, captions=None):
                 else:
                     hi = mid - 1
             caption = caption[:lo] + suffix if lo else (suffix if fits(suffix) else "")
-        # Font ink can have negative bearings. Offset the origin to keep
-        # the actual painted pixels inside the caption's eight-pixel inset.
+        # Font ink can have positive or negative bearings. Align the actual
+        # painted bounds to the tile inset, not the font drawing origin.
         if caption:
             ink = draw.textbbox((0, 0), caption, font=caption_font)
-            caption_x = (i % columns) * cell[0] + 8 - min(0, ink[0])
-            caption_y = (i // columns) * cell[1] + 6 - min(0, ink[1])
+            caption_x = (i % columns) * cell[0] + 8 - ink[0]
+            caption_y = (i // columns) * cell[1] + 6 - ink[1]
             draw.text((caption_x, caption_y), caption,
                       fill=(93, 224, 210), font=caption_font)
     out.save(destination, optimize=True)
