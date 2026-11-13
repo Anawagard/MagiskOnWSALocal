@@ -1,6 +1,7 @@
 """Source-only regression checks for localized contact-sheet captions."""
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image
@@ -47,6 +48,21 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                 # Caption in row one must never modify pixels in row two.
                 self.assertEqual(before.crop((0, 100, 120, 200)).tobytes(),
                                  after.crop((0, 100, 120, 200)).tobytes())
+
+
+    def test_bitmap_font_fallback_accepts_localized_caption(self):
+        """Missing DejaVu must not abort a contact-sheet export."""
+        from PIL import ImageFont
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            output = root / "fallback.png"
+            Image.new("RGBA", (40, 40), (12, 210, 195, 160)).save(sprite)
+            with patch.object(ImageFont, "truetype", side_effect=OSError("font missing")):
+                sheet([sprite], 1, (120, 100), "ORE", output,
+                      captions=["РУДА – минерал"])
+            with Image.open(output) as rendered:
+                self.assertEqual(rendered.size, (120, 100))
 
 
     def test_control_characters_do_not_change_other_tiles(self):
