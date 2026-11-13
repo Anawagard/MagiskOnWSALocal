@@ -184,6 +184,32 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert touch_body(after) == touch_after_interactions, (
         "Post-v7.4 presentation patches unexpectedly changed the touch handler"
     )
+    # Verify the real post-patch Java handler, not just matching patch-script
+    # strings. These controls were historically clickable outside their art.
+    final_touch = touch_body(after)
+    interaction_contract = (
+        "if(x>=218&&x<=323&&y>=251&&y<=301){soundEnabled=!soundEnabled;",
+        "else if(x>=35&&x<=325&&y>=383&&y<=414){soundVolume=",
+        "else if(x>=218&&x<=323&&y>=461&&y<=511){fxEnabled=!fxEnabled;",
+        "if(page==1&&x>=246&&x<=345&&y>=102&&y<=154){settingsOpen=true;",
+        "if(x>=16&&x<=124){shopPage=0;invalidate();return true;}",
+        "if(x>=128&&x<=236){shopPage=1;invalidate();return true;}",
+    )
+    for control in interaction_contract:
+        assert final_touch.count(control) == 1, (
+            "Missing or duplicated final touch hitbox", control
+        )
+    assert "shopPage=1-shopPage" not in final_touch, (
+        "Legacy shop tab toggle survived the modernist patch chain"
+    )
+    # The two shop tabs are separated and neither overlaps the settings
+    # control. Touch and paint must refer to the same screen-space geometry.
+    shop_tabs = ((16, 130, 124, 158), (128, 130, 236, 158))
+    settings_button = (246, 102, 345, 154)
+    assert shop_tabs[0][2] < shop_tabs[1][0] < settings_button[0]
+    for left, top, right, bottom in shop_tabs:
+        assert 0 <= left < right <= 360 and 0 <= top < bottom <= 720
+        assert right < settings_button[0]
     updated_files = snapshot(target)
     java_rel = java.relative_to(target).as_posix()
     assert updated_files.keys() == baseline_files.keys(), "Patch chain added or removed project files"
