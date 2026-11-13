@@ -22,6 +22,30 @@ JAVA = Path("app/src/main/java/com/bezdna/mine/MineView.java")
 ACTIVITY = Path("app/src/main/java/com/bezdna/mine/MainActivity.java")
 
 
+
+def verify_biome_textures(project):
+    """Check actual PNG payloads, not just generator output."""
+    import hashlib
+    from PIL import Image
+
+    folder = project / "app/src/main/assets/shahta_textures"
+    expected = {f"biome_{index:02}.png" for index in range(24)}
+    actual = {item.name for item in folder.glob("biome_*.png")}
+    if actual != expected:
+        raise AssertionError(f"Missing/extra biome textures: {sorted(expected - actual)}, {sorted(actual - expected)}")
+    hashes = set()
+    for name in sorted(expected):
+        path = folder / name
+        with Image.open(path) as image:
+            image.verify()
+        with Image.open(path) as image:
+            if image.format != "PNG" or image.size != (384, 384) or image.mode != "RGB":
+                raise AssertionError(f"Unexpected biome texture format: {name}")
+        hashes.add(hashlib.sha256(path.read_bytes()).digest())
+    if len(hashes) != 24:
+        raise AssertionError("Duplicate biome textures detected")
+    print("TEXTURES PASS: 24 distinct valid 384x384 RGB PNGs", flush=True)
+
 def rehearse():
     if not __debug__:
         raise SystemExit("BLOCKED: source rehearsal requires assertions; disable -O")
@@ -41,6 +65,7 @@ def rehearse():
                 env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
             )
         verify_replayed_source(root, initial_activity)
+        verify_biome_textures(project)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
         subprocess.run(
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
