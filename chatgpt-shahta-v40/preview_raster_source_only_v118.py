@@ -126,8 +126,16 @@ def sheet(paths, columns, cell, label, destination, captions=None):
             ink = draw.textbbox((0, 0), caption, font=caption_font)
             caption_x = (i % columns) * cell[0] + 8 - ink[0]
             caption_y = (i // columns) * cell[1] + 6 - ink[1]
-            draw.text((caption_x, caption_y), caption,
-                      fill=(93, 224, 210), font=caption_font)
+            # Render captions into a tile-local buffer. Font overhangs and
+            # unusual glyph metrics must never paint adjacent atlas cells.
+            tile = Image.new("RGBA", cell, (0, 0, 0, 0))
+            tile_draw = ImageDraw.Draw(tile)
+            tile_draw.text((caption_x - (i % columns) * cell[0],
+                            caption_y - (i // columns) * cell[1]),
+                           caption, fill=(93, 224, 210, 255),
+                           font=caption_font)
+            out.paste(tile, ((i % columns) * cell[0],
+                             (i // columns) * cell[1]), tile)
     out.save(destination, optimize=True)
 
 
