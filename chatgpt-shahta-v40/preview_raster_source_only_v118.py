@@ -66,7 +66,13 @@ def sheet(paths, columns, cell, label, destination, captions=None):
     if not paths:
         raise ValueError("Contact sheet requires at least one image")
     rows = (len(paths) + columns - 1) // columns
-    out = Image.new("RGB", (columns * cell[0], rows * cell[1]), (13, 20, 31))
+    # A malformed input must not allocate an enormous atlas before any
+    # individual sprite has been validated. Pillow's own decompression-bomb
+    # threshold is a useful conservative upper bound for output pixels.
+    width, height = columns * cell[0], rows * cell[1]
+    if width * height > Image.MAX_IMAGE_PIXELS:
+        raise ValueError("Contact sheet exceeds safe pixel budget")
+    out = Image.new("RGB", (width, height), (13, 20, 31))
     draw = ImageDraw.Draw(out)
     for i, path in enumerate(paths):
         with Image.open(path) as original:
