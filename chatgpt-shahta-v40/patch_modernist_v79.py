@@ -7,6 +7,8 @@ The toast is drawn in screen-space outside the translated page canvas. Presentat
 package identifier or signing changes. Apply after v7.8.
 """
 from pathlib import Path
+import os
+import tempfile
 
 root = Path("chatgpt-shahta-v33/project")
 source = root / "app/src/main/java/com/bezdna/mine/MineView.java"
@@ -59,14 +61,39 @@ for page_index, top in TOAST_Y.items():
     else:
         assert top + TOAST_HEIGHT < 205  # transformed feature content starts here
 
-assert s.count(old)==1, "v7.9 toast anchor missing or ambiguous"
-assert "v71Scale()" in s
-assert "else if(x>=105&&x<=330&&y>=210&&y<=440)" in s
-assert 'getSharedPreferences("mine_save_v1"' in s
-assert "public void save()" in s
-assert "private void rebirth()" in s
-assert "applicationId 'com.bezdna.mine'" in (root/"app/build.gradle").read_text()
-assert "signingConfig signingConfigs.shahtaDebug" in (root/"app/build.gradle").read_text()
-s=s.replace(old,new,1)
-source.write_text(s,encoding="utf-8")
-print("v7.9: contextual toast position; source-only")
+def apply():
+    # Fail closed even with python -O; never write partially patched Java.
+    current = source.read_text(encoding="utf-8")
+    if current.count(old) != 1 or new in current:
+        raise RuntimeError("v7.9: expected exactly one v7.8 toast anchor; source unchanged")
+    gradle = (root / "app/build.gradle").read_text(encoding="utf-8")
+    required = (
+        "v71Scale()",
+        "else if(x>=105&&x<=330&&y>=210&&y<=440)",
+        'getSharedPreferences("mine_save_v1"',
+        "public void save()",
+        "private void rebirth()",
+    )
+    missing = [marker for marker in required if marker not in current]
+    if missing:
+        raise RuntimeError(f"v7.9: missing source contracts {missing}; source unchanged")
+    gradle_required = ("applicationId 'com.bezdna.mine'",
+                       "signingConfig signingConfigs.shahtaDebug")
+    missing_gradle = [marker for marker in gradle_required if marker not in gradle]
+    if missing_gradle:
+        raise RuntimeError(f"v7.9: missing build contracts {missing_gradle}; source unchanged")
+    result = current.replace(old, new, 1)
+    fd, tmp = tempfile.mkstemp(prefix=".mineview-v79-", suffix=".tmp", dir=source.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+            handle.write(result)
+        os.chmod(tmp, source.stat().st_mode)
+        os.replace(tmp, source)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    print("v7.9: contextual toast position; source-only")
+
+
+if __name__ == "__main__":
+    apply()
