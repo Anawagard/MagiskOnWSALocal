@@ -86,6 +86,32 @@ class AtomicToastPatchTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 self.patch.validate_toast_geometry()
 
+    def test_wrong_package_rejected_without_write(self):
+        initial = self.valid_gradle.replace("com.bezdna.mine", "com.example.other")
+        self.gradle.write_text(initial, encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            self.patch.apply()
+        self.assertEqual(self.java.read_bytes(), self.valid_java.encode("utf-8"))
+
+    def test_missing_ore_hitbox_rejected_without_write(self):
+        initial = self.valid_java.replace(
+            "else if(x>=105&&x<=330&&y>=210&&y<=440)", "else if(false)"
+        )
+        self.java.write_text(initial, encoding="utf-8")
+        with self.assertRaises(RuntimeError):
+            self.patch.apply()
+        self.assertEqual(self.java.read_text(encoding="utf-8"), initial)
+
+    def test_geometry_rejects_shop_content_overlap(self):
+        with patch.dict(self.patch.TOAST_Y, {1: 640}):
+            with self.assertRaises(RuntimeError):
+                self.patch.validate_toast_geometry()
+
+    def test_geometry_rejects_feature_navigation_overlap(self):
+        with patch.dict(self.patch.TOAST_Y, {2: 130}):
+            with self.assertRaises(RuntimeError):
+                self.patch.validate_toast_geometry()
+
     def test_geometry_accepts_five_pages(self):
         self.patch.validate_toast_geometry()
 
