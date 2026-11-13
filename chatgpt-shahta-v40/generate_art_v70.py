@@ -3,12 +3,13 @@
 textured shared panel, button, nav and header skins. No external assets or licenses.
 """
 from pathlib import Path
+import os
 import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 # Resolve relative to this script, not the shell working directory.
 # This keeps generation and audit pointed at the same Android assets folder.
-ROOT=Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
+ROOT=Path(os.environ["SHAHTA_ART_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_ART_PROJECT") else Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
 # Never fabricate an empty Android project when the historical baseline is absent.
 # The manual release workflow restores the project before generating art.
 _REQUIRED = ("app/build.gradle", "app/src/main/java/com/bezdna/mine/MineView.java",
