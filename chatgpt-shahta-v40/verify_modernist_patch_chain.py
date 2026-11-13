@@ -213,7 +213,7 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert 'v72NineSlice(canvas,"panel.png",18,240,324,26,252);' not in after, "Stale v7.7 toast placement remains"
     # Validate the final toast geometry, not only the existence of a marker.
     # Mine toast uses the telemetry gap; shop sits below its cards;
-    # transformed feature pages use the area below clipped content (y=653).
+    # feature pages use the gap between navigation and transformed content.
     import re
     toast_match = re.search(
         r"int toastY\s*=\s*page\s*==\s*0\s*\?\s*(\d+)\s*:\s*"
