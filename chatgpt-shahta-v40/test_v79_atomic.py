@@ -161,6 +161,22 @@ class AtomicToastPatchTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
+    def test_java_rendered_geometry_must_match_validated_table(self):
+        # Changing the drawn Java coordinates without updating the contract
+        # must fail even when the table itself is geometrically safe.
+        altered = self.patch.new.replace(
+            "page==1 ? 655 : 145", "page==1 ? 640 : 145"
+        )
+        with patch.object(self.patch, "new", altered):
+            with self.assertRaisesRegex(RuntimeError, "differ from validated geometry"):
+                self.patch.validate_toast_geometry()
+
+    def test_missing_java_toast_expression_rejected(self):
+        altered = self.patch.new.replace("int toastY =", "int notificationY =")
+        with patch.object(self.patch, "new", altered):
+            with self.assertRaisesRegex(RuntimeError, "cannot be verified"):
+                self.patch.validate_toast_geometry()
+
     def test_geometry_accepts_five_pages(self):
         self.patch.validate_toast_geometry()
 
