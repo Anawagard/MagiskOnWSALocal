@@ -46,6 +46,19 @@ TOAST_X = 18
 TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
 def validate_toast_geometry():
     """Enforce the five-page visual contract even under Python -O."""
+    # Constants used by the verifier must match the actual Java expression.
+    # Otherwise a safe TOAST_Y table could mask unsafe rendered positions.
+    import re
+    expression = re.search(
+        r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+        new,
+    )
+    if expression is None:
+        raise RuntimeError("v7.9: Java toast coordinates cannot be verified")
+    mine, shop, feature = map(int, expression.groups())
+    rendered = {0: mine, 1: shop, 2: feature, 3: feature, 4: feature}
+    if rendered != TOAST_Y:
+        raise RuntimeError("v7.9: Java toast coordinates differ from validated geometry")
     if set(TOAST_Y) != set(range(5)):
         raise RuntimeError("v7.9: toast coordinates must cover exactly five pages")
     if not (39 + 251 < 301 and 301 + 25 <= TOAST_X + TOAST_WIDTH):
