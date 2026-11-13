@@ -41,6 +41,15 @@ def load_renderers():
     return env
 
 
+def _font_supports(font, character):
+    """Whether Pillow can measure a character using the selected font."""
+    try:
+        font.getbbox(character)
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
 def sheet(paths, columns, cell, label, destination, captions=None):
     """Compose an indexed atlas; optional captions identify actual UI assets."""
     if columns < 1 or cell[0] <= 16 or cell[1] <= 35:
@@ -80,6 +89,16 @@ def sheet(paths, columns, cell, label, destination, captions=None):
         # Imported/localized names may contain line breaks or control chars.
         # Keep every caption on a single line inside its own atlas tile.
         caption = " ".join("".join(ch if ch.isprintable() else " " for ch in caption).split())
+        # Pillow's fallback bitmap font may not encode localized glyphs.
+        # Replace only unsupported characters, keeping the preview usable
+        # instead of failing the entire source-only atlas generation.
+        try:
+            draw.textbbox((0, 0), caption, font=caption_font)
+        except UnicodeEncodeError:
+            caption = "".join(
+                ch if _font_supports(caption_font, ch) else "?"
+                for ch in caption
+            )
         # Fit captions within their own tile: a long localized name must not
         # overwrite the adjacent tile's label or spill outside the atlas.
         available = cell[0] - 16
