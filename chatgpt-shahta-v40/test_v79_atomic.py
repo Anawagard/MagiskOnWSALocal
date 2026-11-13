@@ -4,6 +4,7 @@ Run: python3 -m unittest discover -s chatgpt-shahta-v40 -p 'test_v79_atomic.py'
 Also run with python3 -O to ensure failures cannot be optimized away.
 """
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -80,6 +81,24 @@ class AtomicToastPatchTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.patch.apply()
         self.assertEqual(self.java.read_bytes(), once)
+
+    def test_atomic_replace_failure_preserves_original_and_cleans_temp(self):
+        original = self.java.read_bytes()
+        with patch.object(self.patch.os, "replace", side_effect=OSError("simulated rename failure")):
+            with self.assertRaises(OSError):
+                self.patch.apply()
+        self.assertEqual(self.java.read_bytes(), original)
+        self.assertEqual(list(self.project.glob(".mineview-v79-*")), [])
+
+    def test_patch_preserves_source_permissions(self):
+        os.chmod(self.java, 0o640)
+        self.patch.apply()
+        self.assertEqual(self.java.stat().st_mode & 0o777, 0o640)
+
+    def test_geometry_rejects_missing_page(self):
+        with patch.dict(self.patch.TOAST_Y, {4: 145}, clear=True):
+            with self.assertRaises(RuntimeError):
+                self.patch.validate_toast_geometry()
 
     def test_geometry_rejects_overlap(self):
         with patch.dict(self.patch.TOAST_Y, {0: 220}):
