@@ -93,5 +93,30 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                                  after.crop((0, 100, 120, 200)).tobytes())
 
 
+    def test_narrow_cells_clip_long_unicode_captions_without_neighbor_changes(self):
+        """Even the smallest accepted cell must isolate captions per tile."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            Image.new("RGBA", (8, 8), (12, 210, 195, 255)).save(sprite)
+            baseline = root / "baseline.png"
+            stressed = root / "stressed.png"
+            # 17x36 is the smallest accepted tile under the sheet contract.
+            paths = [sprite] * 6
+            sheet(paths, 3, (17, 36), "ORE", baseline,
+                  captions=["", "SAFE", "SAFE", "SAFE", "SAFE", "SAFE"])
+            sheet(paths, 3, (17, 36), "ORE", stressed,
+                  captions=["Шахта—" * 1000, "SAFE", "SAFE", "SAFE", "SAFE", "SAFE"])
+            with Image.open(baseline) as before, Image.open(stressed) as after:
+                self.assertEqual(after.size, (51, 72))
+                # Changing the first caption must not affect any other tile.
+                self.assertEqual(
+                    before.crop((17, 0, 51, 36)).tobytes(),
+                    after.crop((17, 0, 51, 36)).tobytes())
+                self.assertEqual(
+                    before.crop((0, 36, 51, 72)).tobytes(),
+                    after.crop((0, 36, 51, 72)).tobytes())
+
+
 if __name__ == "__main__":
     unittest.main()
