@@ -146,7 +146,7 @@ class AtomicToastPatchTests(unittest.TestCase):
             capture_output=True, text=True, timeout=15,
         )
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("mine toast overlaps ore hitbox", completed.stderr)
+        self.assertIn("Java toast coordinates differ from validated geometry", completed.stderr)
 
     def test_optimized_python_valid_geometry(self):
         script = (
