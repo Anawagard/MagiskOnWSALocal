@@ -92,13 +92,6 @@ def sheet(paths, columns, cell, label, destination, captions=None):
         # Pillow's fallback bitmap font may not encode localized glyphs.
         # Replace only unsupported characters, keeping the preview usable
         # instead of failing the entire source-only atlas generation.
-        try:
-            draw.textbbox((0, 0), caption, font=caption_font)
-        except UnicodeEncodeError:
-            caption = "".join(
-                ch if _font_supports(caption_font, ch) else "?"
-                for ch in caption
-            )
         # Imported captions can be arbitrarily long. A fixed atlas tile can
         # display only a small prefix, so avoid measuring megabytes of text
         # repeatedly. Preserve the original prefix and let the width-based
@@ -107,6 +100,13 @@ def sheet(paths, columns, cell, label, destination, captions=None):
         # very narrow glyphs; clipping still uses measured ink bounds.
         if len(caption) > max(256, cell[0] * 4):
             caption = caption[:max(256, cell[0] * 4)]
+        try:
+            draw.textbbox((0, 0), caption, font=caption_font)
+        except UnicodeEncodeError:
+            caption = "".join(
+                ch if _font_supports(caption_font, ch) else "?"
+                for ch in caption
+            )
         # Fit captions within their own tile: a long localized name must not
         # overwrite the adjacent tile's label or spill outside the atlas.
         available = cell[0] - 16
