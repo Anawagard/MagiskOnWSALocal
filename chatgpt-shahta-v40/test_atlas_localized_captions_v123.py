@@ -58,7 +58,12 @@ class ContactSheetLocalizationTests(unittest.TestCase):
             sprite = root / "sprite.png"
             output = root / "fallback.png"
             Image.new("RGBA", (40, 40), (12, 210, 195, 160)).save(sprite)
-            with patch.object(ImageFont, "truetype", side_effect=OSError("font missing")):
+            original_truetype = ImageFont.truetype
+            def missing_dejavu(font, *args, **kwargs):
+                if font == "DejaVuSans.ttf":
+                    raise OSError("font missing")
+                return original_truetype(font, *args, **kwargs)
+            with patch.object(ImageFont, "truetype", side_effect=missing_dejavu):
                 sheet([sprite], 1, (120, 100), "ORE", output,
                       captions=["РУДА – минерал"])
             with Image.open(output) as rendered:
