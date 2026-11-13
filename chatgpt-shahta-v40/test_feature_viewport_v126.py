@@ -1,0 +1,57 @@
+"""Source-independent viewport regression for forge, guild and atlas.
+Run: python3 chatgpt-shahta-v40/test_feature_viewport_v126.py
+No Android SDK, APK, Gradle or network required.
+"""
+import math
+import unittest
+
+SX, SY = .93, .94
+DX, DY = 13., 18.
+TOP, BOTTOM = 145., 653.
+SCREEN_OFFSET = 60.
+
+def paint(x, y):
+    return DX + SX*x, DY + SY*y
+
+def touch(x, screen_y):
+    if not TOP + SCREEN_OFFSET <= screen_y <= BOTTOM + SCREEN_OFFSET:
+        return None
+    if not DX <= x <= DX + SX*360:
+        return None
+    return (x-DX)/SX, (screen_y-SCREEN_OFFSET-DY)/SY
+
+class FeatureViewportTests(unittest.TestCase):
+    def test_visible_roundtrip(self):
+        for x in (0, 1, 80, 180, 359, 360):
+            for y in (140, 200, 360, 600, 675):
+                px, py = paint(x, y)
+                actual = touch(px, py + SCREEN_OFFSET)
+                if TOP <= py <= BOTTOM:
+                    self.assertIsNotNone(actual)
+                    self.assertTrue(math.isclose(actual[0], x, abs_tol=1e-9))
+                    self.assertTrue(math.isclose(actual[1], y, abs_tol=1e-9))
+                else:
+                    self.assertIsNone(actual)
+
+    def test_clipped_header_and_footer(self):
+        for x in (13, 100, 180, 347.8):
+            for y in (0, 60, 144.999, 653.001, 700, 720):
+                self.assertIsNone(touch(x, y + SCREEN_OFFSET))
+
+    def test_invisible_side_gutters(self):
+        for x in (-100, 0, 12.999, 347.801, 360, 999):
+            self.assertIsNone(touch(x, 400))
+
+    def test_boundaries(self):
+        for px, py in ((13, 145), (347.8, 653), (180, 399)):
+            actual = touch(px, py + SCREEN_OFFSET)
+            self.assertIsNotNone(actual)
+            self.assertTrue(0 <= actual[0] <= 360)
+
+    def test_monotonic_inverse(self):
+        for y in (205, 400, 713):
+            values = [touch(x, y)[0] for x in (13, 50, 180, 300, 347.8)]
+            self.assertEqual(values, sorted(values))
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
