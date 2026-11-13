@@ -118,5 +118,31 @@ class ContactSheetLocalizationTests(unittest.TestCase):
                     after.crop((0, 36, 51, 72)).tobytes())
 
 
+    def test_oversized_caption_is_bounded_before_font_measurement(self):
+        """A huge imported label must not reach Pillow's font measurement."""
+        from PIL import ImageDraw
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            sprite = root / "sprite.png"
+            output = root / "bounded.png"
+            Image.new("RGBA", (40, 40), (12, 210, 195, 255)).save(sprite)
+            original = ImageDraw.ImageDraw.textbbox
+            measured_lengths = []
+
+            def guarded_bbox(draw, xy, text, *args, **kwargs):
+                measured_lengths.append(len(text))
+                if len(text) > 256:
+                    raise AssertionError("Unbounded caption reached Pillow")
+                return original(draw, xy, text, *args, **kwargs)
+
+            with patch.object(ImageDraw.ImageDraw, "textbbox", guarded_bbox):
+                sheet([sprite], 1, (64, 100), "ORE", output,
+                      captions=["РУДА" * 100000])
+            self.assertTrue(measured_lengths)
+            self.assertLessEqual(max(measured_lengths), 256)
+            with Image.open(output) as rendered:
+                self.assertEqual(rendered.size, (64, 100))
+
+
 if __name__ == "__main__":
     unittest.main()
