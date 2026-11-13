@@ -25,7 +25,8 @@ class AtomicToastPatchTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.project = Path(self.temp.name)
         self.java = self.project / "MineView.java"
-        self.gradle = self.project / "build.gradle"
+        self.gradle = self.project / "app" / "build.gradle"
+        self.gradle.parent.mkdir(parents=True, exist_ok=True)
         self.patch = load_patch()
         self.patch.source = self.java
         self.patch.root = self.project
