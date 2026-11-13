@@ -91,9 +91,16 @@ def sheet(paths, columns, cell, label, destination, captions=None):
             return bounds[2] - bounds[0] <= available
         if not fits(caption):
             suffix = "…" if fits("…") else "..."
-            while caption and not fits(caption + suffix):
-                caption = caption[:-1]
-            caption = caption + suffix if caption else ""
+            # Binary-search the longest fitting prefix. A linear trim makes
+            # long imported captions quadratic in text measurement work.
+            lo, hi = 0, len(caption)
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if fits(caption[:mid] + suffix):
+                    lo = mid
+                else:
+                    hi = mid - 1
+            caption = caption[:lo] + suffix if lo else (suffix if fits(suffix) else "")
         draw.text(((i % columns) * cell[0] + 8, (i // columns) * cell[1] + 6),
                   caption, fill=(93, 224, 210), font=caption_font)
     out.save(destination, optimize=True)
