@@ -55,7 +55,7 @@ def verify_modernist_art(project):
                 {f"biome_{i:02}.jpg" for i in range(24)} |
                 {f"menu_{i}.jpg" for i in range(1, 5)} |
                 {"fractures.png", "panel.png", "button.png",
-                 "button_off.png", "header.png", "nav.png"})
+                 "button_off.png", "header.png", "nav.png", "miner.png"})
     missing = sorted(name for name in expected if not (folder / name).is_file())
     if missing:
         raise AssertionError(f"Missing v7.0 art assets: {missing}")
