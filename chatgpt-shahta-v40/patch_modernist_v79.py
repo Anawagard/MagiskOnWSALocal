@@ -50,7 +50,7 @@ def validate_toast_geometry():
     # Otherwise a safe TOAST_Y table could mask unsafe rendered positions.
     import re
     expression = re.search(
-        r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+        r"int toastY = page==0 \? (\d+) : \(page==1 \? (\d+) : (\d+)\);",
         new,
     )
     if expression is None:
