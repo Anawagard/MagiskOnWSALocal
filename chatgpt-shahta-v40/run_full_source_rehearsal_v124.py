@@ -98,6 +98,12 @@ def rehearse():
                  "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
         )
         verify_modernist_art(project)
+        # Run the full visual-asset contract against the actual generated files.
+        # The lightweight check above only validates presence and PNG/JPEG headers;
+        # this also rejects duplicate ores/biomes, flat sprites, bad transparency,
+        # incorrect dimensions and visually indistinguishable button states.
+        from audit_raster_assets_v710 import audit as audit_raster_identity
+        audit_raster_identity(project / "app/src/main/assets/shahta_v70")
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
         subprocess.run(
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
