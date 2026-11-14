@@ -52,7 +52,7 @@ once("        canvas.scale(getWidth()/(float)W,getHeight()/(float)H);",
      "        canvas.scale(v71Scale(),v71Scale());")
 once("""        float x=e.getX()*W/Math.max(1,getWidth());
         float screenY=e.getY()*H/Math.max(1,getHeight());""",
-     """        float x=(e.getX()-v71OffsetX())/v71Scale();
+     """        if(getWidth()<=0||getHeight()<=0)return true;\n        float x=(e.getX()-v71OffsetX())/v71Scale();
         float screenY=(e.getY()-v71OffsetY())/v71Scale();
         if(x<0||x>=W||screenY<0||screenY>=H)return true;""")
 
