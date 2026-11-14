@@ -72,6 +72,17 @@ def rehearse():
         raise SystemExit("BLOCKED: source rehearsal requires assertions; disable -O")
     if os.environ.get("SHAHTA_BASELINE_PROJECT"):
         raise SystemExit("BLOCKED: remove SHAHTA_BASELINE_PROJECT; this runner restores its own baseline")
+    # Keep the latest shop/toast regressions in the canonical source-only gate.
+    # These tests inspect the checked-in patch sources and viewport maths only;
+    # they must pass before the disposable historical baseline is restored.
+    for test in ("test_modernist_shop_control_isolation_v128.py",
+                 "test_modernist_toast_viewport_v129.py"):
+        subprocess.run(
+            [sys.executable, "-X", "utf8", str(HERE / test)],
+            cwd=HERE, check=True, timeout=60,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+                 "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
+        )
     steps = source_steps(WORKFLOW.read_text(encoding="utf-8"))
     with tempfile.TemporaryDirectory(prefix="shahta-full-source-") as folder:
         root = Path(folder)
