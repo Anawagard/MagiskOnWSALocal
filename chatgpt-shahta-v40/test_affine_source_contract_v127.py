@@ -12,7 +12,7 @@ PATCH = Path(__file__).with_name("patch_modernist_v71.py").read_text(encoding="u
 class AffineSourceContractTests(unittest.TestCase):
     def test_actual_java_render_and_touch_anchors(self):
         required = (
-            "Math.min(getWidth()/(float)W,getHeight()/(float)H)",
+            "Math.max(Float.MIN_NORMAL,Math.min(getWidth()/(float)W,getHeight()/(float)H))",
             "canvas.translate(v71OffsetX(),v71OffsetY());",
             "canvas.scale(v71Scale(),v71Scale());",
             "float x=(e.getX()-v71OffsetX())/v71Scale();",
@@ -23,12 +23,21 @@ class AffineSourceContractTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, PATCH)
 
+    def test_tiny_surface_does_not_force_negative_gutters(self):
+        # Regression: the old .01f floor exceeded 1x1 and 2x3 surfaces.
+        self.assertIn("Float.MIN_NORMAL", PATCH)
+        for width, height in ((1, 1), (2, 3), (3, 2), (4, 8)):
+            scale = max(1.17549435e-38, min(width / 360, height / 720))
+            self.assertGreater(scale, 0)
+            self.assertGreaterEqual((width - 360 * scale) / 2, -1e-8)
+            self.assertGreaterEqual((height - 720 * scale) / 2, -1e-8)
+
     def test_realistic_aspect_ratios_and_gutters(self):
         # Independent reference model of the Java affine mapping.
         for width, height in ((240, 960), (280, 560), (320, 720),
                               (360, 720), (1080, 2354), (1272, 2772),
                               (1440, 2560), (720, 1600)):
-            scale = max(.01, min(width / 360, height / 720))
+            scale = max(1.17549435e-38, min(width / 360, height / 720))
             ox = (width - 360 * scale) / 2
             oy = (height - 720 * scale) / 2
             self.assertGreater(scale, 0)
