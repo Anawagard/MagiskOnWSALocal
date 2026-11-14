@@ -11,7 +11,11 @@ PATCHES = [ROOT / "patch_full_redesign_v70.py", ROOT / "patch_modernist_v71.py"]
 PATCHES += [ROOT / f"patch_modernist_v{n}.py" for n in range(72, 80)]
 FORBIDDEN = {"subprocess", "requests", "urllib", "http", "socket", "importlib", "shutil"}
 DYNAMIC_CALLS = {"eval", "exec", "compile", "__import__"}
-SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spawnv"), ("os", "execv"), ("os", "execve"), ("os", "posix_spawn"), ("os", "posix_spawnp"), ("os", "startfile")}
+# Reject all exec*/spawn* variants, including the path-searching forms.
+PROCESS_NAMES = {"system", "popen", "startfile", "posix_spawn", "posix_spawnp"}
+def is_process_name(name):
+    return name in PROCESS_NAMES or name.startswith(("exec", "spawn"))
+SHELL_CALLS = {("os", name) for name in PROCESS_NAMES}
 
 def require(condition, message):
     if not condition:
@@ -27,7 +31,7 @@ def check_execution_safety(tree, label):
                     os_aliases.add(alias.asname or "os")
         elif isinstance(node, ast.ImportFrom) and node.module == "os":
             for alias in node.names:
-                if alias.name in {name for _, name in SHELL_CALLS}:
+                if is_process_name(alias.name):
                     shell_aliases.add(alias.asname or alias.name)
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
@@ -37,7 +41,7 @@ def check_execution_safety(tree, label):
             raise RuntimeError(f"{label}: unsafe execution: {target.id}")
         if (isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name)
                 and target.value.id in os_aliases
-                and ("os", target.attr) in SHELL_CALLS):
+                and is_process_name(target.attr)):
             raise RuntimeError(f"{label}: unsafe os execution: {target.attr}")
 
 # Verify the alias detector before auditing the real patch chain.
@@ -52,6 +56,19 @@ for fixture in ("import os as operating\noperating.system('echo no')",
         pass
     else:
         raise AssertionError("Unsafe execution fixture was accepted")
+
+# Regression coverage for process APIs that do not invoke a shell.
+for fixture in (
+    "import os\nos.spawnlp(0, 'x', 'x')",
+    "from os import execlp as launch\nlaunch('x', 'x')",
+    "import os as operating\noperating.execvp('x', [])",
+):
+    try:
+        check_execution_safety(ast.parse(fixture), "process-family fixture")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("Process-family fixture was accepted")
 
 for path in PATCHES:
     if not path.is_file():
@@ -68,7 +85,7 @@ for path in PATCHES:
         elif isinstance(node, ast.Call):
             target = node.func
             if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name):
-                if (target.value.id, target.attr) in SHELL_CALLS:
+                if target.value.id == "os" and is_process_name(target.attr):
                     raise RuntimeError(f"{path.name}: shell invocation")
             elif isinstance(target, ast.Name) and target.id in DYNAMIC_CALLS:
                 raise RuntimeError(f"{path.name}: dynamic code execution: {target.id}")
