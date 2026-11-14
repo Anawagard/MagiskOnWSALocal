@@ -36,9 +36,11 @@ def replace_method(signature,body):
 
 # Preserve original artwork proportions across tall/narrow Android displays.
 # The same inverse transform must be applied to touch coordinates.
+# Float.MIN_NORMAL prevents divide-by-zero without forcing a 1% minimum
+# scale that can push content outside extremely small viewports.
 geometry=r"""
     private float v71Scale(){
-        return Math.max(.01f,Math.min(getWidth()/(float)W,getHeight()/(float)H));
+        return Math.max(Float.MIN_NORMAL,Math.min(getWidth()/(float)W,getHeight()/(float)H));
     }
     private float v71OffsetX(){return (getWidth()-W*v71Scale())*.5f;}
     private float v71OffsetY(){return (getHeight()-H*v71Scale())*.5f;}
