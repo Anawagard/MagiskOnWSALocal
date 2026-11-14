@@ -48,6 +48,26 @@ class FeatureViewportTests(unittest.TestCase):
             self.assertIsNotNone(actual)
             self.assertTrue(0 <= actual[0] <= 360)
 
+    def test_narrow_screen_affine_hitbox_clipping(self):
+        # Rendering and touch conversion must share the same inverse transform.
+        # Cover compact widths, non-integer scales and both visible boundaries.
+        for width in (240, 280, 320, 360):
+            sx = width / 360.0
+            dx = 0.0
+            for sy, dy in ((0.72, 12.0), (0.83, 0.0), (0.94, 18.0)):
+                for logical_x in (0.0, 45.5, 180.0, 359.999, 360.0):
+                    screen_x = dx + sx * logical_x
+                    inverse_x = (screen_x - dx) / sx
+                    self.assertAlmostEqual(inverse_x, logical_x, places=9)
+                    self.assertTrue(dx <= screen_x <= dx + sx * 360 + 1e-9)
+                for logical_y in (0.0, 140.0, 360.0, 675.0, 720.0):
+                    screen_y = dy + sy * logical_y
+                    inverse_y = (screen_y - dy) / sy
+                    self.assertAlmostEqual(inverse_y, logical_y, places=9)
+                # Touches in the letterboxed gutters must not activate controls.
+                self.assertLess((dx - 0.01 - dx) / sx, 0)
+                self.assertGreater((dx + sx * 360 + 0.01 - dx) / sx, 360)
+
     def test_monotonic_inverse(self):
         for y in (205, 400, 713):
             values = [touch(x, y)[0] for x in (13, 50, 180, 300, 347.8)]
