@@ -36,9 +36,11 @@ def replace_method(signature,body):
 
 # Preserve original artwork proportions across tall/narrow Android displays.
 # The same inverse transform must be applied to touch coordinates.
+# Float.MIN_NORMAL prevents divide-by-zero without forcing a 1% minimum
+# scale that can push content outside extremely small viewports.
 geometry=r"""
     private float v71Scale(){
-        return Math.max(.01f,Math.min(getWidth()/(float)W,getHeight()/(float)H));
+        return Math.max(Float.MIN_NORMAL,Math.min(getWidth()/(float)W,getHeight()/(float)H));
     }
     private float v71OffsetX(){return (getWidth()-W*v71Scale())*.5f;}
     private float v71OffsetY(){return (getHeight()-H*v71Scale())*.5f;}
@@ -50,7 +52,7 @@ once("        canvas.scale(getWidth()/(float)W,getHeight()/(float)H);",
      "        canvas.scale(v71Scale(),v71Scale());")
 once("""        float x=e.getX()*W/Math.max(1,getWidth());
         float screenY=e.getY()*H/Math.max(1,getHeight());""",
-     """        float x=(e.getX()-v71OffsetX())/v71Scale();
+     """        if(getWidth()<=0||getHeight()<=0)return true;\n        float x=(e.getX()-v71OffsetX())/v71Scale();
         float screenY=(e.getY()-v71OffsetY())/v71Scale();
         if(x<0||x>=W||screenY<0||screenY>=H)return true;""")
 
@@ -111,12 +113,14 @@ shop_tile=r"""
 """
 once("    private void drawShop(Canvas c){",shop_tile+"\n    private void drawShop(Canvas c){")
 once("if(page==1&&x>=235&&y>=80&&y<=112)",
-     "if(page==1&&x>=235&&y>=95&&y<=144)")
+     # Match the painted settings button (241,99,104,42) exactly.
+     # The previous oversized region accepted invisible edge taps.
+     "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)")
 once("""            if(y>=96&&y<144){shopPage=1-shopPage;invalidate();return true;}
             int[] yy={145,226,307,388,469,550};
             for(int i=0;i<6;i++)if(y>=yy[i]&&y<yy[i]+73&&x>225){
                 int k=shopPage==1?i+6:i;""",
-     """            if(y>=117&&y<157&&x<234){
+     """            if(x>=13&&x<=228&&y>=119&&y<=154){
                 shopPage=1-shopPage;invalidate();return true;
             }
             for(int i=0;i<6;i++){
@@ -132,11 +136,12 @@ for title,baseline in [("КУЗНЯ БЕЗДНЫ",113),
     once('text(c,"'+title+'",180,'+str(baseline)+',19,GOLD,true);',
          'text(c,"'+title+'",180,'+str(baseline)+',18,0xffd9f8f3,true);')
 
+assert "if(x>=13&&x<=228&&y>=119&&y<=154)" in s
 assert s.count("private void v71ShopTile(")==1
 assert s.count("private float v71Scale(")==1
 assert "v70Draw(c,\"miner.png\",15,293,113,160,255)" in s
 assert "if(screenY>=88&&screenY<=136)" in s
-assert "if(page==1&&x>=235&&y>=95&&y<=144)" in s
+assert "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)" in s
 assert "getSharedPreferences(\"mine_save_v1\"" in s
 assert 'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);' in s
 assert "public void save()" in s and "private void rebirth()" in s

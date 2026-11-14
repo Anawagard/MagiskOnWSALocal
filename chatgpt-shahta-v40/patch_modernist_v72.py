@@ -75,8 +75,13 @@ nine_slice=r"""
     // is placed on a common, narrower grid on three feature pages.
     private void v72SectionHeader(Canvas c,String title,String subtitle,int tab){
         v72NineSlice(c,"panel.png",10,94,340,49,255);
+        // A restrained two-tone identity rail, confined to the fixed header.
+        // Neither the clipped legacy content nor its inverse touch map moves.
+        rect(c,17,102,3,32,0xff65e1d0);
+        rect(c,25,138,272,1,0xff315d60);
         leftFittedText(c,title,26,114,17,0xffe9fbf8,260);
         leftFittedText(c,subtitle,26,132,10,0xff9acbc8,265);
+        // The ore illustration stays within the header, clear of both lines.
         v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),
             304,100,37,37,255);
     }
@@ -87,6 +92,12 @@ once("    private void panel(Canvas c,float x,float y,float w,float h,int col){"
 replace_method("private void panel(Canvas c,float x,float y,float w,float h,int col)",r"""
     private void panel(Canvas c,float x,float y,float w,float h,int col){
         v72NineSlice(c,"panel.png",x,y,w,h,245);
+        // Short inset accent: never overdraw corners or escape compact cards.
+        // Purely decorative; no layout, hitbox, or persistence changes.
+        if(w>=48f && h>=20f){
+            float rail=Math.min(64f,w-24f);
+            rect(c,x+12f,y+2f,rail,2f,0xff56cbbd);
+        }
     }
 """)
 replace_method("private void button(Canvas c,float x,float y,float w,float h,String title,String sub,boolean enabled)",r"""
@@ -109,10 +120,19 @@ replace_method("private void drawBottom(Canvas c)",r"""
             boolean active=page==i;
             v72NineSlice(c,active?"button.png":"button_off.png",
                 x+2,90,64,44,active?250:188);
-            v70Draw(c,V70_ICONS[i],x+24,92,20,20,255);
-            fittedText(c,V70_NAV[i],x+34,125,9,
-                active?0xffe6fff8:0xffadc0c8,61);
-            if(active)rect(c,x+14,132,40,2,0xff62e5d1);
+            // Keep icon and label inside the 64x44 painted hit target.
+            // Larger text and brighter inactive labels improve narrow-phone
+            // readability without changing the existing navigation cells.
+            v70Draw(c,V70_ICONS[i],x+23,92,22,22,255);
+            fittedText(c,V70_NAV[i],x+34,126,10,
+                active?0xfff1fffc:0xffc7dce0,61);
+            // Two distinct active cues survive low-brightness screens:
+            // a turquoise top marker and the existing bottom underline.
+            // Both stay inside the painted 64x44 tab; hitboxes are unchanged.
+            if(active){
+                rect(c,x+14,90,40,2,0xff62e5d1);
+                rect(c,x+14,132,40,2,0xff62e5d1);
+            }
         }
     }
 """)
@@ -150,6 +170,13 @@ once("    private void drawPage(Canvas c,int tab){",
 once("        float y=(screenY-60f)/1.0f;",
      """        float y=screenY-60f;
         if(page>=2&&page<=4){
+            // The legacy feature-page controls are drawn only inside the
+            // clipped y=145..653 content viewport, shifted down by 60.
+            // Do not activate invisible buttons behind the new section header.
+            if(screenY<205f||screenY>713f)return true;
+            // Rendered legacy content spans logical x=13..347.8.
+            // Reject touches in the invisible side gutters before inverse mapping.
+            if(x<13f||x>347.8f)return true;
             x=(x-13f)/.93f;
             y=(y-18f)/.94f;
         }""")
@@ -160,6 +187,8 @@ for name in ("drawForge","drawGuild","drawCollection"):
     assert s.count("private void "+name+"Legacy(Canvas c)")==1,name
 assert s.count("c.translate(13f,18f);")==3
 assert s.count("c.scale(.93f,.94f);")==3
+assert s.count("if(screenY<205f||screenY>713f)return true;")==1
+assert s.count("if(x<13f||x>347.8f)return true;")==1
 assert s.count("x=(x-13f)/.93f;")==1
 assert s.count("y=(y-18f)/.94f;")==1
 assert s.count("private void v72NineSlice(")==1
