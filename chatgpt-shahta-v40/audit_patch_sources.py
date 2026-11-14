@@ -11,7 +11,7 @@ PATCHES = [ROOT / "patch_full_redesign_v70.py", ROOT / "patch_modernist_v71.py"]
 PATCHES += [ROOT / f"patch_modernist_v{n}.py" for n in range(72, 80)]
 FORBIDDEN = {"subprocess", "requests", "urllib", "http", "socket", "importlib", "shutil"}
 DYNAMIC_CALLS = {"eval", "exec", "compile", "__import__"}
-SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spawnv"), ("os", "execv"), ("os", "execve")}
+SHELL_CALLS = {("os", "system"), ("os", "popen"), ("os", "spawnl"), ("os", "spawnv"), ("os", "execv"), ("os", "execve"), ("os", "posix_spawn"), ("os", "posix_spawnp"), ("os", "startfile")}
 
 def require(condition, message):
     if not condition:
@@ -43,7 +43,9 @@ def check_execution_safety(tree, label):
 # Verify the alias detector before auditing the real patch chain.
 for fixture in ("import os as operating\noperating.system('echo no')",
                 "from os import popen as launch\nlaunch('echo no')",
-                "from os import execve\nexecve('x', [], {})"):
+                "from os import execve\nexecve('x', [], {})",
+                "import os as platform_os\nplatform_os.posix_spawn('x', [], {})",
+                "from os import startfile as open_program\nopen_program('x')"):
     try:
         check_execution_safety(ast.parse(fixture), "negative fixture")
     except RuntimeError:
