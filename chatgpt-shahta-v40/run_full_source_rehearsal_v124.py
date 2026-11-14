@@ -6,6 +6,7 @@ not restored, so this rehearsal is NOT a buildable Android release.
 Run from any directory: python3 chatgpt-shahta-v40/run_full_source_rehearsal_v124.py
 """
 from pathlib import Path
+import ast
 import os
 import subprocess
 import sys
@@ -72,7 +73,7 @@ def rehearse():
         raise SystemExit("BLOCKED: source rehearsal requires assertions; disable -O")
     if os.environ.get("SHAHTA_BASELINE_PROJECT"):
         raise SystemExit("BLOCKED: remove SHAHTA_BASELINE_PROJECT; this runner restores its own baseline")
-    # Keep the latest shop/toast regressions in the canonical source-only gate.
+    # Fail early if any checked-in Python patch, audit or test has invalid syntax.\n    # Parse without importing or executing scripts, so this cannot trigger builds.\n    scripts = sorted(HERE.glob("*.py"))\n    for script in scripts:\n        ast.parse(script.read_text(encoding="utf-8"), filename=str(script))\n    print(f"PYTHON SOURCE PASS: {len(scripts)} scripts parsed", flush=True)\n    # Keep the latest shop/toast regressions in the canonical source-only gate.
     # These tests inspect the checked-in patch sources and viewport maths only;
     # they must pass before the disposable historical baseline is restored.
     for test in ("test_viewport_transform_v126.py",
