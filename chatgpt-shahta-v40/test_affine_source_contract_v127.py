@@ -15,6 +15,7 @@ class AffineSourceContractTests(unittest.TestCase):
             "Math.max(Float.MIN_NORMAL,Math.min(getWidth()/(float)W,getHeight()/(float)H))",
             "canvas.translate(v71OffsetX(),v71OffsetY());",
             "canvas.scale(v71Scale(),v71Scale());",
+            "if(getWidth()<=0||getHeight()<=0)return true;",
             "float x=(e.getX()-v71OffsetX())/v71Scale();",
             "float screenY=(e.getY()-v71OffsetY())/v71Scale();",
             "if(x<0||x>=W||screenY<0||screenY>=H)return true;",
@@ -22,6 +23,12 @@ class AffineSourceContractTests(unittest.TestCase):
         for marker in required:
             with self.subTest(marker=marker):
                 self.assertIn(marker, PATCH)
+
+    def test_zero_size_surface_touch_is_guarded(self):
+        # Android can dispatch during attach/detach before layout is measured.
+        guard = PATCH.index("if(getWidth()<=0||getHeight()<=0)return true;")
+        inverse = PATCH.index("float x=(e.getX()-v71OffsetX())/v71Scale();")
+        self.assertLess(guard, inverse)
 
     def test_tiny_surface_does_not_force_negative_gutters(self):
         # Regression: the old .01f floor exceeded 1x1 and 2x3 surfaces.
