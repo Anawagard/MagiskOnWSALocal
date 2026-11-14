@@ -22,6 +22,9 @@ def inspect(path):
         # Reject ambiguous entries before trusting a downloaded source ZIP.
         infos = archive.infolist()
         names = [info.filename for info in infos if not info.is_dir()]
+        # Directory entries are also extraction paths; validate them too.
+        paths = [info.filename[:-1] if info.is_dir() else info.filename
+                 for info in infos]
         # Unix symlinks and encrypted entries are unsafe to extract as sources.
         if any(((info.external_attr >> 16) & 0o170000) == 0o120000
                for info in infos):
@@ -37,8 +40,16 @@ def inspect(path):
             raise ValueError("Duplicate ZIP member paths")
         if any(name.startswith("/") or chr(92) in name or
                any(part in ("", ".", "..") for part in name.split("/"))
-               for name in names):
+               for name in paths):
             raise ValueError("Unsafe or non-canonical ZIP member path")
+        # A file must never double as a parent directory for another entry.
+        file_paths = set(names)
+        if any("/".join(parts[:index]) in file_paths
+               for name in paths for parts in [name.split("/")]
+               for index in range(1, len(parts))):
+            raise ValueError("ZIP file/directory path collision")
+        if len(paths) != len(set(paths)):
+            raise ValueError("Duplicate ZIP paths across files and directories")
         if sum(info.file_size for info in infos) > 2 * 1024**3:
             raise ValueError("Archive uncompressed size exceeds 2 GiB")
         roots = {name.split("/", 1)[0] for name in names}
