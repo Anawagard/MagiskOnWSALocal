@@ -5,14 +5,22 @@ No Android build, Gradle invocation, gameplay changes, or network access.
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-patch = (ROOT / "patch_modernist_v71.py").read_text(encoding="utf-8")
-assert "if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)" in patch
-assert "if(x>=13&&x<=228&&y>=119&&y<=154)" in patch
-assert "if(x<xx+13||x>xx+152||y<yy+102||y>yy+138)continue;" in patch
+base = (ROOT / "patch_modernist_v71.py").read_text(encoding="utf-8")
+final = (ROOT / "patch_modernist_v74.py").read_text(encoding="utf-8")
+# v7.4 replaces v7.1's broad pagination toggle and settings hitbox.
+# Test the final painted geometry and the exact source replacement anchors.
+assert 'if(x<xx+13||x>xx+152||y<yy+102||y>yy+138)continue;' in base
+assert 'if(page==1&&x>=241&&x<=345&&y>=99&&y<=141)' in base
+assert 'if(page==1&&x>=246&&x<=345&&y>=102&&y<=154)' in final
+assert 'if(x>=16&&x<=124){shopPage=0;invalidate();return true;}' in final
+assert 'if(x>=128&&x<=236){shopPage=1;invalidate();return true;}' in final
+assert 'if(y>=130&&y<=158)' in final
+assert 'shopPage=1-shopPage' in final  # old anchor, replaced during patch application
+assert 'assert "shopPage=1-shopPage" not in s' in final
 
 W, H = 360, 720
-settings = (241, 99, 345, 141)
-pagination = (13, 119, 228, 154)
+settings = (246, 102, 345, 154)
+tabs = [(16, 130, 124, 158), (128, 130, 236, 158)]
 tiles = []
 for i in range(6):
     xx = 10 + (i % 2) * 175
@@ -22,7 +30,7 @@ for i in range(6):
 def intersects(a, b):
     return max(a[0], b[0]) <= min(a[2], b[2]) and max(a[1], b[1]) <= min(a[3], b[3])
 
-controls = [settings, pagination, *tiles]
+controls = [settings, *tabs, *tiles]
 for i, rect in enumerate(controls):
     assert 0 <= rect[0] < rect[2] < W
     assert 0 <= rect[1] < rect[3] < H
@@ -48,8 +56,8 @@ for width, height in ((240, 320), (280, 560), (320, 568), (360, 720),
             assert sum(a <= rx <= c and b <= ry <= d for a, b, c, d in controls) == 1
             checks += 1
     # The gap between page switch and settings is not a hidden hitbox.
-    for x, y in ((234, 130), (8, 140), (350, 120), (180, 160)):
+    for x, y in ((240, 140), (14, 140), (350, 120), (180, 160), (126, 145)):
         rx, ry = logical(ox + x * scale, oy + y * scale, width, height)
         assert not any(a <= rx <= c and b <= ry <= d for a, b, c, d in controls)
         checks += 1
-print(f"PASS: {checks} shop hitbox checks on 8 viewport sizes; no APK built")
+print(f"PASS: {checks} final v7.4 shop hitbox checks on 8 viewport sizes; no APK built")
