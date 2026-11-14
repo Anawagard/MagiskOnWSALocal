@@ -19,7 +19,17 @@ REQUIRED = (
 
 def inspect(path):
     with zipfile.ZipFile(path) as archive:
-        names = [name for name in archive.namelist() if not name.endswith("/")]
+        # Reject ambiguous entries before trusting a downloaded source ZIP.
+        infos = archive.infolist()
+        names = [info.filename for info in infos if not info.is_dir()]
+        if len(names) != len(set(names)):
+            raise ValueError("Duplicate ZIP member paths")
+        if any(name.startswith("/") or chr(92) in name or
+               any(part in ("", ".", "..") for part in name.split("/"))
+               for name in names):
+            raise ValueError("Unsafe or non-canonical ZIP member path")
+        if sum(info.file_size for info in infos) > 2 * 1024**3:
+            raise ValueError("Archive uncompressed size exceeds 2 GiB")
         roots = {name.split("/", 1)[0] for name in names}
         if len(roots) != 1:
             raise ValueError(f"Expected one GitHub archive root; got {sorted(roots)}")
