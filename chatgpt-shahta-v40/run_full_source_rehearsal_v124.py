@@ -79,6 +79,14 @@ def rehearse():
     for script in scripts:
         ast.parse(script.read_text(encoding="utf-8"), filename=str(script))
     print(f"PYTHON SOURCE PASS: {len(scripts)} scripts parsed", flush=True)
+    # Audit every modernist patch for forbidden build/process/network operations
+    # before replaying any historical source. This remains Python-only.
+    subprocess.run(
+        [sys.executable, "-X", "utf8", str(HERE / "audit_patch_sources.py")],
+        cwd=HERE, check=True, timeout=60,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+             "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
+    )
     # Keep the latest shop/toast regressions in the canonical source-only gate.
     # These tests inspect the checked-in patch sources and viewport maths only;
     # they must pass before the disposable historical baseline is restored.
