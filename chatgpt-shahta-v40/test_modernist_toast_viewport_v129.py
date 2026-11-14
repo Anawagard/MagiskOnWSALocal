@@ -9,7 +9,7 @@ import re
 ROOT = Path(__file__).resolve().parent
 patch = (ROOT / "patch_modernist_v79.py").read_text(encoding="utf-8")
 match = re.search(
-    r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+    r"int toastY = page==0 \? (\d+) : \(page==1 \? (\d+) : (\d+)\);",
     patch,
 )
 if not match:
