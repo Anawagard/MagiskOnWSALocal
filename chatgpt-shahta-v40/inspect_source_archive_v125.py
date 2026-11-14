@@ -22,7 +22,18 @@ def inspect(path):
         # Reject ambiguous entries before trusting a downloaded source ZIP.
         infos = archive.infolist()
         names = [info.filename for info in infos if not info.is_dir()]
-        if len(names) != len(set(names)):
+        # Unix symlinks and encrypted entries are unsafe to extract as sources.
+        if any(((info.external_attr >> 16) & 0o170000) == 0o120000
+               for info in infos):
+            raise ValueError("ZIP symlink entries are not permitted")
+        if any(info.flag_bits & 1 for info in infos):
+            raise ValueError("Encrypted ZIP entries are not permitted")
+        if any(info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
+               for info in infos):
+            raise ValueError("Unsupported ZIP compression method")
+        if len(infos) > 50000:
+            raise ValueError("Too many ZIP entries")
+        if len(infos) != len({info.filename for info in infos}):
             raise ValueError("Duplicate ZIP member paths")
         if any(name.startswith("/") or chr(92) in name or
                any(part in ("", ".", "..") for part in name.split("/"))
