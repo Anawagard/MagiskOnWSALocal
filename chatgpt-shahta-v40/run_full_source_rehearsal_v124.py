@@ -75,7 +75,9 @@ def rehearse():
     # Keep the latest shop/toast regressions in the canonical source-only gate.
     # These tests inspect the checked-in patch sources and viewport maths only;
     # they must pass before the disposable historical baseline is restored.
-    for test in ("test_modernist_shop_control_isolation_v128.py",
+    for test in ("test_viewport_transform_v126.py",
+                 "test_affine_source_contract_v127.py",
+                 "test_modernist_shop_control_isolation_v128.py",
                  "test_modernist_toast_viewport_v129.py"):
         subprocess.run(
             [sys.executable, "-X", "utf8", str(HERE / test)],
