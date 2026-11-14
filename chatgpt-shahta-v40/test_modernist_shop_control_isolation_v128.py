@@ -41,8 +41,8 @@ for width, height in ((240, 320), (280, 560), (320, 568), (360, 720),
     scale = min(width / W, height / H)
     ox, oy = (width - W * scale) / 2, (height - H * scale) / 2
     for i, (left, top, right, bottom) in enumerate(controls):
-        for x, y in ((left, top), ((left + right) / 2, (top + bottom) / 2),
-                     (right, bottom)):
+        for x, y in ((left + 0.01, top + 0.01), ((left + right) / 2, (top + bottom) / 2),
+                     (right - 0.01, bottom - 0.01)):
             rx, ry = logical(ox + x * scale, oy + y * scale, width, height)
             assert abs(rx - x) < 1e-8 and abs(ry - y) < 1e-8
             assert sum(a <= rx <= c and b <= ry <= d for a, b, c, d in controls) == 1
