@@ -43,6 +43,16 @@ def check_execution_safety(tree, label):
                 and target.value.id in os_aliases
                 and is_process_name(target.attr)):
             raise RuntimeError(f"{label}: unsafe os execution: {target.attr}")
+        # getattr(os, "system")() is also process execution; reject the
+        # dynamic lookup itself so aliases cannot conceal it.
+        if (isinstance(target, ast.Name) and target.id == "getattr"
+                and len(node.args) >= 2 and isinstance(node.args[0], ast.Name)
+                and node.args[0].id in os_aliases):
+            name = node.args[1]
+            if not isinstance(name, ast.Constant) or not isinstance(name.value, str):
+                raise RuntimeError(f"{label}: dynamic os attribute lookup")
+            if is_process_name(name.value):
+                raise RuntimeError(f"{label}: unsafe os attribute lookup: {name.value}")
 
 # Verify the alias detector before auditing the real patch chain.
 for fixture in ("import os as operating\noperating.system('echo no')",
@@ -62,6 +72,9 @@ for fixture in (
     "import os\nos.spawnlp(0, 'x', 'x')",
     "from os import execlp as launch\nlaunch('x', 'x')",
     "import os as operating\noperating.execvp('x', [])",
+    "import os\ngetattr(os, 'system')('echo no')",
+    "import os as operating\nlaunch = getattr(operating, 'spawnlp')",
+    "import os\ngetattr(os, input())('x')",
 ):
     try:
         check_execution_safety(ast.parse(fixture), "process-family fixture")
