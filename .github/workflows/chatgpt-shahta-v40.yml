@@ -746,18 +746,21 @@ jobs:
       - name: Install Android SDK 35
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
-      # Debug-only identity. Cache reuse keeps the same certificate when available;
-      # a cold cache creates a new debug key. Never use it for a production release.
+      # Fail closed if the original debug identity is missing. A newly generated
+      # key would prevent installing the APK over existing user installations.
       - name: Restore debug signing identity
-        uses: actions/cache@v4
+        id: shahta-signing-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: shahta-v44-debug-keystore-20261102
-      - name: Initialize debug signing identity
+          lookup-only: false
+      - name: Verify original debug signing identity exists
         run: |
-          mkdir -p "$HOME/.android"
-          if [ ! -s "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Shahta Debug,O=Anawagard,C=RU" -noprompt
+          set -euo pipefail
+          if [ "${{ steps.shahta-signing-cache.outputs.cache-hit }}" != "true" ] || [ ! -s "$HOME/.android/debug.keystore" ]; then
+            echo "::error::Original Shahta debug keystore missing. Refusing to rotate signing identity."
+            exit 1
           fi
           actual="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
           test -n "$actual"
