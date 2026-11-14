@@ -60,4 +60,32 @@ for width, height in ((240, 320), (280, 560), (320, 568), (360, 720),
         rx, ry = logical(ox + x * scale, oy + y * scale, width, height)
         assert not any(a <= rx <= c and b <= ry <= d for a, b, c, d in controls)
         checks += 1
-print(f"PASS: {checks} final v7.4 shop hitbox checks on 8 viewport sizes; no APK built")
+# Exercise negative space and every control's immediately adjacent exterior.
+# These points are deliberately offset by 0.01 logical units to avoid
+# rounding ambiguity at inclusive Java hitbox boundaries.
+for width, height in ((240, 320), (280, 560), (320, 568), (360, 720),
+                      (393, 873), (720, 1280), (1080, 2400), (1272, 2772)):
+    scale = min(width / W, height / H)
+    ox, oy = (width - W * scale) / 2, (height - H * scale) / 2
+    for left, top, right, bottom in controls:
+        mx, my = (left + right) / 2, (top + bottom) / 2
+        for x, y in ((left - .01, my), (right + .01, my),
+                     (mx, top - .01), (mx, bottom + .01)):
+            rx, ry = logical(ox + x * scale, oy + y * scale, width, height)
+            assert abs(rx - x) < 1e-8 and abs(ry - y) < 1e-8
+            # Adjacent controls may legitimately own an exterior point;
+            # the specific control being tested must not.
+            assert not (left <= rx <= right and top <= ry <= bottom)
+            checks += 1
+    # Letterboxed margins are not part of the logical canvas.
+    if ox > 0:
+        for px in (0, ox / 2, ox + W * scale + (width - ox - W * scale) / 2):
+            rx, ry = logical(px, height / 2, width, height)
+            assert rx < 0 or rx > W
+            checks += 1
+    if oy > 0:
+        for py in (0, oy / 2, oy + H * scale + (height - oy - H * scale) / 2):
+            rx, ry = logical(width / 2, py, width, height)
+            assert ry < 0 or ry > H
+            checks += 1
+print(f"PASS: {checks} final v7.4 shop hitbox and exterior checks on 8 viewport sizes; no APK built")
