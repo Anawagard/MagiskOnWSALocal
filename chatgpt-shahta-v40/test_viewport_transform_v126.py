@@ -5,12 +5,15 @@ No Android SDK, Gradle, network, APK or workflow invocation.
 """
 import unittest
 
+# Mirrors Java Float.MIN_NORMAL in patch_modernist_v71.py.
+JAVA_FLOAT_MIN_NORMAL = 1.1754943508222875e-38
+
 W, H = 360, 720
 
 def transform(width, height):
     if width <= 0 or height <= 0:
         raise ValueError("Viewport must have positive dimensions")
-    scale = max(.01, min(width / W, height / H))
+    scale = max(JAVA_FLOAT_MIN_NORMAL, min(width / W, height / H))
     return scale, (width - W * scale) / 2, (height - H * scale) / 2
 
 def screen_to_logical(px, py, width, height):
@@ -29,6 +32,25 @@ class ViewportTransformTests(unittest.TestCase):
                     self.assertIsNotNone(actual)
                     self.assertAlmostEqual(actual[0], x, places=6)
                     self.assertAlmostEqual(actual[1], y, places=6)
+
+    def test_tiny_surfaces_have_nonnegative_gutters(self):
+        for width, height in ((1, 1), (2, 3), (3, 2), (4, 8), (9, 1)):
+            with self.subTest(viewport=(width, height)):
+                scale, ox, oy = transform(width, height)
+                self.assertGreater(scale, 0)
+                self.assertGreaterEqual(ox, -1e-12)
+                self.assertGreaterEqual(oy, -1e-12)
+                self.assertLessEqual(W * scale, width + 1e-12)
+                self.assertLessEqual(H * scale, height + 1e-12)
+                point = screen_to_logical(ox + 180 * scale, oy + 360 * scale, width, height)
+                self.assertIsNotNone(point)
+                self.assertAlmostEqual(point[0], 180, places=6)
+                self.assertAlmostEqual(point[1], 360, places=6)
+
+    def test_zero_dimensions_are_rejected(self):
+        for width, height in ((0, 720), (360, 0), (0, 0), (-1, 720)):
+            with self.assertRaises(ValueError):
+                transform(width, height)
 
     def test_letterbox_is_not_clickable(self):
         for width, height in ((1272,2772),(1080,2354),(1440,2560),(240,960)):
