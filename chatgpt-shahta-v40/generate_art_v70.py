@@ -82,6 +82,29 @@ def cave(index,color,path,w=360,h=570):
         ink=(int(color[0]*.8+50),int(color[1]*.8+42),
              int(color[2]*.8+55),int(r.integers(45,112))) if bright else (8,12,22,115)
         d.line(points,fill=ink,width=int(r.integers(1,4)),joint="curve")
+    # Biome-specific lithology: subdued strata with deterministic angular joints.
+    # This is painted into the 360x570 backdrop, never into the touch layer.
+    # The upper/middle cave stays dark enough for high-contrast HUD labels.
+    strata_rng=np.random.default_rng(73001+index*1031)
+    for band in range(7):
+        base_y=90+band*62+int(strata_rng.integers(-11,12))
+        slope=int(strata_rng.integers(-17,18))
+        offset=int(strata_rng.integers(14,42))
+        # Broken seams deliberately avoid a uniform horizontal wallpaper look.
+        left_end=int(strata_rng.integers(90,166))
+        right_start=left_end+int(strata_rng.integers(28,65))
+        seam=(min(255,int(color[0]*.70+30)),
+              min(255,int(color[1]*.70+35)),
+              min(255,int(color[2]*.70+42)),48)
+        d.line([(0,base_y),(left_end,base_y+slope)],fill=seam,width=2)
+        d.line([(right_start,base_y+slope+offset//5),
+                (w,base_y+offset)],fill=seam,width=2)
+        # Tiny fault branches make the 24 caves individually identifiable.
+        if (band+index)%2==0:
+            joint_x=right_start+int(strata_rng.integers(5,35))
+            joint_y=base_y+slope+offset//5
+            d.line([(joint_x,joint_y),(joint_x-9,joint_y+14),
+                    (joint_x-6,joint_y+27)],fill=(8,15,25,65),width=2)
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
     d.polygon([(0,510),(45,493),(105,519),(153,506),(223,525),
                (280,504),(360,516),(360,570),(0,570)],fill=(14,19,29,115))
