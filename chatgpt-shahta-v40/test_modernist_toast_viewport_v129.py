@@ -19,8 +19,9 @@ tops = (mine, shop, feature, feature, feature)
 assert tops == (178, 655, 145, 145, 145)
 
 W, H = 360, 720
-viewports = ((240, 320), (280, 560), (320, 568), (360, 720),
-             (393, 873), (720, 1280), (1080, 2400), (1272, 2772))
+viewports = ((176, 320), (240, 320), (280, 560), (320, 568), (360, 720),
+             (393, 873), (720, 1280), (1080, 2400), (1272, 2772),
+             (2560, 720), (720, 2560))
 checks = 0
 for width, height in viewports:
     scale = min(width / W, height / H)
@@ -34,6 +35,15 @@ for width, height in viewports:
         assert 0 <= left < right <= W and 137 < top < bottom <= 682
         assert (bottom < 210 if page == 0 else
                 top > 653 if page == 1 else bottom < 205)
+        # Ensure the letterbox transform never creates a phantom clickable toast
+        # in the side/top gutters of unusually narrow or wide displays.
+        for px, py in ((ox - 0.5, oy + top * scale),
+                       (ox + right * scale + 0.5, oy + top * scale),
+                       (ox + left * scale, oy - 0.5),
+                       (ox + left * scale, oy + H * scale + 0.5)):
+            lx, ly = (px - ox) / scale, (py - oy) / scale
+            assert not (left <= lx <= right and top <= ly <= bottom)
+            checks += 1
         # Physical pixel corners map back to the same logical rectangle.
         for x, y in ((left, top), (right, top), (left, bottom),
                      (right, bottom), ((left + right) / 2, (top + bottom) / 2)):
