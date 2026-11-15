@@ -98,6 +98,15 @@ class ContactSheetTests(unittest.TestCase):
             self.run_validation()
         self.assertEqual(list(self.output.iterdir()), [])
 
+    def test_cli_rejects_nearly_invisible_ore(self):
+        image = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        # One opaque pixel passes alpha extrema but is not visible in gameplay.
+        image.putpixel((150, 150), (90, 150, 210, 255))
+        image.save(self.assets / "ore_12.png")
+        with self.assertRaisesRegex(ValueError, "fewer than 1%"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
     def test_cli_rejects_ore_without_opaque_mineral_pixels(self):
         image = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
         image.putpixel((150, 150), (90, 150, 210, 128))
