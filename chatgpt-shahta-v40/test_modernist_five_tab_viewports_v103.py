@@ -154,3 +154,27 @@ for width, height in viewports + ((240, 320), (320, 480), (1768, 2208)):
         assert (88 <= y <= 136) == expected
         seam_checks += 1
 print(f"PASS: {seam_checks} fractional-scale seam and vertical-strip assertions")
+
+
+# Very narrow and ultrawide screens: ensure the entire painted navigation
+# target remains visible and every touch center maps to its own tab.
+# This is deliberately independent of Android runtime and device density.
+extreme_checks = 0
+for width, height in ((176, 320), (200, 400), (240, 1080),
+                      (320, 240), (1440, 320), (2560, 720)):
+    scale = min(width / 360, height / 720)
+    ox = (width - 360 * scale) / 2
+    oy = (height - 720 * scale) / 2
+    assert scale > 0
+    for tab in range(5):
+        for logical_x in (5 + 72 * tab, 37 + 72 * tab, 69 + 72 * tab):
+            for logical_y in (90, 112, 134):
+                px = ox + logical_x * scale
+                py = oy + logical_y * scale
+                assert 0 <= px <= width and 0 <= py <= height
+                x = (px - ox) / scale
+                y = (py - oy) / scale
+                assert int(x // 72) == tab
+                assert 88 <= y <= 136
+                extreme_checks += 1
+print(f"PASS: {extreme_checks} extreme-aspect navigation assertions")
