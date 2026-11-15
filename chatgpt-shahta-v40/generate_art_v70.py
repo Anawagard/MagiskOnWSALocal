@@ -220,6 +220,31 @@ def cave(index,color,path,w=360,h=570):
                 # Offset dark fault core gives depth without a runtime effect.
                 d.line([(x,y+3) for x,y in vertices],
                        fill=(8,17,27,70),width=1)
+    # Distinct side-wall crystal clusters add a recognizable silhouette to
+    # each biome without obscuring the central mining lane or HUD labels.
+    # The translucent faces and glints are baked into the JPEG once.
+    if 0 <= index < 24:
+        crystals=np.random.default_rng(490003+index*997)
+        for side in (0,1):
+            direction=1 if side==0 else -1
+            edge=9 if side==0 else w-9
+            for cluster in range(3):
+                cy=int(crystals.integers(125,h-100))
+                reach=int(crystals.integers(17,43))
+                rise=int(crystals.integers(14,38))
+                # Maximum x reach is 9+43=52 on the left and
+                # w-9-43=w-52 on the right: clear of x=85..275.
+                tip=edge+direction*reach
+                base=[(edge,cy-rise//2),(tip,cy-rise),
+                      (edge+direction*(reach//2),cy+rise//2),
+                      (edge,cy+rise)]
+                fill=tuple(min(255,int(c*.78+35)) for c in color)+(96,)
+                d.polygon(base,fill=fill)
+                d.line([base[0],base[1],base[2]],
+                       fill=(205,245,236,115),width=1)
+                d.line([base[1],base[3]],fill=(9,22,34,105),width=1)
+                d.ellipse((tip-2,cy-rise-2,tip+2,cy-rise+2),
+                          fill=(224,251,240,140))
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
