@@ -328,6 +328,31 @@ def ore(index,color,path):
     light=Image.new("RGBA",(w,h),(225,244,238,0))
     light.putalpha(Image.fromarray(alpha,"L"))
     im=Image.alpha_composite(im,light)
+    # Faceted ore planes: each deposit has a seeded, asymmetric cluster of
+    # translucent mineral faces. The planes are raster-only and clipped to
+    # the existing alpha silhouette; gameplay geometry stays untouched.
+    facets=Image.new("RGBA",(w,h),(0,0,0,0))
+    facet_draw=ImageDraw.Draw(facets,"RGBA")
+    facet_rng=np.random.default_rng(810031+index*1013)
+    for face in range(9):
+        cx=int(facet_rng.integers(79,222))
+        cy=int(facet_rng.integers(79,215))
+        width=int(facet_rng.integers(12,34))
+        height=int(facet_rng.integers(14,39))
+        lean=int(facet_rng.integers(-12,13))
+        vertices=[(cx-width//2,cy-height//3),
+                  (cx+lean,cy-height),
+                  (cx+width//2,cy-height//5),
+                  (cx+width//3,cy+height//2)]
+        # Alternate cool reflection and dark mineral cleavage for depth.
+        if face%3==0:
+            facet_draw.polygon(vertices,fill=(228,245,238,37))
+            facet_draw.line(vertices[:3],fill=(247,253,246,95),width=1)
+        else:
+            facet_draw.polygon(vertices,fill=(9,20,31,27))
+            facet_draw.line(vertices[1:],fill=(11,22,34,80),width=1)
+    facets.putalpha(ImageChops.multiply(facets.getchannel("A"),mask))
+    im=Image.alpha_composite(im,facets)
     # Directional mineral glints, pre-rendered and masked to the stone silhouette.
     # They do not add runtime draw calls or change hitboxes.
     glints=Image.new("RGBA",(w,h),(0,0,0,0))
