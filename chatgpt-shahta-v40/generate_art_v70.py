@@ -328,6 +328,23 @@ def ore(index,color,path):
     light=Image.new("RGBA",(w,h),(225,244,238,0))
     light.putalpha(Image.fromarray(alpha,"L"))
     im=Image.alpha_composite(im,light)
+    # Directional mineral glints, pre-rendered and masked to the stone silhouette.
+    # They do not add runtime draw calls or change hitboxes.
+    glints=Image.new("RGBA",(w,h),(0,0,0,0))
+    glint_draw=ImageDraw.Draw(glints,"RGBA")
+    for j in range(13):
+        x=int(r.integers(69,225))
+        y=int(r.integers(67,221))
+        reach=int(r.integers(7,19))
+        tilt=int(r.integers(-8,9))
+        glint_draw.line([(x-2,y+2),(x+reach-2,y+tilt+2)],
+                        fill=(7,17,27,105),width=2)
+        glint_draw.line([(x,y),(x+reach,y+tilt)],
+                        fill=(246,250,241,140 if j%3==0 else 88),width=1)
+        if j%3==0:
+            glint_draw.point((x,y),fill=(255,255,248,190))
+    glints.putalpha(ImageChops.multiply(glints.getchannel("A"),mask))
+    im=Image.alpha_composite(im,glints)
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
