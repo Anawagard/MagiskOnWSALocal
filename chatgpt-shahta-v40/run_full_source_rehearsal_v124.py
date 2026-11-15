@@ -116,7 +116,8 @@ def rehearse():
             subprocess.run(
                 [sys.executable, "-X", "utf8", str(REPO / relative)],
                 cwd=root, check=True, timeout=180,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1",
+                     "PYTHONOPTIMIZE": ""},
             )
         verify_replayed_source(root, initial_activity)
         verify_biome_textures(project)
@@ -128,7 +129,8 @@ def rehearse():
             [sys.executable, "-X", "utf8", str(HERE / "generate_art_v70.py")],
             cwd=root, check=True, timeout=300,
             env={**os.environ, "SHAHTA_ART_PROJECT": str(project),
-                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
+                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1",
+                     "PYTHONOPTIMIZE": ""},
         )
         verify_modernist_art(project)
         # Run the full visual-asset contract against the actual generated files.
@@ -142,7 +144,8 @@ def rehearse():
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
             cwd=root, check=True, timeout=300,
             env={**os.environ, "SHAHTA_BASELINE_PROJECT": str(project),
-                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
+                 "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1",
+                     "PYTHONOPTIMIZE": ""},
         )
         print("PASS: restored v6.9 and applied modernist source-only chain; no APK", flush=True)
 
