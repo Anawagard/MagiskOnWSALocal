@@ -71,6 +71,11 @@ def main():
             if not path.is_file():
                 raise FileNotFoundError(f"Missing required {kind} raster: {path}")
             with Image.open(path) as im:
+                expected_format = "JPEG" if kind == "biome" else "PNG"
+                if im.format != expected_format:
+                    raise ValueError(
+                        f"{path.name}: expected {expected_format} container, got {im.format}"
+                    )
                 im.verify()
             with Image.open(path) as im:
                 if im.size != size:
