@@ -265,6 +265,28 @@ def cave(index,color,path,w=360,h=570):
                 d.polygon(silhouette,fill=(7,18,27,44+layer*12))
                 d.line([silhouette[1],silhouette[2],silhouette[3]],
                        fill=(*color,42+layer*10),width=1)
+    # Biome-specific mineral light wells: soft, broken side-wall reflections.
+    # Baked into each bitmap; never cover the central mining corridor.
+    # The color and position vary with the biome, not with frame timing.
+    if 0 <= index < 24:
+        wells=np.random.default_rng(920017+index*1297)
+        for side in (0,1):
+            edge=8 if side==0 else w-8
+            direction=1 if side==0 else -1
+            for beam in range(3):
+                cy=int(wells.integers(100,h-110))
+                reach=int(wells.integers(17,49))
+                spread=int(wells.integers(30,65))
+                x1=edge+direction*reach
+                # All vertices stay within 57 px of the outer edge.
+                tint=tuple(min(255,int(c*.72+52)) for c in color)
+                d.polygon([(edge,cy-spread),(x1,cy-10),
+                           (x1,cy+12),(edge,cy+spread)],
+                          fill=(*tint,19+beam*5))
+                d.line([(edge,cy-spread//2),
+                        (edge+direction*(reach//2),cy),
+                        (edge,cy+spread//2)],
+                       fill=(190,233,224,29),width=1)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
