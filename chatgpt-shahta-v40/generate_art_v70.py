@@ -9,17 +9,26 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 # Resolve relative to this script, not the shell working directory.
 # This keeps generation and audit pointed at the same Android assets folder.
-ROOT=Path(os.environ["SHAHTA_ART_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_ART_PROJECT") else Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
-# Never fabricate an empty Android project when the historical baseline is absent.
-# The manual release workflow restores the project before generating art.
-_REQUIRED = ("app/build.gradle", "app/src/main/java/com/bezdna/mine/MineView.java",
-             "app/src/main/java/com/bezdna/mine/MainActivity.java")
-_missing = [name for name in _REQUIRED if not (ROOT / name).is_file()]
-if _missing:
-    raise SystemExit(f"BLOCKED: Android baseline missing at {ROOT}; required: {_missing}. "
-                     "Restore sources before generating raster assets; no files written.")
-OUT=ROOT/"app/src/main/assets/shahta_v70"
-OUT.mkdir(parents=True,exist_ok=True)
+# Optional standalone raster preview: generate real artwork without restoring or
+# building an Android project. The output directory must already exist; this
+# prevents typos from silently creating arbitrary directories.
+_PREVIEW = os.environ.get("SHAHTA_ART_PREVIEW_DIR")
+if _PREVIEW:
+    OUT = Path(_PREVIEW).expanduser().resolve()
+    if not OUT.is_dir():
+        raise SystemExit(f"BLOCKED: preview directory does not exist: {OUT}")
+else:
+    ROOT=Path(os.environ["SHAHTA_ART_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_ART_PROJECT") else Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
+    # Never fabricate an empty Android project when the historical baseline is absent.
+    # The manual release workflow restores the project before generating art.
+    _REQUIRED = ("app/build.gradle", "app/src/main/java/com/bezdna/mine/MineView.java",
+                 "app/src/main/java/com/bezdna/mine/MainActivity.java")
+    _missing = [name for name in _REQUIRED if not (ROOT / name).is_file()]
+    if _missing:
+        raise SystemExit(f"BLOCKED: Android baseline missing at {ROOT}; required: {_missing}. "
+                         "Restore sources before generating raster assets; no files written.")
+    OUT=ROOT/"app/src/main/assets/shahta_v70"
+    OUT.mkdir(parents=True,exist_ok=True)
 SCENES=[
 (106,128,148),(169,114,74),(69,157,122),(188,148,78),(93,171,199),(176,82,91),
 (139,108,192),(194,98,65),(74,132,188),(114,91,143),(78,166,171),(177,160,103),
