@@ -51,6 +51,10 @@ def main():
     assets, output = args.assets.resolve(), args.output.resolve()
     if not assets.is_dir() or not output.is_dir() or assets == output:
         parser.error("Existing, distinct assets and output directories are required")
+    # A preview destination nested in the asset directory can accidentally be
+    # packaged into Android resources by a later copy step. Keep it separate.
+    if assets in output.parents or output in assets.parents:
+        parser.error("Preview output and assets must not contain one another")
     # Validate the decoded art, not only the container headers. In particular,
     # an opaque ore PNG can silently render as a square over the mine background.
     # Exact decoded-pixel duplicates indicate a missing palette/biome variant.
@@ -61,11 +65,15 @@ def main():
                             ("ore", "png", (300, 300))):
         for i in range(24):
             path = assets / f"{kind}_{i:02d}.{ext}"
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing required {kind} raster: {path}")
             with Image.open(path) as im:
                 im.verify()
             with Image.open(path) as im:
                 if im.size != size:
                     raise ValueError(f"{path.name}: expected {size}, got {im.size}")
+                if kind == "biome" and im.mode not in ("RGB", "L"):
+                    raise ValueError(f"{path.name}: biome JPEG must be opaque RGB or grayscale")
                 if kind == "ore":
                     if im.mode not in ("RGBA", "LA", "P") or (
                         im.mode == "P" and "transparency" not in im.info
