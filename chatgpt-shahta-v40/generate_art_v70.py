@@ -245,6 +245,26 @@ def cave(index,color,path,w=360,h=570):
                 d.line([base[1],base[3]],fill=(9,22,34,105),width=1)
                 d.ellipse((tip-2,cy-rise-2,tip+2,cy-rise+2),
                           fill=(224,251,240,140))
+    # Peripheral parallax-like depth plates: deliberately rasterized, not animated.
+    # Three staggered silhouettes per wall make each cave less flat while
+    # leaving the central x=85..275 mining lane and touch targets untouched.
+    if 0 <= index < 24:
+        plates=np.random.default_rng(880019+index*1223)
+        for side in (0,1):
+            edge=0 if side==0 else w
+            direction=1 if side==0 else -1
+            for layer in range(3):
+                top=115+layer*122+int(plates.integers(-15,16))
+                depth=int(plates.integers(22,48))
+                height=int(plates.integers(54,91))
+                inset=edge+direction*depth
+                ridge=edge+direction*(depth//2)
+                silhouette=[(edge,top-13),(ridge,top),
+                            (inset,top+height//3),(ridge,top+height),
+                            (edge,top+height+12)]
+                d.polygon(silhouette,fill=(7,18,27,44+layer*12))
+                d.line([silhouette[1],silhouette[2],silhouette[3]],
+                       fill=(*color,42+layer*10),width=1)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
