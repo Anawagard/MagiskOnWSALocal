@@ -502,6 +502,20 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     # Minimal dual-tone corner indexing distinguishes modernist panels from
     # the old flat buttons without compromising high-contrast text areas.
     d.line((19,h-12,32,h-12),fill=(*trace_rgb,trace_alpha),width=1)
+    # Three inset status LEDs establish a consistent technical identity across
+    # the five screens. The indicator sits in the top-left nine-slice corner,
+    # not the central text stretch or any interactive hitbox.
+    # Alternating brightness keeps disabled controls visually subdued.
+    for index, alpha in enumerate((190, 110, 55) if bright else (105, 65, 35)):
+        cx = 21 + index * 7
+        d.ellipse((cx, 12, cx + 2, 14),
+                  fill=(*trace_rgb, alpha))
+    # A short paired alignment rule is deliberately kept in the bottom-right
+    # corner: long full-width lines would cross localized labels on narrow UI.
+    d.line((w-56, h-11, w-40, h-11),
+           fill=(*trace_rgb, 96 if bright else 54), width=1)
+    d.line((w-56, h-8, w-47, h-8),
+           fill=(*trace_rgb, 65 if bright else 38), width=1)
     # Engraved industrial status ticks: bitmap-only detail, no touch/layout changes.
     # Confine marks to the corners so nine-slice stretching never distorts them.
     tick=(112,226,216,118) if bright else (*border_rgb,96)
