@@ -93,6 +93,8 @@ def rehearse():
     for test in ("test_modernist_workflow_contract_v90.py",
                  "test_manual_trigger_allowlist_v101.py",
                  "test_signing_identity_fail_closed_v130.py",
+                 "test_modernist_five_tab_viewports_v103.py",
+                 "test_settings_hitboxes_v126.py",
                  "test_viewport_transform_v126.py",
                  "test_affine_source_contract_v127.py",
                  "test_modernist_shop_control_isolation_v128.py",
