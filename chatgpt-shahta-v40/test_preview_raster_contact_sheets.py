@@ -71,6 +71,20 @@ class ContactSheetTests(unittest.TestCase):
         self.assertTrue((self.output / "biome_contact_sheet.png").is_file())
         self.assertTrue((self.output / "ore_contact_sheet.png").is_file())
 
+    def test_cli_rejects_png_disguised_as_biome_jpeg(self):
+        Image.new("RGB", (360, 570), (50, 70, 90)).save(
+            self.assets / "biome_03.jpg", format="PNG")
+        with self.assertRaisesRegex(ValueError, "expected JPEG container"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_cli_rejects_jpeg_disguised_as_ore_png(self):
+        Image.new("RGB", (300, 300), (50, 70, 90)).save(
+            self.assets / "ore_03.png", format="JPEG")
+        with self.assertRaisesRegex(ValueError, "expected PNG container"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
     def test_cli_rejects_opaque_ore_before_writing_sheets(self):
         Image.new("RGB", (300, 300), (50, 70, 90)).save(
             self.assets / "ore_07.png")
