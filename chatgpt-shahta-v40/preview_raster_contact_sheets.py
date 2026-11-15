@@ -7,6 +7,7 @@ The output directory must exist and must differ from the asset directory.
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import argparse
+import hashlib
 
 
 def make_sheet(assets: Path, destination: Path, kind: str) -> Path:
@@ -50,6 +51,11 @@ def main():
     assets, output = args.assets.resolve(), args.output.resolve()
     if not assets.is_dir() or not output.is_dir() or assets == output:
         parser.error("Existing, distinct assets and output directories are required")
+    # Validate the decoded art, not only the container headers. In particular,
+    # an opaque ore PNG can silently render as a square over the mine background.
+    # Exact decoded-pixel duplicates indicate a missing palette/biome variant.
+    # These checks are deliberately source-only and never invoke Android.
+    fingerprints = {}
     # Validate all 48 images before writing either sheet, avoiding partial results.
     for kind, ext, size in (("biome", "jpg", (360, 570)),
                             ("ore", "png", (300, 300))):
@@ -60,6 +66,25 @@ def main():
             with Image.open(path) as im:
                 if im.size != size:
                     raise ValueError(f"{path.name}: expected {size}, got {im.size}")
+                if kind == "ore":
+                    if im.mode not in ("RGBA", "LA", "P") or (
+                        im.mode == "P" and "transparency" not in im.info
+                    ):
+                        raise ValueError(f"{path.name}: ore requires transparency")
+                    alpha = im.convert("RGBA").getchannel("A")
+                    lo, hi = alpha.getextrema()
+                    if lo != 0 or hi != 255:
+                        raise ValueError(
+                            f"{path.name}: ore must contain fully transparent "
+                            "background and fully opaque mineral pixels"
+                        )
+                # Hash decoded RGBA pixels to catch identical variants even if
+                # their PNG/JPEG metadata or compression differs.
+                digest = hashlib.sha256(im.convert("RGBA").tobytes()).hexdigest()
+                previous = fingerprints.get((kind, digest))
+                if previous is not None:
+                    raise ValueError(f"{path.name}: identical pixels to {previous}")
+                fingerprints[(kind, digest)] = path.name
     for kind in ("biome", "ore"):
         print(make_sheet(assets, output, kind))
 
