@@ -9,8 +9,17 @@ from pathlib import Path
 patch = Path(__file__).with_name('patch_modernist_v79.py').read_text(encoding='utf-8')
 assert 'int toastY = page==0 ? 178 : (page==1 ? 655 : 145);' in patch
 assert 'v72NineSlice(canvas,"panel.png",18,toastY,324,26,252)' in patch
-assert 'leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285)' in patch
-assert 'rect(canvas,26,toastY+4,3,18,0xff65e1d0)' in patch
+assert 'leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251)' in patch
+assert 'rect(canvas,26,toastY+4,3,18,toastAccent)' in patch
+assert 'rect(canvas,36,toastY+2,76,1,toastAccent)' in patch
+assert 'rect(canvas,301,toastY+3,25,1,toastAccent)' in patch
+assert 'v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24),' in patch
+# The five page accents must be unique and opaque, not a hard-coded mine rail.
+import re
+palette = re.search(r'int toastAccent = (.*?);', patch, re.S)
+assert palette, 'missing page-aware toast palette'
+colors = re.findall(r'0xff[0-9a-fA-F]{6}', palette.group(1))
+assert len(colors) == 5 and len(set(colors)) == 5, colors
 assert 'rect(canvas,36,toastY+22,296,1,0xff315d60)' in patch
 # Rail and baseline must stay inside the toast panel at both anchors.
 for toast_y in (178, 655, 145):
