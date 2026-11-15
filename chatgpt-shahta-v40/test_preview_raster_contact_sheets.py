@@ -1,6 +1,8 @@
 """Source-only regression tests for raster contact sheets; no Android build."""
 import importlib.util
 import tempfile
+import sys
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 
@@ -56,6 +58,53 @@ class ContactSheetTests(unittest.TestCase):
                 with Image.open(self.assets / f"{kind}_{i:02d}.{ext}") as image:
                     digests.append(hashlib.sha256(image.convert("RGBA").tobytes()).digest())
             self.assertEqual(len(set(digests)), 24)
+
+
+    def run_validation(self):
+        # Exercise the actual CLI validation path, not only make_sheet().
+        with patch.object(sys, "argv", ["preview_raster_contact_sheets.py",
+                                       str(self.assets), str(self.output)]):
+            module.main()
+
+    def test_cli_accepts_complete_valid_art_pack(self):
+        self.run_validation()
+        self.assertTrue((self.output / "biome_contact_sheet.png").is_file())
+        self.assertTrue((self.output / "ore_contact_sheet.png").is_file())
+
+    def test_cli_rejects_opaque_ore_before_writing_sheets(self):
+        Image.new("RGB", (300, 300), (50, 70, 90)).save(
+            self.assets / "ore_07.png")
+        with self.assertRaisesRegex(ValueError, "transparency"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_cli_rejects_identical_decoded_ore_pixels(self):
+        # Same decoded image even when the PNG encoding differs.
+        with Image.open(self.assets / "ore_03.png") as image:
+            image.save(self.assets / "ore_04.png", compress_level=0)
+        with self.assertRaisesRegex(ValueError, "identical pixels"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_cli_rejects_missing_asset_without_partial_output(self):
+        (self.assets / "biome_23.jpg").unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_cli_rejects_corrupt_image_without_partial_output(self):
+        (self.assets / "ore_12.png").write_bytes(b"not a PNG")
+        with self.assertRaises((OSError, SyntaxError)):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_cli_rejects_ore_without_opaque_mineral_pixels(self):
+        image = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        image.putpixel((150, 150), (90, 150, 210, 128))
+        image.save(self.assets / "ore_12.png")
+        with self.assertRaisesRegex(ValueError, "fully opaque"):
+            self.run_validation()
+        self.assertEqual(list(self.output.iterdir()), [])
 
 
 if __name__ == "__main__":
