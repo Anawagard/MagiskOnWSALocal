@@ -21,18 +21,23 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             // Mine: telemetry gap; shop: below cards and settings; feature pages: reserved upper gap.
             // This overlay never changes onTouchEvent geometry.
             int toastY = page==0 ? 178 : (page==1 ? 655 : 145);
+            // Page-aware rail: mine cyan, shop amber, forge orange,
+            // guild violet, atlas blue. Presentation only; touch bounds stay unchanged.
+            int toastAccent = page==0 ? 0xff65e1d0 :
+                (page==1 ? 0xffffcf82 : (page==2 ? 0xffffa77a :
+                (page==3 ? 0xffc4a7ff : 0xff82bfff)));
             // Dedicated notification surface: accent rail + quiet baseline.
             // Preserve the original 324x26 panel and all touch geometry.
             v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);
-            rect(canvas,26,toastY+4,3,18,0xff65e1d0);
+            rect(canvas,26,toastY+4,3,18,toastAccent);
             // A slim illuminated top edge adds depth without obscuring the toast text.
-            rect(canvas,36,toastY+2,76,1,0xff65e1d0);
+            rect(canvas,36,toastY+2,76,1,toastAccent);
             rect(canvas,112,toastY+2,220,1,0xff315d60);
             rect(canvas,36,toastY+22,296,1,0xff315d60);
             // Keep the text inside the 251px safe zone, with a separate ore badge.
             leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);
             rect(canvas,301,toastY+3,25,20,0xff18383c);
-            rect(canvas,301,toastY+3,25,1,0xff65e1d0);
+            rect(canvas,301,toastY+3,25,1,toastAccent);
             rect(canvas,301,toastY+22,25,1,0xff315d60);
             v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24),
                 305,toastY+4,18,18,225);
@@ -59,6 +64,15 @@ def validate_toast_geometry():
     rendered = {0: mine, 1: shop, 2: feature, 3: feature, 4: feature}
     if rendered != TOAST_Y:
         raise RuntimeError("v7.9: Java toast coordinates differ from validated geometry")
+    # Five opaque, distinct tab accents, verified against the actual Java source.
+    palette = re.search(r"int toastAccent = (.*?);", new, re.S)
+    if palette is None:
+        raise RuntimeError("v7.9: missing page-aware toast palette")
+    accents = re.findall(r"0xff[0-9a-fA-F]{6}", palette.group(1))
+    if len(accents) != 5 or len(set(accents)) != 5:
+        raise RuntimeError("v7.9: expected five unique opaque toast accents")
+    if new.count("rect(canvas,26,toastY+4,3,18,toastAccent)") != 1:
+        raise RuntimeError("v7.9: accent rail is not bound to page palette")
     if set(TOAST_Y) != set(range(5)):
         raise RuntimeError("v7.9: toast coordinates must cover exactly five pages")
     if not (39 + 251 < 301 and 301 + 25 <= TOAST_X + TOAST_WIDTH):
