@@ -36,6 +36,9 @@ def make_sheet(assets: Path, destination: Path, kind: str) -> Path:
         x = margin + (index % columns) * (tile[0] + margin)
         y = margin + (index // columns) * (tile[1] + caption + margin)
         sheet.paste(thumbnail, (x, y))
+        # Outline dark tiles to make their boundaries visible on graphite.
+        draw.rectangle((x, y, x + tile[0] - 1, y + tile[1] - 1),
+                       outline=(65, 93, 105), width=1)
         draw.text((x + 4, y + tile[1] + 5), f"{kind.upper()} {index:02d}",
                   fill=(109, 229, 216), font=ImageFont.load_default())
     target = destination / f"{kind}_contact_sheet.png"
@@ -85,6 +88,13 @@ def main():
                         raise ValueError(
                             f"{path.name}: ore must contain fully transparent "
                             "background and fully opaque mineral pixels"
+                        )
+                    # Alpha extrema alone allow a nearly empty ore with one
+                    # opaque pixel. Catch sprites that would be invisible in play.
+                    opaque_pixels = alpha.histogram()[255]
+                    if opaque_pixels < (size[0] * size[1]) // 100:
+                        raise ValueError(
+                            f"{path.name}: fewer than 1% fully opaque mineral pixels"
                         )
                 # Hash decoded RGBA pixels to catch identical variants even if
                 # their PNG/JPEG metadata or compression differs.
