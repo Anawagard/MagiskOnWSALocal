@@ -4,6 +4,8 @@ Usage: python preview_ui_skins.py ASSET_DIRECTORY OUTPUT_PNG
 Never invokes Gradle, Android or Actions. Requires Pillow.
 """
 import argparse
+import os
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
 
@@ -60,7 +62,19 @@ def build_preview(assets: Path, target: Path) -> Path:
         draw.rectangle((x, y, x+w-1, y+h-1), outline=(65, 93, 105))
         draw.text((x+5, y+h+3), name, fill=INK)
     # Save only after all sources have decoded successfully.
-    sheet.save(target, format="PNG", optimize=True)
+    # Preserve a previous successful audit if encoding fails mid-write.
+    # Same-directory replacement is atomic on normal local filesystems.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=".shahta-ui-", suffix=".png", dir=target.parent, delete=False
+        ) as handle:
+            temporary = Path(handle.name)
+        sheet.save(temporary, format="PNG", optimize=True)
+        os.replace(temporary, target)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return target
 
 
