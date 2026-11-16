@@ -335,7 +335,7 @@ def ore(index,color,path):
         else:  # sharply cleaved metallic fragment
             shape=11*math.cos(rad*6+index*.23)+5*math.sin(rad*12)
             aspect=.82
-        dist=109+float(radii[a])*.75+shape
+        dist=min(126,max(65,109+float(radii[a])*.75+shape))
         points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*aspect))
     md.polygon(points,fill=255)
     md.ellipse((87,74,210,220),fill=255)
