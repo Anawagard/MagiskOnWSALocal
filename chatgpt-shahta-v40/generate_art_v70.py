@@ -359,8 +359,11 @@ def ore(index,color,path):
             aspect=.82
         dist=min(126,max(65,109+float(radii[a])*.75+shape))
         points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*aspect))
+    # Every radial contour has a strictly positive radius (>=65 px), so
+    # its polygon already covers the centre. A second fixed ellipse would
+    # overwrite the concave clefts and make the four silhouettes converge.
+    # Preserve the actual family-specific perimeter instead.
     md.polygon(points,fill=255)
-    md.ellipse((87,74,210,220),fill=255)
     mask=mask.filter(ImageFilter.GaussianBlur(.55))
     im=image_array(rgb).convert("RGBA")
     im.putalpha(mask)
