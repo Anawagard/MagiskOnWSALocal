@@ -5,6 +5,7 @@ Fails on missing/undecodable images. Never changes the source assets.
 """
 import argparse
 from pathlib import Path
+import tempfile
 from PIL import Image, ImageDraw, ImageOps
 
 BIOMES = [f"biome_{i:02d}.jpg" for i in range(24)]
@@ -31,33 +32,42 @@ def generate(assets: Path, output: Path):
                 if source.width < 2 or source.height < 2:
                     raise ValueError(f"Invalid raster dimensions: {path}")
     output.mkdir(parents=True, exist_ok=True)
+    # Render all sheets in a staging directory first. An exception while
+    # drawing the last group must never leave a partially refreshed review set.
     produced = []
-    for group, names, columns in GROUPS:
-        cell_w, cell_h, margin, gap, title_h = 188, 226, 24, 14, 58
-        rows = (len(names) + columns - 1) // columns
-        width = margin * 2 + columns * cell_w + (columns - 1) * gap
-        height = title_h + margin + rows * cell_h + (rows - 1) * gap + margin
-        sheet = Image.new("RGB", (width, height), GRAPHITE)
-        draw = ImageDraw.Draw(sheet)
-        draw.text((margin, 18), f"SHAHTA / {group.upper()} / {len(names)}", fill=CYAN)
-        for index, name in enumerate(names):
-            path = assets / name
-            if not path.is_file():
-                raise FileNotFoundError(f"Missing raster: {path}")
-            with Image.open(path) as source:
-                source.load()
-                rgba = source.convert("RGBA")
-                preview = ImageOps.contain(rgba, (cell_w - 20, cell_h - 54), Image.Resampling.LANCZOS)
-            x = margin + (index % columns) * (cell_w + gap)
-            y = title_h + (index // columns) * (cell_h + gap)
-            draw.rounded_rectangle((x, y, x + cell_w - 1, y + cell_h - 1), radius=12, fill=CARD)
-            px = x + (cell_w - preview.width) // 2
-            py = y + 8 + (cell_h - 54 - preview.height) // 2
-            sheet.paste(preview, (px, py), preview)
-            draw.text((x + 12, y + cell_h - 30), name, fill=(235, 243, 246))
-        destination = output / f"shahta_{group}_contact_sheet.png"
-        sheet.save(destination, optimize=True)
-        produced.append(destination)
+    with tempfile.TemporaryDirectory(prefix="shahta-sheets-", dir=output) as staging:
+        staged = []
+        for group, names, columns in GROUPS:
+            cell_w, cell_h, margin, gap, title_h = 188, 226, 24, 14, 58
+            rows = (len(names) + columns - 1) // columns
+            width = margin * 2 + columns * cell_w + (columns - 1) * gap
+            height = title_h + margin + rows * cell_h + (rows - 1) * gap + margin
+            sheet = Image.new("RGB", (width, height), GRAPHITE)
+            draw = ImageDraw.Draw(sheet)
+            draw.text((margin, 18), f"SHAHTA / {group.upper()} / {len(names)}", fill=CYAN)
+            for index, name in enumerate(names):
+                path = assets / name
+                if not path.is_file():
+                    raise FileNotFoundError(f"Missing raster: {path}")
+                with Image.open(path) as source:
+                    source.load()
+                    rgba = source.convert("RGBA")
+                    preview = ImageOps.contain(rgba, (cell_w - 20, cell_h - 54), Image.Resampling.LANCZOS)
+                x = margin + (index % columns) * (cell_w + gap)
+                y = title_h + (index // columns) * (cell_h + gap)
+                draw.rounded_rectangle((x, y, x + cell_w - 1, y + cell_h - 1), radius=12, fill=CARD)
+                px = x + (cell_w - preview.width) // 2
+                py = y + 8 + (cell_h - 54 - preview.height) // 2
+                sheet.paste(preview, (px, py), preview)
+                draw.text((x + 12, y + cell_h - 30), name, fill=(235, 243, 246))
+            destination = Path(staging) / f"shahta_{group}_contact_sheet.png"
+            sheet.save(destination, optimize=True)
+            staged.append(destination)
+            # Only publish after every sheet has been rendered successfully.
+        for temporary in staged:
+            final = output / temporary.name
+            temporary.replace(final)
+            produced.append(final)
     return produced
 
 
