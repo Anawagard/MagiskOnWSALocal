@@ -134,12 +134,12 @@ def cave(index,color,path,w=360,h=570):
         d.arc((36,52,322,266),180,357,fill=(120,83,56,110),width=9)
     elif index%6 in (2,4):
         for j in range(14):
-            x=int(r.choice([r.integers(0,78),r.integers(270,360)]))
+            x=int(r.choice([r.integers(15,60),r.integers(w-60,w-15)]))
             cy=int(r.integers(80,480)); rad=int(r.integers(4,15))
             d.ellipse((x-rad,cy-rad,x+rad,cy+rad),outline=(*color,100),width=2)
     elif index%6==3:
         for j in range(8):
-            x=int(r.integers(0,360));cy=int(r.integers(70,510))
+            x=int(r.choice([r.integers(16,59),r.integers(w-59,w-16)]));cy=int(r.integers(70,510))
             d.line([(x,cy),(x+8,cy+17),(x-2,cy+31)],fill=(255,139,63,95),width=3)
     # Biome-specific foreground geology: four distinct silhouettes repeated
     # with independent palettes and seeded placement across all 24 biomes.
@@ -159,14 +159,14 @@ def cave(index,color,path,w=360,h=570):
         # Layered sedimentary ledges and fine fossil-like inclusions.
         for j in range(12):
             y=int(65+j*39+r.integers(-9,10))
-            span=int(r.integers(34,98))
+            span=int(r.integers(34,min(70,w//5)+1))
             d.line([(0,y),(span,y+int(r.integers(-5,6)))],
                    fill=(*color,94),width=3)
             d.line([(w-span,y+8),(w,y+11)],fill=(8,15,25,125),width=4)
     elif motif==2:
         # Rounded mineral nodules with hard opaque cores.
         for j in range(25):
-            x=int(r.choice([r.integers(5,82),r.integers(w-82,w-5)]))
+            x=int(r.choice([r.integers(14,59),r.integers(w-59,w-14)]))
             y=int(r.integers(68,h-65)); radius=int(r.integers(3,11))
             d.ellipse((x-radius,y-radius,x+radius,y+radius),
                       fill=(11,24,33,155),outline=(*color,128),width=2)
