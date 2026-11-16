@@ -68,6 +68,15 @@ class UiSkinPreviewTests(unittest.TestCase):
             build_preview(self.assets, self.assets / "contact.png")
         self.assertFalse((self.assets / "contact.png").exists())
 
+    def test_failed_rebuild_preserves_previous_preview(self):
+        build_preview(self.assets, self.output)
+        previous = self.output.read_bytes()
+        (self.assets / "nav.png").unlink()
+        with self.assertRaises(FileNotFoundError):
+            build_preview(self.assets, self.output)
+        self.assertEqual(self.output.read_bytes(), previous)
+        self.assertEqual(list(self.output.parent.glob(".shahta-ui-*.png")), [])
+
     def test_missing_output_directory_rejected(self):
         with self.assertRaises(ValueError):
             build_preview(self.assets, self.assets.parent / "missing" / "contact.png")
