@@ -24,6 +24,8 @@ def inspect_png(path):
     dimensions = None
     saw_iend = False
     saw_idat = False
+    idat_closed = False
+    saw_plte = False
     while pos < len(data):
         if pos + 12 > len(data):
             raise ValueError("truncated chunk header")
@@ -38,6 +40,8 @@ def inspect_png(path):
         crc = struct.unpack_from(">I", data, pos + 8 + length)[0]
         if zlib.crc32(kind + payload) & 0xffffffff != crc:
             raise ValueError("PNG chunk CRC mismatch")
+        if saw_idat and kind != b"IDAT":
+            idat_closed = True
         if pos == 8 and kind != b"IHDR":
             raise ValueError("IHDR must be first")
         if kind == b"IHDR":
@@ -51,9 +55,17 @@ def inspect_png(path):
             if (mode, depth) not in {(2, 8), (6, 8), (3, 8), (0, 8), (4, 8)}:
                 raise ValueError("unsupported PNG color mode/depth")
             dimensions = (width, height, mode)
+        elif kind == b"PLTE":
+            if saw_plte or saw_idat or length == 0 or length % 3 or length > 768:
+                raise ValueError("invalid or misplaced PLTE")
+            saw_plte = True
         elif kind == b"IDAT":
+            if idat_closed or length == 0:
+                raise ValueError("empty or nonconsecutive IDAT")
             saw_idat = True
         elif kind == b"IEND":
+            if not saw_idat:
+                raise ValueError("IEND before IDAT")
             if length != 0:
                 raise ValueError("invalid IEND")
             saw_iend = True
@@ -63,6 +75,8 @@ def inspect_png(path):
         elif kind[0] & 0x20 == 0 and kind not in (b"PLTE",):
             raise ValueError(f"unknown critical PNG chunk {kind!r}")
         pos = end
+    if dimensions is not None and dimensions[2] == 3 and not saw_plte:
+        raise ValueError("indexed PNG missing PLTE")
     if not saw_iend or not saw_idat or dimensions is None:
         raise ValueError("missing IHDR, IDAT or IEND")
     return dimensions
