@@ -69,6 +69,43 @@ class ReviewSheetTests(unittest.TestCase):
         self.assertEqual({p.name: p.read_bytes() for p in self.output.iterdir()},
                          expected)
 
+    def test_third_publish_failure_removes_new_sheets(self):
+        # No old generation: a failed third publication must leave no files.
+        original_replace = os.replace
+        calls = [0]
+
+        def fail_third(source, target):
+            calls[0] += 1
+            if calls[0] == 3:
+                raise OSError("simulated third-sheet publication failure")
+            return original_replace(source, target)
+
+        with patch.object(reviewer.os, "replace", side_effect=fail_third):
+            with self.assertRaisesRegex(OSError, "third-sheet publication failure"):
+                reviewer.generate(self.assets, self.output)
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_third_publish_failure_restores_all_previous_sheets(self):
+        expected = {}
+        for group, _, _ in reviewer.GROUPS:
+            path = self.output / f"shahta_{group}_contact_sheet.png"
+            path.write_bytes(f"previous-{group}".encode())
+            expected[path.name] = path.read_bytes()
+        original_replace = os.replace
+        calls = [0]
+
+        def fail_third(source, target):
+            calls[0] += 1
+            if calls[0] == 3:
+                raise OSError("simulated third-sheet publication failure")
+            return original_replace(source, target)
+
+        with patch.object(reviewer.os, "replace", side_effect=fail_third):
+            with self.assertRaisesRegex(OSError, "third-sheet publication failure"):
+                reviewer.generate(self.assets, self.output)
+        self.assertEqual({p.name: p.read_bytes() for p in self.output.iterdir()},
+                         expected)
+
     def test_render_failure_does_not_publish_staged_sheets(self):
         original_save = Image.Image.save
         calls = [0]
