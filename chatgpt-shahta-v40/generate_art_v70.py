@@ -176,9 +176,14 @@ def cave(index,color,path,w=360,h=570):
             for j in range(11):
                 x=int(r.integers(4,65)) if side==0 else int(r.integers(w-65,w-4))
                 y=int(r.integers(60,h-60))
-                d.line([(x,y),(x+int(r.integers(-10,11)),y+15),
-                        (x+int(r.integers(-16,17)),y+32)],
-                       fill=(232,119,72,110),width=2)
+                # Clamp every volcanic fracture vertex to its originating wall.
+                # The earlier +/-17 px offsets could leak into the play corridor.
+                wall_edge=max(1,min(70,w//5))
+                lo,hi=(0,wall_edge-1) if side==0 else (w-wall_edge,w-1)
+                vertices=[(int(np.clip(x+dx,lo,hi)),y+dy)
+                          for dx,dy in ((0,0),(int(r.integers(-10,11)),15),
+                                        (int(r.integers(-16,17)),32))]
+                d.line(vertices,fill=(232,119,72,110),width=2)
     # Six depth-dependent geological signatures differentiate biomes that share
     # the same foreground motif. Keep these confined to the side walls so
     # navigation labels and the central mining corridor remain readable.
