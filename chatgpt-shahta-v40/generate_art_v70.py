@@ -78,14 +78,21 @@ def cave(index,color,path,w=360,h=570):
     im=image_array(rgb)
     d=ImageDraw.Draw(im,"RGBA")
     # Distinct layered real-pixel mineral veins, tiny fossil and fault networks.
+    # Keep decorative veins on the peripheral rock walls. The original
+    # random walk could cross the central mining corridor and muddy ore/HUD
+    # contrast; clamp every vertex before rasterizing the stroke.
+    wall_limit=max(1,min(70,w//5))
     for j in range(75):
-        x=int(r.integers(0,w));y=int(r.integers(0,h))
+        side=int(r.integers(0,2))
+        x=int(r.integers(0,wall_limit)) if side==0 else int(r.integers(w-wall_limit,w))
+        y=int(r.integers(0,h))
         length=int(r.integers(9,65))
         points=[(x,y)]
         dx=float(r.uniform(-.75,.75))
         for k in range(0,length,4):
-            dx=np.clip(dx+r.uniform(-.3,.3),-1.5,1.5)
-            x+=int(dx*4);y+=int(r.uniform(1.3,3.9))
+            dx=float(np.clip(dx+r.uniform(-.3,.3),-1.5,1.5))
+            x=int(np.clip(x+int(dx*4),0,wall_limit-1 if side==0 else w-1)) if side==0 else int(np.clip(x+int(dx*4),w-wall_limit,w-1))
+            y+=int(r.uniform(1.3,3.9))
             points.append((x,y))
         bright=r.random()<.35
         ink=(int(color[0]*.8+50),int(color[1]*.8+42),
