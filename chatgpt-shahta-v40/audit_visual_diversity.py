@@ -25,6 +25,8 @@ def inspect(path, ore):
             raise ValueError(f"{path.name}: raster too small")
         if ore and source.mode not in ("RGBA", "LA", "P"):
             raise ValueError(f"{path.name}: ore requires alpha-capable image")
+        if ore and source.mode == "P" and "transparency" not in source.info:
+            raise ValueError(f"{path.name}: palette image has no transparency")
         rgba = source.convert("RGBA")
         arr = np.asarray(rgba, dtype=np.uint8)
     alpha = arr[:, :, 3]
@@ -41,8 +43,17 @@ def inspect(path, ore):
     if np.mean(np.std(visible.astype(np.float32), axis=0)) < 8:
         raise ValueError(f"{path.name}: insufficient tonal variation")
     # Fixed-size visual fingerprint, compared across the same asset family.
-    thumb = rgba.convert("RGB").resize((32, 32), Image.Resampling.BILINEAR)
+    # Composite on a fixed graphite background to avoid treating fully
+    # transparent RGB payload as visible ore texture. Keep alpha as a
+    # separate channel so distinct silhouettes cannot look identical.
+    thumb = rgba.resize((32, 32), Image.Resampling.BILINEAR)
     pixels = np.asarray(thumb, dtype=np.float32)
+    if ore:
+        a = pixels[:, :, 3:4] / 255.0
+        rgb = pixels[:, :, :3] * a + np.array([19, 27, 36], dtype=np.float32) * (1.0 - a)
+        pixels = np.concatenate((rgb, pixels[:, :, 3:4]), axis=2)
+    else:
+        pixels = pixels[:, :, :3]
     return {
         "file": path.name,
         "size": list(arr.shape[1::-1]),
@@ -70,7 +81,7 @@ def audit(folder):
                 if mean_delta < 1.5:
                     raise ValueError(
                         f"{label}: visually duplicated {names[i]} / {names[j]} "
-                        f"(mean RGB delta {mean_delta:.2f})"
+                        f"(mean visible-channel delta {mean_delta:.2f})"
                     )
     return result
 
