@@ -106,21 +106,24 @@ def cave(index,color,path,w=360,h=570):
         base_y=90+band*62+int(strata_rng.integers(-11,12))
         slope=int(strata_rng.integers(-17,18))
         offset=int(strata_rng.integers(14,42))
-        # Broken seams deliberately avoid a uniform horizontal wallpaper look.
-        left_end=int(strata_rng.integers(90,166))
-        right_start=left_end+int(strata_rng.integers(28,65))
+        # Confine lithological seams to the peripheral walls. Earlier long
+        # strokes entered the central x=85..275 gameplay corridor.
+        margin=max(4,min(70,w//5))
+        left_end=int(strata_rng.integers(max(2,margin//2),margin+1))
+        right_start=w-left_end
         seam=(min(255,int(color[0]*.70+30)),
               min(255,int(color[1]*.70+35)),
               min(255,int(color[2]*.70+42)),48)
         d.line([(0,base_y),(left_end,base_y+slope)],fill=seam,width=2)
         d.line([(right_start,base_y+slope+offset//5),
-                (w,base_y+offset)],fill=seam,width=2)
-        # Tiny fault branches make the 24 caves individually identifiable.
+                (w-1,base_y+offset)],fill=seam,width=2)
+        # Fault branches also remain inside the right wall.
         if (band+index)%2==0:
-            joint_x=right_start+int(strata_rng.integers(5,35))
+            joint_x=min(w-3,right_start+int(strata_rng.integers(1,9)))
             joint_y=base_y+slope+offset//5
-            d.line([(joint_x,joint_y),(joint_x-9,joint_y+14),
-                    (joint_x-6,joint_y+27)],fill=(8,15,25,65),width=2)
+            d.line([(joint_x,joint_y),(max(right_start,joint_x-5),joint_y+14),
+                    (max(right_start,joint_x-4),joint_y+27)],
+                   fill=(8,15,25,65),width=2)
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
     d.polygon([(0,510),(45,493),(105,519),(153,506),(223,525),
                (280,504),(360,516),(360,570),(0,570)],fill=(14,19,29,115))
