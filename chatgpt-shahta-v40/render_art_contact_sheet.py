@@ -6,6 +6,7 @@ Fails on missing/undecodable images. Never changes the source assets.
 import argparse
 from pathlib import Path
 import tempfile
+import os
 from PIL import Image, ImageDraw, ImageOps
 
 BIOMES = [f"biome_{i:02d}.jpg" for i in range(24)]
@@ -64,10 +65,31 @@ def generate(assets: Path, output: Path):
             sheet.save(destination, optimize=True)
             staged.append(destination)
             # Only publish after every sheet has been rendered successfully.
-        for temporary in staged:
-            final = output / temporary.name
-            temporary.replace(final)
-            produced.append(final)
+        # A failed rename in the middle of publication must not leave a
+        # mixed generation (some old sheets, some new). Keep previous bytes
+        # until all three replacements have succeeded, then release backups.
+        previous = {p.name: p.read_bytes() if p.exists() else None
+                    for p in (output / item.name for item in staged)}
+        published = []
+        try:
+            for temporary in staged:
+                final = output / temporary.name
+                os.replace(temporary, final)
+                published.append(final)
+        except OSError:
+            # Roll back in reverse order, including newly created files.
+            for final in reversed(published):
+                old = previous[final.name]
+                if old is None:
+                    final.unlink(missing_ok=True)
+                else:
+                    with tempfile.NamedTemporaryFile(dir=output, prefix=".shahta-rollback-",
+                                                     delete=False) as backup:
+                        backup.write(old)
+                        backup_path = Path(backup.name)
+                    os.replace(backup_path, final)
+            raise
+        produced.extend(published)
     return produced
 
 
