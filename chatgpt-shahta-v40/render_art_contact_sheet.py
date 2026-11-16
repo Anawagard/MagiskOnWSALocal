@@ -18,6 +18,18 @@ CYAN = (75, 223, 218)
 
 
 def generate(assets: Path, output: Path):
+    # Validate all assets before producing any review sheet.
+    for group, names, _ in GROUPS:
+        for name in names:
+            path = assets / name
+            if not path.is_file():
+                raise FileNotFoundError(f"Missing {group} raster: {path}")
+            with Image.open(path) as source:
+                source.verify()
+            with Image.open(path) as source:
+                source.load()
+                if source.width < 2 or source.height < 2:
+                    raise ValueError(f"Invalid raster dimensions: {path}")
     output.mkdir(parents=True, exist_ok=True)
     produced = []
     for group, names, columns in GROUPS:
