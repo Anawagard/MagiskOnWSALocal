@@ -62,5 +62,23 @@ class PNGFramingRegression(unittest.TestCase):
                 self.inspect(payload)
 
 
+    def test_chunk_order_and_palette_regressions(self):
+        ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", 32, 32, 8, 6, 0, 0, 0))
+        indexed = chunk(b"IHDR", struct.pack(">IIBBBBB", 32, 32, 8, 3, 0, 0, 0))
+        pixels = chunk(b"IDAT", zlib.compress(b"\\x00" * 129))
+        palette = chunk(b"PLTE", bytes([12, 34, 56]))
+        end = chunk(b"IEND")
+        for label, payload in (
+            ("empty IDAT", audit.PNG_SIGNATURE + ihdr + chunk(b"IDAT") + end),
+            ("split IDAT", audit.PNG_SIGNATURE + ihdr + pixels
+             + chunk(b"tEXt", b"k\\x00v") + pixels + end),
+            ("palette after pixels", audit.PNG_SIGNATURE + ihdr + pixels + palette + end),
+            ("duplicate palette", audit.PNG_SIGNATURE + ihdr + palette + palette + pixels + end),
+            ("indexed missing palette", audit.PNG_SIGNATURE + indexed + pixels + end),
+            ("IEND before pixels", audit.PNG_SIGNATURE + ihdr + end),
+        ):
+            with self.subTest(label=label), self.assertRaises(ValueError):
+                self.inspect(payload)
+
 if __name__ == "__main__":
     unittest.main()
