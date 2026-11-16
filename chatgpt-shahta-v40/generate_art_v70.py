@@ -320,8 +320,23 @@ def ore(index,color,path):
                     np.arange(19),np.r_[nodes,nodes[0]])
     for a in range(64):
         rad=a*math.tau/64
-        dist=113+float(radii[a])+6*math.sin(rad*3+index)+4*math.cos(rad*7+index*.4)
-        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*.87))
+        # Four distinct ore silhouettes, not just differently colored stones.
+        # Keep every vertex inside the 300px bitmap and preserve the alpha mask.
+        family=index%4
+        if family==0:  # fractured, broad crystalline ore
+            shape=9*math.cos(rad*5+index*.37)+4*math.sin(rad*11)
+            aspect=.86
+        elif family==1:  # compact rounded nodule
+            shape=4*math.cos(rad*3+index*.41)+3*math.sin(rad*9)
+            aspect=.94
+        elif family==2:  # elongated sedimentary deposit
+            shape=7*math.cos(rad*4+index*.29)+3*math.sin(rad*13)
+            aspect=.72
+        else:  # sharply cleaved metallic fragment
+            shape=11*math.cos(rad*6+index*.23)+5*math.sin(rad*12)
+            aspect=.82
+        dist=109+float(radii[a])*.75+shape
+        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*aspect))
     md.polygon(points,fill=255)
     md.ellipse((87,74,210,220),fill=255)
     mask=mask.filter(ImageFilter.GaussianBlur(.55))
