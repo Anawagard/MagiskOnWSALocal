@@ -296,6 +296,28 @@ def cave(index,color,path,w=360,h=570):
                         (edge+direction*(reach//2),cy),
                         (edge,cy+spread//2)],
                        fill=(190,233,224,29),width=1)
+    # Layered mineral strata give each of the 24 biomes a recognizable
+    # side-wall rhythm at phone resolution. The veins are baked into JPEG
+    # and never intrude into the central x=85..275 mining corridor.
+    if 0 <= index < 24:
+        seam_rng = np.random.default_rng(650021 + index * 1427)
+        spacing = 27 + index % 5 * 5
+        for side in (0, 1):
+            edge = 5 if side == 0 else w - 5
+            direction = 1 if side == 0 else -1
+            for row in range(95, h - 75, spacing):
+                y = row + int(seam_rng.integers(-7, 8))
+                reach = int(seam_rng.integers(22, 58))
+                kink = int(seam_rng.integers(-9, 10))
+                x1 = edge + direction * (reach // 2)
+                x2 = edge + direction * reach
+                # Reach <= 57 px from the edge; never overdraws HUD/play lane.
+                dark = (8, 20, 29, 75 + index % 4 * 10)
+                light = (*color, 60 + index % 3 * 12)
+                d.line([(edge, y), (x1, y + kink), (x2, y + kink + 5)],
+                       fill=dark, width=3)
+                d.line([(edge, y - 2), (x1, y + kink - 2),
+                        (x2, y + kink + 3)], fill=light, width=1)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
