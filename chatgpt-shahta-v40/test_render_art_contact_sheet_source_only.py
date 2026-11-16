@@ -1,5 +1,6 @@
 """Regression tests for the three-sheet v7 art reviewer; source-only, no APK."""
 import tempfile
+import os
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -45,6 +46,28 @@ class ReviewSheetTests(unittest.TestCase):
             reviewer.generate(self.assets, self.output)
         self.assertEqual(old.read_bytes(), b"previous review")
         self.assertEqual([p.name for p in self.output.iterdir()], [old.name])
+
+    def test_publish_failure_rolls_back_previous_generation(self):
+        # Simulate the second rename failing after the first sheet was replaced.
+        expected = {}
+        for group, _, _ in reviewer.GROUPS:
+            path = self.output / f"shahta_{group}_contact_sheet.png"
+            path.write_bytes(f"old-{group}".encode())
+            expected[path.name] = path.read_bytes()
+        original_replace = os.replace
+        calls = [0]
+
+        def fail_second(source, target):
+            calls[0] += 1
+            if calls[0] == 2:
+                raise OSError("simulated publication failure")
+            return original_replace(source, target)
+
+        with patch.object(reviewer.os, "replace", side_effect=fail_second):
+            with self.assertRaisesRegex(OSError, "publication failure"):
+                reviewer.generate(self.assets, self.output)
+        self.assertEqual({p.name: p.read_bytes() for p in self.output.iterdir()},
+                         expected)
 
     def test_render_failure_does_not_publish_staged_sheets(self):
         original_save = Image.Image.save
