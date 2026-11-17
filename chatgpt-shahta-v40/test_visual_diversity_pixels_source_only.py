@@ -16,9 +16,9 @@ from audit_visual_diversity import BIOMES, ORES, audit, inspect
 class VisualDiversityPixelTests(unittest.TestCase):
     def test_hidden_rgb_does_not_change_visible_ore_fingerprint(self):
         with tempfile.TemporaryDirectory() as temp:
-            base = np.zeros((128, 128, 4), dtype=np.uint8)
-            yy, xx = np.indices((128, 128))
-            mask = (xx - 64) ** 2 + (yy - 64) ** 2 < 40 ** 2
+            base = np.zeros((300, 300, 4), dtype=np.uint8)
+            yy, xx = np.indices((300, 300))
+            mask = (xx - 150) ** 2 + (yy - 150) ** 2 < 90 ** 2
             base[mask, :3] = np.stack((xx[mask] * 2, yy[mask] * 2, 180 + xx[mask] // 4), axis=1)
             base[mask, 3] = 255
             other = base.copy()
@@ -30,17 +30,28 @@ class VisualDiversityPixelTests(unittest.TestCase):
             _, thumb_b = inspect(second, True)
             self.assertLess(float(np.mean(np.abs(thumb_a - thumb_b))), 1.5)
 
+    def test_wrong_dimensions_are_rejected_before_pixel_audit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'ore_bad.png'
+            Image.new('RGBA', (360, 570), (100, 150, 190, 255)).save(path)
+            with self.assertRaisesRegex(ValueError, 'expected 300x300 raster'):
+                inspect(path, True)
+            path = Path(temp) / 'biome_bad.jpg'
+            Image.new('RGB', (300, 300), (50, 70, 90)).save(path)
+            with self.assertRaisesRegex(ValueError, 'expected 360x570 raster'):
+                inspect(path, False)
+
     def test_duplicate_ore_is_rejected_even_with_different_hidden_rgb(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
-            yy, xx = np.indices((128, 128))
+            yy, xx = np.indices((300, 300))
             for i, name in enumerate(BIOMES):
                 rgb = np.stack(((xx + i * 11) % 256, (yy * 2 + i * 7) % 256,
                                 (xx + yy + i * 13) % 256), axis=2).astype(np.uint8)
-                Image.fromarray(rgb, 'RGB').save(folder / name, quality=95)
+                Image.fromarray(rgb, 'RGB').resize((360, 570)).save(folder / name, quality=95)
             for i, name in enumerate(ORES):
-                rgba = np.zeros((128, 128, 4), dtype=np.uint8)
-                mask = (xx - 64) ** 2 + (yy - 64) ** 2 < 40 ** 2
+                rgba = np.zeros((300, 300, 4), dtype=np.uint8)
+                mask = (xx - 150) ** 2 + (yy - 150) ** 2 < 90 ** 2
                 rgba[mask, :3] = np.stack(((xx[mask] * 2 + i * 9) % 256,
                                             (yy[mask] * 2 + i * 13) % 256,
                                             (xx[mask] + yy[mask] + i * 17) % 256), axis=1)
