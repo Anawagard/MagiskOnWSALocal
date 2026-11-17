@@ -200,6 +200,24 @@ def verify(root):
                    for i in range(1, 5)]
     if len(set(menu_hashes)) != 4:
         raise ValueError("duplicate menu backgrounds in four-screen art set")
+    # Distinct JPEG byte streams can still encode visually identical backdrops
+    # (different compression quality or metadata). Compare decoded, downsampled
+    # pixels so every destination has a genuinely distinct visual identity.
+    menu_previews = []
+    for i in range(1, 5):
+        with Image.open(assets / f"menu_{i}.jpg") as img:
+            menu_previews.append(np.asarray(
+                img.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR),
+                dtype=np.float32,
+            ))
+    for i in range(len(menu_previews)):
+        for j in range(i + 1, len(menu_previews)):
+            mean_delta = float(np.mean(np.abs(menu_previews[i] - menu_previews[j])))
+            if mean_delta < 3.0:
+                raise ValueError(
+                    f"menu_{i + 1}.jpg and menu_{j + 1}.jpg are visually "
+                    f"indistinguishable (mean RGB delta {mean_delta:.2f})"
+                )
     # A valid PNG header does not guarantee a useful review sheet: an empty
     # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
     from PIL import ImageStat
