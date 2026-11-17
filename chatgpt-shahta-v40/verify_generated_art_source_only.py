@@ -74,6 +74,18 @@ def verify(root):
                 raise ValueError(f"{filename}: menu backdrop is not JPEG")
             if filename.endswith(".png") and img.format != "PNG":
                 raise ValueError(f"{filename}: UI skin is not PNG")
+            # A syntactically valid transparent PNG can still be invisible.
+            # Verify the actual composited pixel coverage, not file size.
+            if filename.endswith(".png"):
+                alpha = img.convert("RGBA").getchannel("A")
+                if alpha.getbbox() is None:
+                    raise ValueError(f"{filename}: fully transparent UI raster")
+            else:
+                # Detect blank/solid JPEG menu backdrops before release.
+                from PIL import ImageStat
+                variance = ImageStat.Stat(img.convert("RGB")).var
+                if max(variance) < 2.0:
+                    raise ValueError(f"{filename}: visually flat menu backdrop")
     for group in ("biomes", "ores", "interface"):
         path = sheets / f"shahta_{group}_contact_sheet.png"
         with Image.open(path) as img:
