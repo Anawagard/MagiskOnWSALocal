@@ -21,6 +21,15 @@ ORES = [f"ore_{i:02d}.png" for i in range(24)]
 def inspect(path, ore):
     with Image.open(path) as source:
         source.load()
+        # Extensions alone do not establish decoder compatibility: a PNG
+        # renamed .jpg can slip into the Android resource pack and silently
+        # change memory/compression assumptions.
+        expected_format = "PNG" if ore else "JPEG"
+        if source.format != expected_format:
+            raise ValueError(
+                f"{path.name}: expected {expected_format} encoding, "
+                f"got {source.format}"
+            )
         # The Android renderer assumes portrait 360x570 biome backdrops and
         # square 300x300 ore icons. A large but wrongly shaped raster can pass
         # the pixel-diversity checks while stretching badly on narrow phones.
