@@ -83,8 +83,22 @@ def verify(root):
                 raise ValueError(f"{group}: stale or tampered audit for {asset.name}")
             with Image.open(asset) as img:
                 img.load()
+                expected_format = "JPEG" if group == "biomes" else "PNG"
+                if img.format != expected_format:
+                    raise ValueError(
+                        f"{group}: {asset.name} contains {img.format}, "
+                        f"expected {expected_format}"
+                    )
                 if list(img.size) != entry["size"]:
                     raise ValueError(f"{group}: stale dimensions for {asset.name}")
+                # Compare reported opacity with the decoded image pixels.
+                import numpy as np
+                rgba = np.asarray(img.convert("RGBA"), dtype=np.uint8)
+                actual_occupancy = float(np.mean(rgba[:, :, 3] > 0))
+                if abs(actual_occupancy - entry["alpha_occupancy"]) > 0.001:
+                    raise ValueError(
+                        f"{group}: stale alpha occupancy for {asset.name}"
+                    )
     # Verify all UI skins and menu backdrops, not just the ore/biome subset.
     # The contact-sheet generator checks readability, but explicit image
     # dimensions and alpha rules prevent accidentally publishing empty skins.
