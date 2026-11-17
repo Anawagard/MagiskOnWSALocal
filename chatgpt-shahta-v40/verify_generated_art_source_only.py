@@ -48,6 +48,9 @@ def verify(root):
         "--output", sheets)
     import json
     data = json.loads(report.read_text(encoding="utf-8"))
+    # Reject malformed or mathematically inconsistent similarity metadata.
+    from test_visual_audit_report_integrity_source_only import validate_report
+    validate_report(data)
     if len(data["biomes"]) != 24 or len(data["ores"]) != 24:
         raise ValueError("Visual audit must contain exactly 24 biomes and 24 ores")
     for name in ("biomes", "ores"):
