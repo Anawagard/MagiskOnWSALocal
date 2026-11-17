@@ -99,6 +99,19 @@ def verify(root):
                     raise ValueError(
                         f"{group}: stale alpha occupancy for {asset.name}"
                     )
+                # Unique hashes alone cannot establish texture quality.
+                # Exclude transparent ore margins from color statistics.
+                rgb = rgba[:, :, :3].astype(np.float32)
+                visible = rgba[:, :, 3] > 16
+                samples = rgb[visible] if group == "ores" else rgb.reshape(-1, 3)
+                if samples.shape[0] < 100:
+                    raise ValueError(f"{group}: too few visible pixels in {asset.name}")
+                channel_variance = np.var(samples, axis=0)
+                if float(np.max(channel_variance)) < 12.0:
+                    raise ValueError(
+                        f"{group}: flat/untextured raster {asset.name} "
+                        f"(max channel variance {float(np.max(channel_variance)):.2f})"
+                    )
     # Verify all UI skins and menu backdrops, not just the ore/biome subset.
     # The contact-sheet generator checks readability, but explicit image
     # dimensions and alpha rules prevent accidentally publishing empty skins.
