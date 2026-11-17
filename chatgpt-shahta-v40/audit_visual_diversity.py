@@ -53,14 +53,26 @@ def inspect(path, ore):
     # Composite on a fixed graphite background to avoid treating fully
     # transparent RGB payload as visible ore texture. Keep alpha as a
     # separate channel so distinct silhouettes cannot look identical.
-    thumb = rgba.resize((32, 32), Image.Resampling.BILINEAR)
-    pixels = np.asarray(thumb, dtype=np.float32)
     if ore:
-        a = pixels[:, :, 3:4] / 255.0
-        rgb = pixels[:, :, :3] * a + np.array([19, 27, 36], dtype=np.float32) * (1.0 - a)
-        pixels = np.concatenate((rgb, pixels[:, :, 3:4]), axis=2)
+        # Composite at native resolution *before* downsampling. Resizing
+        # straight-alpha RGBA can mix invisible RGB payload into edge pixels,
+        # producing false differences between visually identical sprites.
+        background = Image.new("RGB", rgba.size, (19, 27, 36))
+        background.paste(rgba, mask=rgba.getchannel("A"))
+        rgb = np.asarray(
+            background.resize((32, 32), Image.Resampling.BILINEAR),
+            dtype=np.float32,
+        )
+        alpha_thumb = np.asarray(
+            rgba.getchannel("A").resize((32, 32), Image.Resampling.BILINEAR),
+            dtype=np.float32,
+        )
+        pixels = np.concatenate((rgb, alpha_thumb[:, :, None]), axis=2)
     else:
-        pixels = pixels[:, :, :3]
+        pixels = np.asarray(
+            rgba.convert("RGB").resize((32, 32), Image.Resampling.BILINEAR),
+            dtype=np.float32,
+        )
     return {
         "file": path.name,
         "size": list(arr.shape[1::-1]),
