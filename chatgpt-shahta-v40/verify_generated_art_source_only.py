@@ -171,6 +171,35 @@ def verify(root):
                 variance = ImageStat.Stat(img.convert("RGB")).var
                 if max(variance) < 2.0:
                     raise ValueError(f"{filename}: visually flat menu backdrop")
+    # The enabled and disabled controls must remain distinguishable after
+    # alpha compositing onto the actual graphite surface. Different hashes
+    # alone do not guarantee visible feedback for a pressed/disabled action.
+    import numpy as np
+    from PIL import ImageChops
+    def composited_button(name):
+        with Image.open(assets / name) as source:
+            rgba = source.convert("RGBA")
+            base = Image.new("RGBA", rgba.size, (19, 27, 36, 255))
+            return Image.alpha_composite(base, rgba).convert("RGB")
+
+    enabled = composited_button("button.png")
+    disabled = composited_button("button_off.png")
+    if enabled.size != disabled.size:
+        raise ValueError("button states have mismatched raster dimensions")
+    difference = np.asarray(ImageChops.difference(enabled, disabled), dtype=np.uint8)
+    changed_fraction = float(np.mean(np.max(difference, axis=2) >= 8))
+    mean_difference = float(np.mean(difference))
+    if changed_fraction < 0.02 or mean_difference < 1.0:
+        raise ValueError(
+            "button states are visually indistinguishable on graphite "
+            f"(changed={changed_fraction:.2%}, mean delta={mean_difference:.2f})"
+        )
+    # Duplicate menu backgrounds can make distinct navigation destinations
+    # look like the same screen, even if all four files decode correctly.
+    menu_hashes = [hashlib.sha256((assets / f"menu_{i}.jpg").read_bytes()).digest()
+                   for i in range(1, 5)]
+    if len(set(menu_hashes)) != 4:
+        raise ValueError("duplicate menu backgrounds in four-screen art set")
     # A valid PNG header does not guarantee a useful review sheet: an empty
     # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
     from PIL import ImageStat
