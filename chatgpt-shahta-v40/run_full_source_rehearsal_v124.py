@@ -6,6 +6,7 @@ not restored, so this rehearsal is NOT a buildable Android release.
 Run from any directory: python3 chatgpt-shahta-v40/run_full_source_rehearsal_v124.py
 """
 from pathlib import Path
+import argparse
 import ast
 import os
 import subprocess
@@ -68,7 +69,7 @@ def verify_modernist_art(project):
             img.verify()
     print(f"ART PASS: {len(expected)} decoded raster assets, including 24 ore sprites", flush=True)
 
-def rehearse():
+def rehearse(art_output=None):
     if not __debug__:
         raise SystemExit("BLOCKED: source rehearsal requires assertions; disable -O")
     if os.environ.get("SHAHTA_BASELINE_PROJECT"):
@@ -109,9 +110,12 @@ def rehearse():
     # This exercises the actual 48 generated images, pixel diversity, opacity,
     # button-state contrast and contact sheets, rather than source signatures.
     # All output is disposable; no Gradle, APK or GitHub Actions are invoked.
+    art_command = [sys.executable, "-X", "utf8",
+                   str(HERE / "verify_generated_art_source_only.py")]
+    if art_output is not None:
+        art_command.extend(("--output", str(art_output)))
     subprocess.run(
-        [sys.executable, "-X", "utf8",
-         str(HERE / "verify_generated_art_source_only.py")],
+        art_command,
         cwd=HERE, check=True, timeout=300,
         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
              "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
@@ -163,4 +167,9 @@ def rehearse():
 
 
 if __name__ == "__main__":
-    rehearse()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--art-output", type=Path,
+                        help="Keep generated PNG/JPEG sprites, JSON audit and contact sheets "
+                             "in a new or empty directory for manual review")
+    args = parser.parse_args()
+    rehearse(args.art_output.expanduser().resolve() if args.art_output else None)
