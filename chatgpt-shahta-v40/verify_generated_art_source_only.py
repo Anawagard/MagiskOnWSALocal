@@ -80,6 +80,24 @@ def verify(root):
                 alpha = img.convert("RGBA").getchannel("A")
                 if alpha.getbbox() is None:
                     raise ValueError(f"{filename}: fully transparent UI raster")
+                # Nonempty alpha alone is insufficient: a single opaque pixel
+                # can pass the old gate while the control remains invisible.
+                # Check visible coverage and composited tonal variation using
+                # the same graphite surface as the in-game chrome.
+                import numpy as np
+                from PIL import ImageStat
+                alpha_pixels = np.asarray(alpha, dtype=np.uint8)
+                coverage = float(np.mean(alpha_pixels > 16))
+                if coverage < 0.02:
+                    raise ValueError(
+                        f"{filename}: insufficient visible UI coverage "
+                        f"({coverage:.3%})"
+                    )
+                graphite = Image.new("RGB", img.size, (19, 27, 36))
+                rgba = img.convert("RGBA")
+                graphite.paste(rgba, mask=rgba.getchannel("A"))
+                if max(ImageStat.Stat(graphite).var) < 1.0:
+                    raise ValueError(f"{filename}: visually flat UI raster")
             else:
                 # Detect blank/solid JPEG menu backdrops before release.
                 from PIL import ImageStat
