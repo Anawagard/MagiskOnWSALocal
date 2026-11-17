@@ -105,6 +105,18 @@ def rehearse():
             env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
                  "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
         )
+    # Validate the complete standalone raster pipeline before historical replay.
+    # This exercises the actual 48 generated images, pixel diversity, opacity,
+    # button-state contrast and contact sheets, rather than source signatures.
+    # All output is disposable; no Gradle, APK or GitHub Actions are invoked.
+    subprocess.run(
+        [sys.executable, "-X", "utf8",
+         str(HERE / "verify_generated_art_source_only.py")],
+        cwd=HERE, check=True, timeout=300,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+             "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
+    )
+    print("RASTER SOURCE-ONLY PASS: 48 assets and contact sheets", flush=True)
     steps = source_steps(WORKFLOW.read_text(encoding="utf-8"))
     with tempfile.TemporaryDirectory(prefix="shahta-full-source-") as folder:
         root = Path(folder)
