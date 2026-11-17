@@ -194,6 +194,27 @@ def verify(root):
             "button states are visually indistinguishable on graphite "
             f"(changed={changed_fraction:.2%}, mean delta={mean_difference:.2f})"
         )
+    # RGB distance alone can be large for colors that have nearly identical
+    # perceived brightness. The disabled state must also remain distinguishable
+    # in grayscale (low saturation, color-vision deficiency, screen dimming).
+    # Compute sRGB relative luminance after compositing both states on graphite.
+    def relative_luminance(rgb):
+        srgb = np.asarray(rgb, dtype=np.float32) / 255.0
+        linear = np.where(srgb <= 0.04045, srgb / 12.92,
+                          ((srgb + 0.055) / 1.055) ** 2.4)
+        return (0.2126 * linear[:, :, 0] +
+                0.7152 * linear[:, :, 1] +
+                0.0722 * linear[:, :, 2])
+
+    luminance_delta = float(np.mean(np.abs(
+        relative_luminance(enabled) - relative_luminance(disabled)
+    )))
+    if luminance_delta < 0.012:
+        raise ValueError(
+            "button enabled/disabled states have insufficient grayscale "
+            f"separation on graphite (mean relative luminance delta "
+            f"{luminance_delta:.4f})"
+        )
     # Duplicate menu backgrounds can make distinct navigation destinations
     # look like the same screen, even if all four files decode correctly.
     menu_hashes = [hashlib.sha256((assets / f"menu_{i}.jpg").read_bytes()).digest()
