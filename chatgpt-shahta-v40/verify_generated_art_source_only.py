@@ -62,6 +62,29 @@ def verify(root):
             raise ValueError(f"{name}: incomplete nearest-neighbor report")
         if not all(item["nearest_file"] != item["file"] for item in neighbors):
             raise ValueError(f"{name}: invalid self-neighbor")
+    # Bind the JSON audit to the actual bytes on disk. An internally
+    # consistent report can otherwise pass after assets have been replaced,
+    # truncated or swapped since the audit was generated.
+    import hashlib
+    for group, prefix, suffix in (
+        ("biomes", "biome", ".jpg"), ("ores", "ore", ".png")
+    ):
+        expected_names = {f"{prefix}_{i:02d}{suffix}" for i in range(24)}
+        entries = data[group]
+        reported_names = [entry["file"] for entry in entries]
+        if set(reported_names) != expected_names or len(reported_names) != 24:
+            raise ValueError(f"{group}: report filenames do not match the 24 expected assets")
+        for entry in entries:
+            asset = assets / entry["file"]
+            if not asset.is_file():
+                raise ValueError(f"{group}: missing audited asset {asset.name}")
+            actual_hash = hashlib.sha256(asset.read_bytes()).hexdigest()
+            if actual_hash != entry["sha256"]:
+                raise ValueError(f"{group}: stale or tampered audit for {asset.name}")
+            with Image.open(asset) as img:
+                img.load()
+                if list(img.size) != entry["size"]:
+                    raise ValueError(f"{group}: stale dimensions for {asset.name}")
     # Verify all UI skins and menu backdrops, not just the ore/biome subset.
     # The contact-sheet generator checks readability, but explicit image
     # dimensions and alpha rules prevent accidentally publishing empty skins.
