@@ -89,6 +89,11 @@ def verify(root):
                         f"{group}: {asset.name} contains {img.format}, "
                         f"expected {expected_format}"
                     )
+                expected_size = (360, 570) if group == "biomes" else (300, 300)
+                if img.size != expected_size:
+                    raise ValueError(
+                        f"{group}: {asset.name} has {img.size}, expected {expected_size}"
+                    )
                 if list(img.size) != entry["size"]:
                     raise ValueError(f"{group}: stale dimensions for {asset.name}")
                 # Compare reported opacity with the decoded image pixels.
@@ -98,6 +103,15 @@ def verify(root):
                 if abs(actual_occupancy - entry["alpha_occupancy"]) > 0.001:
                     raise ValueError(
                         f"{group}: stale alpha occupancy for {asset.name}"
+                    )
+                # A self-consistent report must not excuse a nearly invisible ore.
+                # JPEG backgrounds must be fully opaque by construction.
+                if group == "biomes" and actual_occupancy != 1.0:
+                    raise ValueError(f"{group}: nonopaque biome {asset.name}")
+                if group == "ores" and not 0.05 <= actual_occupancy <= 0.95:
+                    raise ValueError(
+                        f"{group}: implausible ore silhouette coverage "
+                        f"for {asset.name}: {actual_occupancy:.2%}"
                     )
                 # Unique hashes alone cannot establish texture quality.
                 # Exclude transparent ore margins from color statistics.
