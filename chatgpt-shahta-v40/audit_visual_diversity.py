@@ -94,14 +94,26 @@ def audit(folder):
             thumbs.append(thumb)
         # Reject identical and almost-identical images even when encoded
         # with different metadata. This is not a subjective art-quality score.
+        closest_pair = None
+        minimum_delta = float("inf")
         for i in range(len(thumbs)):
             for j in range(i + 1, len(thumbs)):
                 mean_delta = float(np.mean(np.abs(thumbs[i] - thumbs[j])))
+                if mean_delta < minimum_delta:
+                    minimum_delta = mean_delta
+                    closest_pair = (names[i], names[j])
                 if mean_delta < 1.5:
                     raise ValueError(
                         f"{label}: visually duplicated {names[i]} / {names[j]} "
                         f"(mean visible-channel delta {mean_delta:.2f})"
                     )
+        # Include the closest pair in successful reports so art reviewers can
+        # inspect borderline similarities rather than treating pass as proof
+        # of artistic distinctness. This adds metadata without changing assets.
+        result[f"{label}_closest_pair"] = {
+            "files": list(closest_pair),
+            "mean_channel_delta": round(minimum_delta, 3),
+        }
     return result
 
 
