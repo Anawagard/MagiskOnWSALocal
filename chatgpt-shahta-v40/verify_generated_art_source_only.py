@@ -17,9 +17,16 @@ HERE = Path(__file__).resolve().parent
 
 
 def run(script, *args, env=None):
+    """Bound every source-only stage and keep Python assertions enabled."""
+    safe_env = dict(os.environ if env is None else env)
+    safe_env.update({
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONUTF8": "1",
+        "PYTHONOPTIMIZE": "",
+    })
     subprocess.run(
-        [sys.executable, str(HERE / script), *map(str, args)],
-        check=True, cwd=HERE, env=env,
+        [sys.executable, "-X", "utf8", str(HERE / script), *map(str, args)],
+        check=True, cwd=HERE, env=safe_env, timeout=300,
     )
 
 
