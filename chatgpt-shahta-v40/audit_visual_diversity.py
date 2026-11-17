@@ -21,8 +21,15 @@ ORES = [f"ore_{i:02d}.png" for i in range(24)]
 def inspect(path, ore):
     with Image.open(path) as source:
         source.load()
-        if source.width < 128 or source.height < 128:
-            raise ValueError(f"{path.name}: raster too small")
+        # The Android renderer assumes portrait 360x570 biome backdrops and
+        # square 300x300 ore icons. A large but wrongly shaped raster can pass
+        # the pixel-diversity checks while stretching badly on narrow phones.
+        expected = (300, 300) if ore else (360, 570)
+        if source.size != expected:
+            raise ValueError(
+                f"{path.name}: expected {expected[0]}x{expected[1]} raster, "
+                f"got {source.width}x{source.height}"
+            )
         if ore and source.mode not in ("RGBA", "LA", "P"):
             raise ValueError(f"{path.name}: ore requires alpha-capable image")
         if ore and source.mode == "P" and "transparency" not in source.info:
