@@ -48,13 +48,32 @@ def verify(root):
         "--output", sheets)
     import json
     data = json.loads(report.read_text(encoding="utf-8"))
-    assert len(data["biomes"]) == len(data["ores"]) == 24
+    if len(data["biomes"]) != 24 or len(data["ores"]) != 24:
+        raise ValueError("Visual audit must contain exactly 24 biomes and 24 ores")
     for name in ("biomes", "ores"):
         entries = data[name]
-        assert len({item["sha256"] for item in entries}) == 24
+        if len({item["sha256"] for item in entries}) != 24:
+            raise ValueError(f"{name}: duplicate file hashes")
         neighbors = data[f"{name}_nearest_neighbors"]
-        assert len(neighbors) == 24
-        assert all(item["nearest_file"] != item["file"] for item in neighbors)
+        if len(neighbors) != 24:
+            raise ValueError(f"{name}: incomplete nearest-neighbor report")
+        if not all(item["nearest_file"] != item["file"] for item in neighbors):
+            raise ValueError(f"{name}: invalid self-neighbor")
+    # Verify all UI skins and menu backdrops, not just the ore/biome subset.
+    # The contact-sheet generator checks readability, but explicit image
+    # dimensions and alpha rules prevent accidentally publishing empty skins.
+    ui_files = ("panel.png", "button.png", "button_off.png", "header.png",
+                "nav.png", "fractures.png", "miner.png")
+    for filename in (*ui_files, *(f"menu_{i}.jpg" for i in range(1, 5))):
+        path = assets / filename
+        with Image.open(path) as img:
+            img.load()
+            if img.width < 16 or img.height < 16:
+                raise ValueError(f"{filename}: undersized interface raster")
+            if filename.endswith(".jpg") and img.format != "JPEG":
+                raise ValueError(f"{filename}: menu backdrop is not JPEG")
+            if filename.endswith(".png") and img.format != "PNG":
+                raise ValueError(f"{filename}: UI skin is not PNG")
     for group in ("biomes", "ores", "interface"):
         path = sheets / f"shahta_{group}_contact_sheet.png"
         with Image.open(path) as img:
