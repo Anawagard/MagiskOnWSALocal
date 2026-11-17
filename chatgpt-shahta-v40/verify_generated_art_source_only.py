@@ -107,10 +107,18 @@ def verify(root):
                 variance = ImageStat.Stat(img.convert("RGB")).var
                 if max(variance) < 2.0:
                     raise ValueError(f"{filename}: visually flat menu backdrop")
+    # A valid PNG header does not guarantee a useful review sheet: an empty
+    # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
+    from PIL import ImageStat
     for group in ("biomes", "ores", "interface"):
         path = sheets / f"shahta_{group}_contact_sheet.png"
         with Image.open(path) as img:
-            img.verify()
+            img.load()
+            if img.format != "PNG" or img.width < 300 or img.height < 200:
+                raise ValueError(f"{path.name}: invalid contact-sheet format or size")
+            preview = img.convert("RGB")
+            if max(ImageStat.Stat(preview).var) < 2.0:
+                raise ValueError(f"{path.name}: blank or visually flat contact sheet")
     print(f"PASS: 24 generated biomes, 24 generated ores, diversity audit, "
           f"and 3 real contact sheets at {root} (source-only; no Android build)")
 
