@@ -4,6 +4,7 @@ Usage: python verify_generated_art_source_only.py
 Requires Pillow and numpy. Uses temporary directories only; does not touch
 Android project files, workflows, signing keys, or game saves.
 """
+import argparse
 import os
 import subprocess
 import sys
@@ -22,37 +23,60 @@ def run(script, *args, env=None):
     )
 
 
+def verify(root):
+    """Generate and inspect real assets inside an isolated output directory."""
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    if any(root.iterdir()):
+        raise ValueError(f"Refusing to overwrite a nonempty art directory: {root}")
+    # Avoid mixing new rasters with stale previews from a previous run.
+    # This directory contains only generated art and audit artifacts.
+    if not root.is_dir():
+        raise ValueError(f"Not a directory: {root}")
+    assets = root / "assets"
+    sheets = root / "sheets"
+    assets.mkdir()
+    sheets.mkdir()
+    env = os.environ.copy()
+    env["SHAHTA_ART_PREVIEW_DIR"] = str(assets)
+    env.pop("SHAHTA_ART_PROJECT", None)
+    run("generate_art_v70.py", env=env)
+    report = root / "visual_audit.json"
+    run("audit_visual_diversity.py", "--assets", assets,
+        "--report", report)
+    run("render_art_contact_sheet.py", "--assets", assets,
+        "--output", sheets)
+    import json
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert len(data["biomes"]) == len(data["ores"]) == 24
+    for name in ("biomes", "ores"):
+        entries = data[name]
+        assert len({item["sha256"] for item in entries}) == 24
+        neighbors = data[f"{name}_nearest_neighbors"]
+        assert len(neighbors) == 24
+        assert all(item["nearest_file"] != item["file"] for item in neighbors)
+    for group in ("biomes", "ores", "interface"):
+        path = sheets / f"shahta_{group}_contact_sheet.png"
+        with Image.open(path) as img:
+            img.verify()
+    print(f"PASS: 24 generated biomes, 24 generated ores, diversity audit, "
+          f"and 3 real contact sheets at {root} (source-only; no Android build)")
+
 def main():
-    with tempfile.TemporaryDirectory(prefix="shahta-real-art-") as tmp:
-        root = Path(tmp)
-        assets = root / "assets"
-        sheets = root / "sheets"
-        assets.mkdir()
-        sheets.mkdir()
-        env = os.environ.copy()
-        env["SHAHTA_ART_PREVIEW_DIR"] = str(assets)
-        env.pop("SHAHTA_ART_PROJECT", None)
-        run("generate_art_v70.py", env=env)
-        report = root / "visual_audit.json"
-        run("audit_visual_diversity.py", "--assets", assets,
-            "--report", report)
-        run("render_art_contact_sheet.py", "--assets", assets,
-            "--output", sheets)
-        import json
-        data = json.loads(report.read_text(encoding="utf-8"))
-        assert len(data["biomes"]) == len(data["ores"]) == 24
-        for name in ("biomes", "ores"):
-            entries = data[name]
-            assert len({item["sha256"] for item in entries}) == 24
-            neighbors = data[f"{name}_nearest_neighbors"]
-            assert len(neighbors) == 24
-            assert all(item["nearest_file"] != item["file"] for item in neighbors)
-        for group in ("biomes", "ores", "interface"):
-            path = sheets / f"shahta_{group}_contact_sheet.png"
-            with Image.open(path) as img:
-                img.verify()
-        print("PASS: 24 generated biomes, 24 generated ores, diversity audit, "
-              "and 3 real contact sheets (source-only; no Android build)")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output", type=Path,
+        help="Keep all 48 generated assets, JSON report, and 3 contact sheets "
+             "in this NEW or EMPTY directory for visual review. "
+             "Without this flag, temporary files are deleted.",
+    )
+    args = parser.parse_args()
+    if args.output is None:
+        with tempfile.TemporaryDirectory(prefix="shahta-real-art-") as tmp:
+            verify(Path(tmp))
+    else:
+        verify(args.output.expanduser().resolve())
+
 
 
 if __name__ == "__main__":
