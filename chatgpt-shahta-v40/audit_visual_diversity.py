@@ -96,17 +96,34 @@ def audit(folder):
         # with different metadata. This is not a subjective art-quality score.
         closest_pair = None
         minimum_delta = float("inf")
+        # Keep each asset's nearest visual neighbor in the review report.
+        # A single global closest pair can hide repeated visual motifs across
+        # the other 22 images, even when the hard duplicate gate passes.
+        nearest = [None] * len(names)
+        distances = [float("inf")] * len(names)
         for i in range(len(thumbs)):
             for j in range(i + 1, len(thumbs)):
                 mean_delta = float(np.mean(np.abs(thumbs[i] - thumbs[j])))
                 if mean_delta < minimum_delta:
                     minimum_delta = mean_delta
                     closest_pair = (names[i], names[j])
+                for index, neighbor in ((i, j), (j, i)):
+                    if mean_delta < distances[index]:
+                        distances[index] = mean_delta
+                        nearest[index] = names[neighbor]
                 if mean_delta < 1.5:
                     raise ValueError(
                         f"{label}: visually duplicated {names[i]} / {names[j]} "
                         f"(mean visible-channel delta {mean_delta:.2f})"
                     )
+        result[f"{label}_nearest_neighbors"] = [
+            {
+                "file": name,
+                "nearest_file": nearest[i],
+                "mean_channel_delta": round(distances[i], 3),
+            }
+            for i, name in enumerate(names)
+        ]
         # Include the closest pair in successful reports so art reviewers can
         # inspect borderline similarities rather than treating pass as proof
         # of artistic distinctness. This adds metadata without changing assets.
