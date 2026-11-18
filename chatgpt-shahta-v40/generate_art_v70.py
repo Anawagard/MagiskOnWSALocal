@@ -375,7 +375,13 @@ def cave(index,color,path,w=360,h=570):
         title_x=np.arange(w,dtype=np.float32)[None,:]
         fade=np.clip((h*.24-title_y)/(h*.24),0,1)**2
         center=np.exp(-((title_x-w*.5)/(w*.42))**4)
-        opacity=(.12*fade*center)[:,:,None]
+        # A separate footer scrim protects the bottom navigation rail from
+        # bright ground strata and support silhouettes. The center is strongest
+        # while the geological sidewalls retain their identifying texture.
+        # This is baked into the menu JPEG, not a runtime Canvas overlay.
+        footer=np.clip((title_y-h*.78)/(h*.22),0,1)**2
+        footer_center=.55+.45*np.exp(-((title_x-w*.5)/(w*.52))**4)
+        opacity=np.clip(.12*fade*center+.22*footer*footer_center,0,1)[:,:,None]
         graphite=np.array([12,20,30],dtype=np.float32)
         im=image_array(pixels*(1-opacity)+graphite[None,None,:]*opacity)
     # Subtle dark vignette fixed in the image (no per-frame glow).
