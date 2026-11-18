@@ -243,6 +243,30 @@ def verify(root):
             f"separation on graphite (mean relative luminance delta "
             f"{luminance_delta:.4f})"
         )
+    # Different PNG hashes can still represent the same visible ore (for
+    # example, different compression or invisible RGB in transparent pixels).
+    # Compare what players actually see after compositing on graphite. The
+    # thumbnail check is intentionally conservative: it catches near-clones
+    # without requiring different ores to use radically different palettes.
+    ore_previews = []
+    for i in range(24):
+        with Image.open(assets / f"ore_{i:02d}.png") as source:
+            rgba = source.convert("RGBA")
+            backdrop = Image.new("RGBA", rgba.size, (19, 27, 36, 255))
+            visible = Image.alpha_composite(backdrop, rgba).convert("RGB")
+            ore_previews.append(np.asarray(
+                visible.resize((64, 64), Image.Resampling.BILINEAR),
+                dtype=np.float32,
+            ))
+    for i in range(24):
+        for j in range(i + 1, 24):
+            difference = float(np.mean(np.abs(ore_previews[i] - ore_previews[j])))
+            if difference < 1.5:
+                raise ValueError(
+                    f"ore_{i:02d}.png and ore_{j:02d}.png are visually "
+                    f"indistinguishable on graphite (mean RGB delta "
+                    f"{difference:.2f})"
+                )
     # Duplicate menu backgrounds can make distinct navigation destinations
     # look like the same screen, even if all four files decode correctly.
     menu_hashes = [hashlib.sha256((assets / f"menu_{i}.jpg").read_bytes()).digest()
