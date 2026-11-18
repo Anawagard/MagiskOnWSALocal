@@ -133,6 +133,27 @@ def verify(root):
                         f"{group}: flat/untextured raster {asset.name} "
                         f"(max channel variance {float(np.max(channel_variance)):.2f})"
                     )
+    # Fail closed on an incomplete or contaminated raster pack. A generated
+    # directory must contain exactly the resources consumed by the game;
+    # otherwise an obsolete image can hide a generator regression or inflate
+    # the release payload. Ignore no filenames, including hidden leftovers.
+    expected_assets = (
+        {f"biome_{i:02d}.jpg" for i in range(24)} |
+        {f"ore_{i:02d}.png" for i in range(24)} |
+        {f"menu_{i}.jpg" for i in range(1, 5)} |
+        {"panel.png", "button.png", "button_off.png", "header.png",
+         "nav.png", "fractures.png", "miner.png"}
+    )
+    actual_assets = {item.name for item in assets.iterdir()}
+    missing = sorted(expected_assets - actual_assets)
+    extra = sorted(actual_assets - expected_assets)
+    if missing or extra:
+        raise ValueError(
+            f"Generated raster manifest mismatch: missing={missing}, extra={extra}"
+        )
+    if any(not (assets / name).is_file() or (assets / name).is_symlink()
+           for name in expected_assets):
+        raise ValueError("Raster pack contains a non-file or symlinked asset")
     # Verify all UI skins and menu backdrops, not just the ore/biome subset.
     # The contact-sheet generator checks readability, but explicit image
     # dimensions and alpha rules prevent accidentally publishing empty skins.
