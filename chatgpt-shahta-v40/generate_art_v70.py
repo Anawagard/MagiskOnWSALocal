@@ -158,8 +158,10 @@ def cave(index,color,path,w=360,h=570):
         d.ellipse((marker_x-2,marker_y-2,marker_x+2,marker_y+2),
                   fill=(164,249,230,150))
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
-    d.polygon([(0,510),(45,493),(105,519),(153,506),(223,525),
-               (280,504),(360,516),(360,570),(0,570)],fill=(14,19,29,115))
+    d.polygon([(int(round(w * x / 360)), int(round(h * y / 570)))
+               for x, y in [(0,510),(45,493),(105,519),(153,506),(223,525),
+                            (280,504),(360,516),(360,570),(0,570)]],
+              fill=(14,19,29,115))
     if index%6 in (0,1,5):
         for x in (36,318):
             d.line([(x,55),(x-3,490)],fill=(83,53,37,143),width=13)
