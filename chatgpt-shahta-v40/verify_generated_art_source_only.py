@@ -312,27 +312,28 @@ def verify(root):
                 img.convert("RGB").resize((64, 64), Image.Resampling.BILINEAR),
                 dtype=np.float32,
             ))
-    for i in range(len(menu_previews)):
-        for j in range(i + 1, len(menu_previews)):
-            mean_delta = float(np.mean(np.abs(menu_previews[i] - menu_previews[j])))
-            if mean_delta < 3.0:
-                raise ValueError(
-                    f"menu_{i + 1}.jpg and menu_{j + 1}.jpg are visually "
-                    f"indistinguishable (mean RGB delta {mean_delta:.2f})"
-                )
-    # Record perceptual distances for the four menu destinations. A passing
-    # minimum threshold alone hides whether two screens are only marginally
-    # different; preserve all six comparisons for the final visual review.
-    # This is observational metadata, not a gameplay or asset mutation.
+    # Compute each pair once: use the same decoded-pixel metric for both
+    # the acceptance threshold and the review report. This prevents the
+    # two checks from silently diverging as the audit evolves.
     menu_distances = []
     for i in range(len(menu_previews)):
         for j in range(i + 1, len(menu_previews)):
             delta = float(np.mean(np.abs(menu_previews[i] - menu_previews[j])))
+            if not np.isfinite(delta):
+                raise ValueError("Non-finite menu similarity metric")
+            if delta < 3.0:
+                raise ValueError(
+                    f"menu_{i + 1}.jpg and menu_{j + 1}.jpg are visually "
+                    f"indistinguishable (mean RGB delta {delta:.2f})"
+                )
             menu_distances.append({
                 "left": f"menu_{i + 1}.jpg",
                 "right": f"menu_{j + 1}.jpg",
                 "mean_rgb_delta": round(delta, 4),
             })
+    # Every unordered pair of four menu backgrounds must be represented.
+    if len(menu_distances) != 6:
+        raise ValueError("Incomplete menu similarity comparisons")
     import json
     metrics_path = root / "menu_visual_distances.json"
     metrics_path.write_text(
