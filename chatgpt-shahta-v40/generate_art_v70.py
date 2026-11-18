@@ -79,7 +79,7 @@ def cave(index,color,path,w=360,h=570):
     # Baked into menu JPEGs only: no changes to gameplay or hitboxes.
     if 31 <= index <= 34:
         center=np.exp(-((xx-w*.5)/(w*.34))**4)
-        vertical=np.clip((yy-h*.10)/(h*.22),0,1)
+        # Keep the title band readable too: the previous fade began at 10%\n        # height, leaving top navigation headings on an unprotected texture.\n        vertical=.55+.45*np.clip((yy-h*.04)/(h*.24),0,1)
         scrim=(.18+.42*center*vertical)[:,:,None]
         graphite=np.array([12,20,30],dtype=np.float32)
         rgb=rgb*(1-scrim)+graphite[None,None,:]*scrim
