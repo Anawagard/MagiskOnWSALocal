@@ -75,6 +75,14 @@ def cave(index,color,path,w=360,h=570):
     rgb=base[None,None,:]*shade[:,:,None]+tone[:,:,None]*(.75+wall[:,:,None]*.35)
     rgb[:,:,2]+=4+10*aperture
     rgb[:,:,0]+=12*(yy/h)
+    # A graphite reading zone behind menu titles and navigation.
+    # Baked into menu JPEGs only: no changes to gameplay or hitboxes.
+    if 31 <= index <= 34:
+        center=np.exp(-((xx-w*.5)/(w*.34))**4)
+        vertical=np.clip((yy-h*.10)/(h*.22),0,1)
+        scrim=(.18+.42*center*vertical)[:,:,None]
+        graphite=np.array([12,20,30],dtype=np.float32)
+        rgb=rgb*(1-scrim)+graphite[None,None,:]*scrim
     im=image_array(rgb)
     d=ImageDraw.Draw(im,"RGBA")
     # Distinct layered real-pixel mineral veins, tiny fossil and fault networks.
