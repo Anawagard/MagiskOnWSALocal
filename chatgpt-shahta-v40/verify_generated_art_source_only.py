@@ -265,15 +265,25 @@ def verify(root):
                 visible.resize((64, 64), Image.Resampling.BILINEAR),
                 dtype=np.float32,
             ))
+    ore_distances = []
     for i in range(24):
         for j in range(i + 1, 24):
             difference = float(np.mean(np.abs(ore_previews[i] - ore_previews[j])))
+            if not np.isfinite(difference):
+                raise ValueError("Non-finite ore similarity metric")
             if difference < 1.5:
                 raise ValueError(
                     f"ore_{i:02d}.png and ore_{j:02d}.png are visually "
                     f"indistinguishable on graphite (mean RGB delta "
                     f"{difference:.2f})"
                 )
+            ore_distances.append({
+                "left": f"ore_{i:02d}.png",
+                "right": f"ore_{j:02d}.png",
+                "mean_rgb_delta": round(difference, 4),
+            })
+    if len(ore_distances) != 276:
+        raise ValueError("Incomplete ore similarity comparisons")
     # Distinct JPEG hashes and nonzero texture variance do not prove that
     # neighboring biomes look different. Detect visually cloned cave scenes,
     # including files re-encoded at different JPEG quality levels. Downsample
@@ -286,16 +296,26 @@ def verify(root):
                     (64, 64), Image.Resampling.BILINEAR
                 ), dtype=np.float32,
             ))
+    biome_distances = []
     for i in range(24):
         for j in range(i + 1, 24):
             difference = float(np.mean(np.abs(
                 biome_previews[i] - biome_previews[j]
             )))
+            if not np.isfinite(difference):
+                raise ValueError("Non-finite biome similarity metric")
             if difference < 1.5:
                 raise ValueError(
                     f"biome_{i:02d}.jpg and biome_{j:02d}.jpg are visually "
                     f"indistinguishable (mean RGB delta {difference:.2f})"
                 )
+            biome_distances.append({
+                "left": f"biome_{i:02d}.jpg",
+                "right": f"biome_{j:02d}.jpg",
+                "mean_rgb_delta": round(difference, 4),
+            })
+    if len(biome_distances) != 276:
+        raise ValueError("Incomplete biome similarity comparisons")
     # Duplicate menu backgrounds can make distinct navigation destinations
     # look like the same screen, even if all four files decode correctly.
     menu_hashes = [hashlib.sha256((assets / f"menu_{i}.jpg").read_bytes()).digest()
@@ -344,6 +364,15 @@ def verify(root):
         not np.isfinite(item["mean_rgb_delta"]) for item in menu_distances
     ):
         raise ValueError("Invalid menu visual distance report")
+    # Preserve all 552 pairwise ore/biome distances for independent art review.
+    # Keep the existing acceptance thresholds unchanged.
+    (root / "world_visual_distances.json").write_text(
+        json.dumps({
+            "ores": ore_distances,
+            "biomes": biome_distances,
+        }, indent=2) + "\n",
+        encoding="utf-8",
+    )
     # A valid PNG header does not guarantee a useful review sheet: an empty
     # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
     from PIL import ImageStat
