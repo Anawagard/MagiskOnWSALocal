@@ -320,6 +320,29 @@ def verify(root):
                     f"menu_{i + 1}.jpg and menu_{j + 1}.jpg are visually "
                     f"indistinguishable (mean RGB delta {mean_delta:.2f})"
                 )
+    # Record perceptual distances for the four menu destinations. A passing
+    # minimum threshold alone hides whether two screens are only marginally
+    # different; preserve all six comparisons for the final visual review.
+    # This is observational metadata, not a gameplay or asset mutation.
+    menu_distances = []
+    for i in range(len(menu_previews)):
+        for j in range(i + 1, len(menu_previews)):
+            delta = float(np.mean(np.abs(menu_previews[i] - menu_previews[j])))
+            menu_distances.append({
+                "left": f"menu_{i + 1}.jpg",
+                "right": f"menu_{j + 1}.jpg",
+                "mean_rgb_delta": round(delta, 4),
+            })
+    import json
+    metrics_path = root / "menu_visual_distances.json"
+    metrics_path.write_text(
+        json.dumps({"comparisons": menu_distances}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    if len(menu_distances) != 6 or any(
+        not np.isfinite(item["mean_rgb_delta"]) for item in menu_distances
+    ):
+        raise ValueError("Invalid menu visual distance report")
     # A valid PNG header does not guarantee a useful review sheet: an empty
     # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
     from PIL import ImageStat
