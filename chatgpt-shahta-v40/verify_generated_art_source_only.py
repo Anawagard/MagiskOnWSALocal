@@ -267,6 +267,28 @@ def verify(root):
                     f"indistinguishable on graphite (mean RGB delta "
                     f"{difference:.2f})"
                 )
+    # Distinct JPEG hashes and nonzero texture variance do not prove that
+    # neighboring biomes look different. Detect visually cloned cave scenes,
+    # including files re-encoded at different JPEG quality levels. Downsample
+    # to remove compression noise and compare decoded RGB, not file bytes.
+    biome_previews = []
+    for i in range(24):
+        with Image.open(assets / f"biome_{i:02d}.jpg") as source:
+            biome_previews.append(np.asarray(
+                source.convert("RGB").resize(
+                    (64, 64), Image.Resampling.BILINEAR
+                ), dtype=np.float32,
+            ))
+    for i in range(24):
+        for j in range(i + 1, 24):
+            difference = float(np.mean(np.abs(
+                biome_previews[i] - biome_previews[j]
+            )))
+            if difference < 1.5:
+                raise ValueError(
+                    f"biome_{i:02d}.jpg and biome_{j:02d}.jpg are visually "
+                    f"indistinguishable (mean RGB delta {difference:.2f})"
+                )
     # Duplicate menu backgrounds can make distinct navigation destinations
     # look like the same screen, even if all four files decode correctly.
     menu_hashes = [hashlib.sha256((assets / f"menu_{i}.jpg").read_bytes()).digest()
