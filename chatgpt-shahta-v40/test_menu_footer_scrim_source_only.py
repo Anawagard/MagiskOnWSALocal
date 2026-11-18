@@ -23,8 +23,19 @@ def test_source():
                    for target in node.targets if isinstance(target, ast.Name)}
     for name, expression in EXPECTED.items():
         assert assignments.get(name) == expression, (name, assignments.get(name))
-    assert any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
-               and n.func.attr == 'save' for n in cave.body), 'output must be saved'
+    # A syntactically present formula is not enough: the final bitmap must
+    # actually receive the composite after decorations and before JPEG export.
+    assert cave.body[-1].value.func.attr == 'save', 'JPEG export must be last'
+    assert isinstance(cave.body[-2], ast.If) and cave.body[-2] is final, (
+        'final menu-only scrim must immediately precede JPEG export')
+    final_assignments = [n for n in final.body if isinstance(n, ast.Assign)]
+    assert isinstance(final_assignments[-1].targets[0], ast.Name)
+    assert final_assignments[-1].targets[0].id == 'im', 'composite must replace saved image'
+    assert ast.unparse(final_assignments[-1].value) == (
+        'image_array(pixels * (1 - opacity) + graphite[None, None, :] * opacity)'
+    ), 'footer opacity must be applied to final pixels'
+    assert ast.unparse(cave.body[-1].value.func.value) == 'im', (
+        'export must use the composited image')
 
 def test_geometry():
     for w,h in [(240,360),(360,570),(1080,1920),(1272,2772)]:
