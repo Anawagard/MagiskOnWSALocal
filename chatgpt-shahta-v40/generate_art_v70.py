@@ -163,10 +163,18 @@ def cave(index,color,path,w=360,h=570):
                             (280,504),(360,516),(360,570),(0,570)]],
               fill=(14,19,29,115))
     if index%6 in (0,1,5):
-        for x in (36,318):
-            d.line([(x,55),(x-3,490)],fill=(83,53,37,143),width=13)
-            d.line([(x+2,55),(x,490)],fill=(212,150,87,50),width=3)
-        d.arc((36,52,322,266),180,357,fill=(120,83,56,110),width=9)
+        # Scale the timber frame with the backdrop, just like the ground.
+        # Keep the supports near the walls at non-default image sizes.
+        sx, sy = w / 360.0, h / 570.0
+        def timber_point(x, y):
+            return (int(round(x * sx)), int(round(y * sy)))
+        for x in (36, 318):
+            d.line([timber_point(x, 55), timber_point(x-3, 490)],
+                   fill=(83,53,37,143), width=max(1,round(13*sx)))
+            d.line([timber_point(x+2, 55), timber_point(x, 490)],
+                   fill=(212,150,87,50), width=max(1,round(3*sx)))
+        d.arc((*timber_point(36,52), *timber_point(322,266)),
+              180,357,fill=(120,83,56,110),width=max(1,round(9*sx)))
     elif index%6 in (2,4):
         for j in range(14):
             x=int(r.choice([r.integers(15,60),r.integers(w-60,w-15)]))
