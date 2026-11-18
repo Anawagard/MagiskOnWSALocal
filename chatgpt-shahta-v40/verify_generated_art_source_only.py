@@ -120,6 +120,20 @@ def verify(root):
                         f"{group}: implausible ore silhouette coverage "
                         f"for {asset.name}: {actual_occupancy:.2%}"
                     )
+                # A valid occupancy ratio can still hide a cropped ore:
+                # transparent sprite margins must survive scaling on narrow
+                # displays. Reject any visible pixels touching the canvas edge.
+                if group == "ores":
+                    alpha = rgba[:, :, 3]
+                    border = np.concatenate((
+                        alpha[0, :], alpha[-1, :],
+                        alpha[1:-1, 0], alpha[1:-1, -1],
+                    ))
+                    if np.any(border > 16):
+                        raise ValueError(
+                            f"{group}: cropped silhouette touches sprite border "
+                            f"in {asset.name}"
+                        )
                 # Unique hashes alone cannot establish texture quality.
                 # Exclude transparent ore margins from color statistics.
                 rgb = rgba[:, :, :3].astype(np.float32)
