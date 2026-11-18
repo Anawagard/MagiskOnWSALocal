@@ -176,14 +176,27 @@ def cave(index,color,path,w=360,h=570):
         d.arc((*timber_point(36,52), *timber_point(322,266)),
               180,357,fill=(120,83,56,110),width=max(1,round(9*sx)))
     elif index%6 in (2,4):
+        # Scale mineral nodules from the same 360x570 design grid as timber.
+        # At narrow sizes the old fixed y=480 range clipped the bottom rows.
+        sx, sy = w / 360.0, h / 570.0
         for j in range(14):
-            x=int(r.choice([r.integers(15,60),r.integers(w-60,w-15)]))
-            cy=int(r.integers(80,480)); rad=int(r.integers(4,15))
-            d.ellipse((x-rad,cy-rad,x+rad,cy+rad),outline=(*color,100),width=2)
+            base_x=int(r.choice([r.integers(15,60),r.integers(300,345)]))
+            x=int(round(base_x*sx))
+            cy=int(round(int(r.integers(80,480))*sy))
+            rad=max(1,int(round(int(r.integers(4,15))*min(sx,sy))))
+            d.ellipse((x-rad,cy-rad,x+rad,cy+rad),
+                      outline=(*color,100),width=max(1,round(2*min(sx,sy))))
     elif index%6==3:
+        # Volcanic fractures use normalized geometry, including stroke width.
+        sx, sy = w / 360.0, h / 570.0
         for j in range(8):
-            x=int(r.choice([r.integers(16,59),r.integers(w-59,w-16)]));cy=int(r.integers(70,510))
-            d.line([(x,cy),(x+8,cy+17),(x-2,cy+31)],fill=(255,139,63,95),width=3)
+            base_x=int(r.choice([r.integers(16,59),r.integers(301,344)]))
+            x=int(round(base_x*sx))
+            cy=int(round(int(r.integers(70,510))*sy))
+            vertices=[(x,cy),(x+round(8*sx),cy+round(17*sy)),
+                      (x-round(2*sx),cy+round(31*sy))]
+            d.line(vertices,fill=(255,139,63,95),
+                   width=max(1,round(3*min(sx,sy))))
     # Biome-specific foreground geology: four distinct silhouettes repeated
     # with independent palettes and seeded placement across all 24 biomes.
     # Drawn once into the bitmap; no additional runtime Canvas operations.
