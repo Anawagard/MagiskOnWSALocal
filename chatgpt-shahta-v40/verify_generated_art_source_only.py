@@ -159,12 +159,17 @@ def verify(root):
     # dimensions and alpha rules prevent accidentally publishing empty skins.
     ui_files = ("panel.png", "button.png", "button_off.png", "header.png",
                 "nav.png", "fractures.png", "miner.png")
+    menu_dimensions = set()
     for filename in (*ui_files, *(f"menu_{i}.jpg" for i in range(1, 5))):
         path = assets / filename
         with Image.open(path) as img:
             img.load()
             if img.width < 16 or img.height < 16:
                 raise ValueError(f"{filename}: undersized interface raster")
+            if filename.startswith("menu_") and filename.endswith(".jpg"):
+                menu_dimensions.add(img.size)
+                if img.width < 240 or img.height < 360:
+                    raise ValueError(f"{filename}: menu backdrop too small for portrait layout")
             if filename.endswith(".jpg") and img.format != "JPEG":
                 raise ValueError(f"{filename}: menu backdrop is not JPEG")
             if filename.endswith(".png") and img.format != "PNG":
@@ -199,6 +204,8 @@ def verify(root):
                 variance = ImageStat.Stat(img.convert("RGB")).var
                 if max(variance) < 2.0:
                     raise ValueError(f"{filename}: visually flat menu backdrop")
+    if len(menu_dimensions) != 1:
+        raise ValueError(f"Menu backgrounds have inconsistent dimensions: {sorted(menu_dimensions)}")
     # The enabled and disabled controls must remain distinguishable after
     # alpha compositing onto the actual graphite surface. Different hashes
     # alone do not guarantee visible feedback for a pressed/disabled action.
