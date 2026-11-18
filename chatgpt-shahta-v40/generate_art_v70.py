@@ -366,6 +366,18 @@ def cave(index,color,path,w=360,h=570):
                        fill=dark, width=3)
                 d.line([(edge, y - 2), (x1, y + kink - 2),
                         (x2, y + kink + 3)], fill=light, width=1)
+    # Final title-safe overlay: geological details are painted after the base
+    # graphite scrim, so bright seams can otherwise cross navigation labels.
+    # Only menu backdrops receive this pass; playable biomes stay unchanged.
+    if 31 <= index <= 34:
+        pixels=np.asarray(im,dtype=np.float32).copy()
+        title_y=np.arange(h,dtype=np.float32)[:,None]
+        title_x=np.arange(w,dtype=np.float32)[None,:]
+        fade=np.clip((h*.24-title_y)/(h*.24),0,1)**2
+        center=np.exp(-((title_x-w*.5)/(w*.42))**4)
+        opacity=(.12*fade*center)[:,:,None]
+        graphite=np.array([12,20,30],dtype=np.float32)
+        im=image_array(pixels*(1-opacity)+graphite[None,None,:]*opacity)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
