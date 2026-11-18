@@ -20,6 +20,19 @@ def test_scrim_assignment():
         if isinstance(target, ast.Name) and target.id == "vertical"
     ]
     assert len(assignments) == 1, "menu vertical fade must be an executable assignment"
+    cave = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "cave")
+    guards = [n for n in ast.walk(cave) if isinstance(n, ast.If)
+              and ast.unparse(n.test) == "31 <= index <= 34"]
+    assert len(guards) == 1, "scrim must affect only the four menu backgrounds"
+    guard = guards[0]
+    assert assignments[0] in list(ast.walk(guard)), "fade must execute inside menu guard"
+    expressions = {t.id: ast.unparse(n.value)
+                   for n in ast.walk(guard) if isinstance(n, ast.Assign)
+                   for t in n.targets if isinstance(t, ast.Name)}
+    assert expressions["vertical"] == "0.55 + 0.45 * np.clip((yy - h * 0.04) / (h * 0.24), 0, 1)"
+    assert expressions["center"] == "np.exp(-((xx - w * 0.5) / (w * 0.34)) ** 4)"
+    assert expressions["scrim"] == "(0.18 + 0.42 * center * vertical)[:, :, None]"
+    assert expressions["rgb"] == "rgb * (1 - scrim) + graphite[None, None, :] * scrim"
     assert not any("\\n        vertical=" in line for line in source.splitlines()), (
         "escaped newline must not comment out the fade"
     )
