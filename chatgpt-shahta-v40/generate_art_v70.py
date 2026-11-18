@@ -201,24 +201,36 @@ def cave(index,color,path,w=360,h=570):
     # with independent palettes and seeded placement across all 24 biomes.
     # Drawn once into the bitmap; no additional runtime Canvas operations.
     motif=index%4
+    # Foreground lithology uses the same normalized 360x570 design grid as
+    # timber and the ground silhouette. Keep shelves in the side-wall fifth
+    # so narrow displays retain an unobstructed central mining corridor.
+    motif_sx, motif_sy = w / 360.0, h / 570.0
+    motif_wall = max(1, min(70, w // 5))
     if motif==0:
         # Jagged crystalline shelves with a narrow luminous ridge.
         for side in (0,1):
             for j in range(9):
-                y=int(85+j*43+r.integers(-12,13))
-                edge=0 if side==0 else w
-                tip=edge+(1 if side==0 else -1)*int(r.integers(17,54))
-                d.polygon([(edge,y-18),(tip,y),(edge,y+23)],
+                y=int(round((85+j*43+int(r.integers(-12,13)))*motif_sy))
+                edge=0 if side==0 else w-1
+                reach=min(motif_wall-1, max(1,round(int(r.integers(17,54))*motif_sx)))
+                tip=edge+(1 if side==0 else -1)*reach
+                upper=max(0,y-round(18*motif_sy))
+                lower=min(h-1,y+round(23*motif_sy))
+                d.polygon([(edge,upper),(tip,y),(edge,lower)],
                           fill=(20,32,44,160))
-                d.line([(edge,y-18),(tip,y)],fill=(*color,125),width=2)
+                d.line([(edge,upper),(tip,y)],fill=(*color,125),
+                       width=max(1,round(2*motif_sx)))
     elif motif==1:
         # Layered sedimentary ledges and fine fossil-like inclusions.
         for j in range(12):
-            y=int(65+j*39+r.integers(-9,10))
-            span=int(r.integers(34,min(70,w//5)+1))
-            d.line([(0,y),(span,y+int(r.integers(-5,6)))],
-                   fill=(*color,94),width=3)
-            d.line([(w-span,y+8),(w,y+11)],fill=(8,15,25,125),width=4)
+            y=int(round((65+j*39+int(r.integers(-9,10)))*motif_sy))
+            span=min(motif_wall-1, max(1,round(int(r.integers(34,71))*motif_sx)))
+            tilt=round(int(r.integers(-5,6))*motif_sy)
+            d.line([(0,y),(span,max(0,min(h-1,y+tilt)))],
+                   fill=(*color,94),width=max(1,round(3*motif_sx)))
+            d.line([(w-1-span,min(h-1,y+round(8*motif_sy))),
+                    (w-1,min(h-1,y+round(11*motif_sy)))],
+                   fill=(8,15,25,125),width=max(1,round(4*motif_sx)))
     elif motif==2:
         # Rounded mineral nodules with hard opaque cores.
         for j in range(25):
