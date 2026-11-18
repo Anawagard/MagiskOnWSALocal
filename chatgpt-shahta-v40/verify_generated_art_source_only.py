@@ -387,6 +387,26 @@ def verify(root):
         }, indent=2) + "\n",
         encoding="utf-8",
     )
+    # Rank the closest-looking assets for focused visual review.
+    # This supplements, rather than relaxes, the existing thresholds.
+    def closest_pairs(pairs, expected, count):
+        if len(pairs) != expected:
+            raise ValueError("Incomplete visual comparison set")
+        return sorted(
+            pairs,
+            key=lambda pair: (
+                pair["mean_rgb_delta"], pair["left"], pair["right"]
+            ),
+        )[:count]
+
+    (root / "closest_visual_pairs.json").write_text(
+        json.dumps({
+            "ores": closest_pairs(ore_distances, 276, 5),
+            "biomes": closest_pairs(biome_distances, 276, 5),
+            "menus": closest_pairs(menu_distances, 6, 3),
+        }, indent=2) + "\n",
+        encoding="utf-8",
+    )
     # A valid PNG header does not guarantee a useful review sheet: an empty
     # canvas or a tiny thumbnail can pass Image.verify() unnoticed.
     from PIL import ImageStat
