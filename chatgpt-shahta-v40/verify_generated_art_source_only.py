@@ -182,8 +182,14 @@ def verify(root):
                 raise ValueError(f"{filename}: undersized interface raster")
             if filename.startswith("menu_") and filename.endswith(".jpg"):
                 menu_dimensions.add(img.size)
-                if img.width < 240 or img.height < 360:
-                    raise ValueError(f"{filename}: menu backdrop too small for portrait layout")
+                # Menu art is authored in the 360x570 logical canvas.
+                # A differently sized image can shift focal regions relative
+                # to fixed title/navigation coordinates despite matching peers.
+                if img.size != (360, 570):
+                    raise ValueError(
+                        f"{filename}: expected 360x570 logical menu canvas, "
+                        f"got {img.size}"
+                    )
             if filename.endswith(".jpg") and img.format != "JPEG":
                 raise ValueError(f"{filename}: menu backdrop is not JPEG")
             if filename.endswith(".png") and img.format != "PNG":
