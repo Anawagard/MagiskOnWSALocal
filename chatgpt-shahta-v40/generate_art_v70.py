@@ -124,6 +124,29 @@ def cave(index,color,path,w=360,h=570):
             d.line([(joint_x,joint_y),(max(right_start,joint_x-5),joint_y+14),
                     (max(right_start,joint_x-4),joint_y+27)],
                    fill=(8,15,25,65),width=2)
+    # Modernist depth markers are embedded in the sidewall artwork, never in
+    # the central mining corridor or the touch/UI layer. Vary their spacing
+    # and illuminated side by biome to avoid a repeated wallpaper pattern.
+    # The cyan is intentionally restrained against the dark geological base.
+    marker_rng=np.random.default_rng(910007+index*173)
+    marker_side=index%2
+    marker_x=18 if marker_side==0 else w-18
+    for marker in range(3+(index%3)):
+        marker_y=105+marker*83+int(marker_rng.integers(-12,13))
+        if marker_y+17>=h-48:
+            continue
+        glow=(67,213,202,30)
+        rail=(104,235,219,105)
+        d.line([(marker_x,marker_y-12),(marker_x,marker_y+12)],
+               fill=glow,width=7)
+        d.line([(marker_x,marker_y-10),(marker_x,marker_y+10)],
+               fill=rail,width=2)
+        toward=1 if marker_side==0 else -1
+        d.line([(marker_x,marker_y-10),
+                (marker_x+7*toward,marker_y-10)],
+               fill=(131,243,226,95),width=1)
+        d.ellipse((marker_x-2,marker_y-2,marker_x+2,marker_y+2),
+                  fill=(164,249,230,150))
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
     d.polygon([(0,510),(45,493),(105,519),(153,506),(223,525),
                (280,504),(360,516),(360,570),(0,570)],fill=(14,19,29,115))
