@@ -146,7 +146,7 @@ def cave(index,color,path,w=360,h=570):
     marker_inset = min(marker_wall - 1, max(1, round(18 * marker_sx)))
     marker_x = marker_inset if marker_side == 0 else w - 1 - marker_inset
     toward = 1 if marker_side == 0 else -1
-    rail_end = max(0, min(w - 1, marker_x + toward * max(1, round(7 * marker_sx))))
+    rail_end = max(0, min(marker_wall - 1, marker_x + max(1, round(7 * marker_sx)))) if marker_side == 0 else max(w - marker_wall, min(w - 1, marker_x - max(1, round(7 * marker_sx))))
     for marker in range(3+(index%3)):
         marker_y = round((105 + marker*83 + int(marker_rng.integers(-12,13))) * marker_sy)
         half_height = max(1, round(12 * marker_sy))
