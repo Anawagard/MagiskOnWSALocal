@@ -241,12 +241,26 @@ def cave(index,color,path,w=360,h=570):
                     (w-1,min(h-1,y+round(11*motif_sy)))],
                    fill=(8,15,25,125),width=max(1,round(4*motif_sx)))
     elif motif==2:
-        # Rounded mineral nodules with hard opaque cores.
+        # Rounded nodules: scale the 360x570 design coordinates and clamp
+        # their entire silhouettes to the peripheral wall, not just centers.
+        # This keeps narrow previews and the central mining lane clear.
         for j in range(25):
-            x=int(r.choice([r.integers(14,59),r.integers(w-59,w-14)]))
-            y=int(r.integers(68,h-65)); radius=int(r.integers(3,11))
+            radius=max(1,round(int(r.integers(3,11))*min(motif_sx,motif_sy)))
+            radius=min(radius,max(0,(motif_wall-1)//2))
+            if radius < 1:
+                continue
+            side=int(r.integers(0,2))
+            lo=radius
+            hi=motif_wall-1-radius
+            if hi < lo:
+                continue
+            offset=int(r.integers(lo,hi+1))
+            x=offset if side==0 else w-1-offset
+            y=int(round(int(r.integers(68,505))*motif_sy))
+            y=max(radius,min(h-1-radius,y))
             d.ellipse((x-radius,y-radius,x+radius,y+radius),
-                      fill=(11,24,33,155),outline=(*color,128),width=2)
+                      fill=(11,24,33,155),outline=(*color,128),
+                      width=max(1,round(2*min(motif_sx,motif_sy))))
     else:
         # Fractured volcanic seams, kept outside the central play corridor.
         for side in (0,1):
