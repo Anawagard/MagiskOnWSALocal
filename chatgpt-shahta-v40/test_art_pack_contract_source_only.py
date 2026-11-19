@@ -65,6 +65,35 @@ class ArtPackContract(unittest.TestCase):
         self.assertIn('audit_raster_assets(OUT)', source)
         self.assertIn('generate_miner_sprite().save(OUT/"miner.png"', source)
 
+    def test_raster_audit_runs_after_final_sprite_write(self):
+        tree = source_tree()
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('audit_raster_assets(OUT)', source)
+        calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
+        audit_lines = [node.lineno for node in calls
+                       if isinstance(node.func, ast.Name)
+                       and node.func.id == "audit_raster_assets"]
+        self.assertEqual(len(audit_lines), 1)
+        # Only top-level writes are relevant: function bodies execute earlier,
+        # but their definition positions are not their runtime write order.
+        final_saves = [node.lineno for statement in tree.body
+                       for node in ast.walk(statement)
+                       if not isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef))
+                       and isinstance(node, ast.Call)
+                       and isinstance(node.func, ast.Attribute)
+                       and node.func.attr == "save"]
+        self.assertTrue(final_saves)
+        self.assertLess(max(final_saves), audit_lines[0])
+
+    def test_auditor_requires_every_raster_resource(self):
+        auditor = SOURCE.with_name("audit_raster_assets_v710.py")
+        source = auditor.read_text(encoding="utf-8")
+        ast.parse(source, filename=str(auditor))
+        for marker in ('range(24)', 'range(1, 5)', 'im.verify()', 'im.load()',
+                       'panel.png', 'button.png', 'button_off.png',
+                       'header.png', 'nav.png', 'fractures.png', 'miner.png'):
+            self.assertIn(marker, source)
+
 
 if __name__ == "__main__":
     unittest.main()
