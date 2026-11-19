@@ -113,9 +113,13 @@ def cave(index,color,path,w=360,h=570):
     # The upper/middle cave stays dark enough for high-contrast HUD labels.
     strata_rng=np.random.default_rng(73001+index*1031)
     for band in range(7):
-        base_y=90+band*62+int(strata_rng.integers(-11,12))
-        slope=int(strata_rng.integers(-17,18))
-        offset=int(strata_rng.integers(14,42))
+        # Scale the authored 360x570 strata grid with the actual backdrop.
+        # The old fixed Y positions compressed seams into the top half of
+        # tall previews and clipped the lower bands on narrow/short assets.
+        strata_sx, strata_sy = w / 360.0, h / 570.0
+        base_y=round((90+band*62+int(strata_rng.integers(-11,12)))*strata_sy)
+        slope=round(int(strata_rng.integers(-17,18))*strata_sy)
+        offset=round(int(strata_rng.integers(14,42))*strata_sy)
         # Confine lithological seams to the peripheral walls. Earlier long
         # strokes entered the central x=85..275 gameplay corridor.
         margin=max(4,min(70,w//5))
@@ -129,11 +133,14 @@ def cave(index,color,path,w=360,h=570):
                 (w-1,base_y+offset)],fill=seam,width=2)
         # Fault branches also remain inside the right wall.
         if (band+index)%2==0:
-            joint_x=min(w-3,right_start+int(strata_rng.integers(1,9)))
+            joint_x=min(w-1,right_start+max(1,round(int(strata_rng.integers(1,9))*strata_sx)))
             joint_y=base_y+slope+offset//5
-            d.line([(joint_x,joint_y),(max(right_start,joint_x-5),joint_y+14),
-                    (max(right_start,joint_x-4),joint_y+27)],
-                   fill=(8,15,25,65),width=2)
+            branch_dx=max(1,round(5*strata_sx))
+            branch_tip=max(1,round(4*strata_sx))
+            d.line([(joint_x,joint_y),
+                    (max(right_start,joint_x-branch_dx),joint_y+round(14*strata_sy)),
+                    (max(right_start,joint_x-branch_tip),joint_y+round(27*strata_sy))],
+                   fill=(8,15,25,65),width=max(1,round(2*strata_sx)))
     # Modernist depth markers are embedded in the sidewall artwork, never in
     # the central mining corridor or the touch/UI layer. Vary their spacing
     # and illuminated side by biome to avoid a repeated wallpaper pattern.
