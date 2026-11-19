@@ -295,34 +295,50 @@ def cave(index,color,path,w=360,h=570):
                                   (72, 74 + j * 46))]
             d.line(seam, fill=(*color,75), width=max(1, round(signature_sx)))
     elif signature==1:
-        # Sparse stratified dark inclusions.
+        # Sparse dark nodules, contained entirely in the scaled sidewalls.
+        margin=max(1,min(wall_limit-1,round(4*w/360)))
         for j in range(16):
-            y=int(r.integers(75,h-55))
-            x=int(r.choice([r.integers(6,58),r.integers(w-58,w-6)]))
-            d.ellipse((x-3,y-2,x+4,y+2),fill=(8,17,27,125))
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(55*h/570))))
+            side=int(r.integers(0,2))
+            cx=int(r.integers(margin,max(margin+1,wall_limit-margin)))
+            x=cx if side==0 else w-1-cx
+            rx=max(1,min(cx,wall_limit-1-cx,round(3*w/360)))
+            ry=max(1,round(2*h/570))
+            d.ellipse((x-rx,y-ry,x+rx,y+ry),fill=(8,17,27,125))
     elif signature==2:
-        # Narrow, cool mineral fault lines.
+        # Mineral faults stay within the right wall even at 240px width.
+        reach=max(1,min(wall_limit-2,round(57*w/360)))
         for j in range(8):
-            y=int(r.integers(75,h-85))
-            d.line([(w-9,y),(w-37,y+12),(w-57,y+9)],
-                   fill=(106,198,204,82),width=2)
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(85*h/570))))
+            d.line([(w-2,y),(w-1-reach,min(h-1,y+round(12*h/570))),
+                    (w-1-reach,min(h-1,y+round(9*h/570)))],
+                   fill=(106,198,204,82),width=max(1,round(2*w/360)))
     elif signature==3:
-        # Warm oxidized deposits on both edges.
+        # Oxidized pockets with radius bounded by the wall width.
+        rx=max(1,min(wall_limit//3,round(9*w/360)))
+        ry=max(1,round(4*h/570))
         for j in range(12):
-            y=int(r.integers(72,h-70))
-            x=12 if j%2==0 else w-12
-            d.ellipse((x-9,y-4,x+9,y+4),fill=(190,104,65,65))
+            y=int(r.integers(max(0,round(72*h/570)),max(1,h-round(70*h/570))))
+            x=rx if j%2==0 else w-1-rx
+            d.ellipse((x-rx,y-ry,x+rx,y+ry),fill=(190,104,65,65))
     elif signature==4:
-        # Thin intersecting cleavage traces.
+        # Cleavage traces scale with the sidewall rather than a 360px canvas.
         for j in range(12):
-            y=int(r.integers(75,h-75))
-            x=24 if j%2==0 else w-24
-            d.line([(x-12,y-9),(x+8,y+12)],fill=(*color,88),width=1)
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(75*h/570))))
+            reach=max(1,min(wall_limit-2,round(32*w/360)))
+            if j%2==0:
+                x0,x1=1,1+reach
+            else:
+                x0,x1=w-2-reach,w-2
+            dy=max(1,round(11*h/570))
+            d.line([(x0,max(0,y-dy)),(x1,min(h-1,y+dy))],
+                   fill=(*color,88),width=1)
     else:
-        # Bright pinprick crystals on the peripheral walls.
+        # Bright pinprick crystals restricted to the peripheral rock.
         for j in range(25):
-            y=int(r.integers(70,h-65))
-            x=int(r.choice([r.integers(8,60),r.integers(w-60,w-8)]))
+            y=int(r.integers(max(0,round(70*h/570)),max(1,h-round(65*h/570))))
+            cx=int(r.integers(1,max(2,wall_limit-1)))
+            x=cx if int(r.integers(0,2))==0 else w-1-cx
             d.point((x,y),fill=(209,240,237,130))
     # Biome-specific geological fingerprint: 24 different vein paths, not
     # merely six palette swaps of the same silhouettes. Keep the central
