@@ -56,13 +56,14 @@ def alpha_sensitivity_report(alphas=(0.35, 0.50, 0.65, 0.80), limit=10):
     """
     if not isinstance(alphas, (tuple, list)) or not alphas:
         raise ValueError("alphas must be a nonempty sequence")
-    if len(alphas) != len(set(alphas)):
-        raise ValueError("alphas must be distinct")
-    # Validate before performing any palette work, including rejecting NaN.
+    # Validate before checking duplicates: malformed nested lists must raise
+    # ValueError, not leak a TypeError from set().
     for alpha in alphas:
         if (not isinstance(alpha, (int, float)) or isinstance(alpha, bool)
                 or not 0 <= alpha <= 1):
             raise ValueError("each alpha must be in [0, 1]")
+    if len(alphas) != len(set(alphas)):
+        raise ValueError("alphas must be distinct")
     if type(limit) is not int or not 1 <= limit <= 576:
         raise ValueError("limit must be an integer in [1, 576]")
     colors = palettes()
