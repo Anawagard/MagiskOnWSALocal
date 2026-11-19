@@ -95,5 +95,42 @@ class ArtPackContract(unittest.TestCase):
             self.assertIn(marker, source)
 
 
+    def test_auditor_enforces_dimensions_and_real_alpha(self):
+        """Guard against a weakened audit accepting placeholders or wrong sizes."""
+        auditor = SOURCE.with_name("audit_raster_assets_v710.py")
+        tree = ast.parse(auditor.read_text(encoding="utf-8"), filename=str(auditor))
+        audit = next((node for node in tree.body
+                      if isinstance(node, ast.FunctionDef) and node.name == "audit"), None)
+        self.assertIsNotNone(audit)
+        code = ast.get_source_segment(auditor.read_text(encoding="utf-8"), audit)
+        for dimensions in ("(360, 570)", "(300, 300)", "(240, 340)",
+                           "(400, 96)", "(160, 64)", "(360, 88)", "(360, 50)"):
+            self.assertIn(dimensions, code)
+        for requirement in ("im.format == expected_format",
+                            'im.mode == "RGB"', '"transparency" in im.info',
+                            "visible_count", "alpha.getextrema()",
+                            "fingerprint.hexdigest()", "stone_range",
+                            "coverage", "near", "fringe"):
+            self.assertIn(requirement.lower(), code.lower())
+
+    def test_preview_requires_existing_directory_and_no_android_build(self):
+        """Preview generation must not silently create a project or launch Gradle."""
+        tree = source_tree()
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('if not OUT.is_dir():', source)
+        self.assertIn('raise SystemExit(f"BLOCKED: preview directory', source)
+        self.assertIn('_REQUIRED = ("app/build.gradle"', source)
+        self.assertIn('if _missing:', source)
+        forbidden = {"subprocess", "os.system", "os.popen"}
+        invoked = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                try:
+                    invoked.add(ast.unparse(node.func))
+                except (AttributeError, ValueError):
+                    pass
+        self.assertFalse(forbidden & invoked)
+
+
 if __name__ == "__main__":
     unittest.main()
