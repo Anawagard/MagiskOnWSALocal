@@ -346,13 +346,18 @@ def cave(index,color,path,w=360,h=570):
     if 0 <= index < 24:
         fingerprint=np.random.default_rng(310001+index*1009)
         for side in (0,1):
-            edge=12 if side==0 else w-12
+            # Normalize the origin and reach to the actual wall. Fixed
+            # 12px/57px coordinates caused signatures to crowd narrow art.
+            inset=min(wall_limit-1,max(1,round(12*w/360)))
+            edge=inset if side==0 else w-1-inset
             direction=1 if side==0 else -1
             for vein in range(4+index%5):
-                y0=int(fingerprint.integers(75,h-100))
-                # Respect the actual wall width on narrow previews: the
-                # original fixed 57px reach crossed the 48px sidewall at 240px.
-                reach=min(wall_limit-13, int(fingerprint.integers(18,58)))
+                y0=int(fingerprint.integers(max(1,round(75*h/570)),
+                                           max(2,h-round(100*h/570))))
+                available=max(0,wall_limit-1-inset)
+                if not available:
+                    continue
+                reach=min(available,max(1,round(int(fingerprint.integers(18,58))*w/360)))
                 bend=int(fingerprint.integers(-12,13))
                 vertices=[(edge,y0),
                           (edge+direction*(reach//2),y0+bend),
@@ -368,11 +373,16 @@ def cave(index,color,path,w=360,h=570):
         crystals=np.random.default_rng(490003+index*997)
         for side in (0,1):
             direction=1 if side==0 else -1
-            edge=9 if side==0 else w-9
+            inset=min(wall_limit-1,max(1,round(9*w/360)))
+            edge=inset if side==0 else w-1-inset
             for cluster in range(3):
-                cy=int(crystals.integers(125,h-100))
-                reach=min(wall_limit-10, int(crystals.integers(17,43)))
-                rise=int(crystals.integers(14,38))
+                cy=int(crystals.integers(max(1,round(125*h/570)),
+                                        max(2,h-round(100*h/570))))
+                available=max(0,wall_limit-1-inset)
+                if not available:
+                    continue
+                reach=min(available,max(1,round(int(crystals.integers(17,43))*w/360)))
+                rise=max(1,round(int(crystals.integers(14,38))*h/570))
                 # Maximum x reach is 9+43=52 on the left and
                 # w-9-43=w-52 on the right: clear of x=85..275.
                 tip=edge+direction*reach
