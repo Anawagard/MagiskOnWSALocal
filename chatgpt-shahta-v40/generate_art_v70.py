@@ -63,8 +63,11 @@ def cave(index,color,path,w=360,h=570):
     displace=np.sin(yy*.017+xx*.012+index)*8
     # Rough limestone, crystal, coal and volcanic wall textures, not canvas polygons.
     tone=rock*.9+strata+displace
-    left=np.exp(-((xx-24)/(w*.26))**2)
-    right=np.exp(-((xx-(w-24))/(w*.27))**2)
+    # Position wall highlights proportionally to the canvas. Fixed 24 px
+    # offsets put the highlights too close to the edges on wide previews.
+    wall_center = w * (24.0 / 360.0)
+    left=np.exp(-((xx-wall_center)/(w*.26))**2)
+    right=np.exp(-((xx-(w-wall_center))/(w*.27))**2)
     wall=np.maximum(left,right)
     aperture=np.exp(-(((xx-w*.5)/(w*.39))**2+
                        ((yy-h*.48)/(h*.61))**2)*1.1)
