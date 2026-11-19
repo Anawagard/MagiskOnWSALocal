@@ -22,12 +22,20 @@ def palettes(source=SOURCE):
     if set(found) != {"SCENES", "ORES"}:
         raise ValueError("Both literal palettes are required")
     for name, colors in found.items():
-        if len(colors) != 24 or len(set(map(tuple, colors))) != 24:
-            raise ValueError(f"{name}: expected 24 distinct RGB entries")
-        if any(len(c) != 3 or any(type(v) is not int or not 0 <= v <= 255 for v in c)
-               for c in colors):
-            raise ValueError(f"{name}: invalid RGB values")
+        validate_palette(name, colors)
     return found
+
+
+def validate_palette(name, colors):
+    """Reject malformed entries before hashing or measuring color distance."""
+    if not isinstance(colors, (list, tuple)) or len(colors) != 24:
+        raise ValueError(f"{name}: expected exactly 24 RGB entries")
+    for index, color in enumerate(colors):
+        if (not isinstance(color, (list, tuple)) or len(color) != 3
+                or any(type(v) is not int or not 0 <= v <= 255 for v in color)):
+            raise ValueError(f"{name}[{index}]: invalid RGB triplet")
+    if len({tuple(color) for color in colors}) != 24:
+        raise ValueError(f"{name}: duplicate RGB entries")
 
 
 def srgb_channel(v):
