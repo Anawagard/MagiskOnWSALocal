@@ -265,16 +265,23 @@ def cave(index,color,path,w=360,h=570):
         # Fractured volcanic seams, kept outside the central play corridor.
         for side in (0,1):
             for j in range(11):
-                x=int(r.integers(4,65)) if side==0 else int(r.integers(w-65,w-4))
-                y=int(r.integers(60,h-60))
-                # Clamp every volcanic fracture vertex to its originating wall.
-                # The earlier +/-17 px offsets could leak into the play corridor.
+                # Sample from the actual wall, not the 360px design grid.
+                # Reserve a one-pixel inset for the rasterized stroke.
                 wall_edge=max(1,min(70,w//5))
-                lo,hi=(0,wall_edge-1) if side==0 else (w-wall_edge,w-1)
-                vertices=[(int(np.clip(x+dx,lo,hi)),y+dy)
+                inset=min(2,max(0,(wall_edge-1)//2))
+                lo,hi=(inset,wall_edge-1-inset) if side==0 else (w-wall_edge+inset,w-1-inset)
+                if lo>hi:
+                    continue
+                x=int(r.integers(lo,hi+1))
+                y=int(r.integers(max(0,round(60*motif_sy)),
+                                 max(1,round(510*motif_sy))+1))
+                y=max(0,min(h-1,y))
+                vertices=[(int(np.clip(x+round(dx*motif_sx),lo,hi)),
+                           max(0,min(h-1,y+round(dy*motif_sy))))
                           for dx,dy in ((0,0),(int(r.integers(-10,11)),15),
                                         (int(r.integers(-16,17)),32))]
-                d.line(vertices,fill=(232,119,72,110),width=2)
+                d.line(vertices,fill=(232,119,72,110),
+                       width=max(1,round(2*min(motif_sx,motif_sy))))
     # Six depth-dependent geological signatures differentiate biomes that share
     # the same foreground motif. Keep these confined to the side walls so
     # navigation labels and the central mining corridor remain readable.
