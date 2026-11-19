@@ -303,7 +303,9 @@ def cave(index,color,path,w=360,h=570):
             direction=1 if side==0 else -1
             for vein in range(4+index%5):
                 y0=int(fingerprint.integers(75,h-100))
-                reach=int(fingerprint.integers(18,58))
+                # Respect the actual wall width on narrow previews: the
+                # original fixed 57px reach crossed the 48px sidewall at 240px.
+                reach=min(wall_limit-13, int(fingerprint.integers(18,58)))
                 bend=int(fingerprint.integers(-12,13))
                 vertices=[(edge,y0),
                           (edge+direction*(reach//2),y0+bend),
@@ -322,7 +324,7 @@ def cave(index,color,path,w=360,h=570):
             edge=9 if side==0 else w-9
             for cluster in range(3):
                 cy=int(crystals.integers(125,h-100))
-                reach=int(crystals.integers(17,43))
+                reach=min(wall_limit-10, int(crystals.integers(17,43)))
                 rise=int(crystals.integers(14,38))
                 # Maximum x reach is 9+43=52 on the left and
                 # w-9-43=w-52 on the right: clear of x=85..275.
@@ -347,7 +349,7 @@ def cave(index,color,path,w=360,h=570):
             direction=1 if side==0 else -1
             for layer in range(3):
                 top=115+layer*122+int(plates.integers(-15,16))
-                depth=int(plates.integers(22,48))
+                depth=min(wall_limit-1, int(plates.integers(22,48)))
                 height=int(plates.integers(54,91))
                 inset=edge+direction*depth
                 ridge=edge+direction*(depth//2)
@@ -367,7 +369,7 @@ def cave(index,color,path,w=360,h=570):
             direction=1 if side==0 else -1
             for beam in range(3):
                 cy=int(wells.integers(100,h-110))
-                reach=int(wells.integers(17,49))
+                reach=min(wall_limit-9, int(wells.integers(17,49)))
                 spread=int(wells.integers(30,65))
                 x1=edge+direction*reach
                 # All vertices stay within 57 px of the outer edge.
@@ -390,7 +392,7 @@ def cave(index,color,path,w=360,h=570):
             direction = 1 if side == 0 else -1
             for row in range(95, h - 75, spacing):
                 y = row + int(seam_rng.integers(-7, 8))
-                reach = int(seam_rng.integers(22, 58))
+                reach = min(wall_limit-6, int(seam_rng.integers(22, 58)))
                 kink = int(seam_rng.integers(-9, 10))
                 x1 = edge + direction * (reach // 2)
                 x2 = edge + direction * reach
