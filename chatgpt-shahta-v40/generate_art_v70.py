@@ -422,9 +422,9 @@ def cave(index,color,path,w=360,h=570):
             edge=0 if side==0 else w
             direction=1 if side==0 else -1
             for layer in range(3):
-                top=115+layer*122+int(plates.integers(-15,16))
-                depth=min(wall_limit-1, int(plates.integers(22,48)))
-                height=int(plates.integers(54,91))
+                top=round((115+layer*122+int(plates.integers(-15,16)))*h/570)
+                depth=max(1,min(wall_limit-1,round(int(plates.integers(22,48))*w/360)))
+                height=max(1,round(int(plates.integers(54,91))*h/570))
                 inset=edge+direction*depth
                 ridge=edge+direction*(depth//2)
                 silhouette=[(edge,top-13),(ridge,top),
@@ -439,12 +439,12 @@ def cave(index,color,path,w=360,h=570):
     if 0 <= index < 24:
         wells=np.random.default_rng(920017+index*1297)
         for side in (0,1):
-            edge=8 if side==0 else w-8
+            edge=max(1,round(8*w/360)) if side==0 else w-1-max(1,round(8*w/360))
             direction=1 if side==0 else -1
             for beam in range(3):
-                cy=int(wells.integers(100,h-110))
-                reach=min(wall_limit-9, int(wells.integers(17,49)))
-                spread=int(wells.integers(30,65))
+                cy=round(int(wells.integers(100,460))*h/570)
+                reach=max(1,min(wall_limit-1-max(1,round(8*w/360)),round(int(wells.integers(17,49))*w/360)))
+                spread=max(1,round(int(wells.integers(30,65))*h/570))
                 x1=edge+direction*reach
                 # All vertices stay within 57 px of the outer edge.
                 tint=tuple(min(255,int(c*.72+52)) for c in color)
@@ -462,12 +462,13 @@ def cave(index,color,path,w=360,h=570):
         seam_rng = np.random.default_rng(650021 + index * 1427)
         spacing = 27 + index % 5 * 5
         for side in (0, 1):
-            edge = 5 if side == 0 else w - 5
+            edge_inset = max(1, round(5*w/360))
+            edge = edge_inset if side == 0 else w - 1 - edge_inset
             direction = 1 if side == 0 else -1
-            for row in range(95, h - 75, spacing):
-                y = row + int(seam_rng.integers(-7, 8))
-                reach = min(wall_limit-6, int(seam_rng.integers(22, 58)))
-                kink = int(seam_rng.integers(-9, 10))
+            for row in range(95, 495, spacing):
+                y = round((row + int(seam_rng.integers(-7, 8)))*h/570)
+                reach = max(1, min(wall_limit-1-edge_inset, round(int(seam_rng.integers(22, 58))*w/360)))
+                kink = round(int(seam_rng.integers(-9, 10))*h/570)
                 x1 = edge + direction * (reach // 2)
                 x2 = edge + direction * reach
                 # Reach <= 57 px from the edge; never overdraws HUD/play lane.
