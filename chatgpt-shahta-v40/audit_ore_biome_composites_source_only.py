@@ -42,11 +42,14 @@ def contrast_score(background, ore):
     bg = np.asarray(background, dtype=np.float32) / 255.0
     fg = np.asarray(ore, dtype=np.float32) / 255.0
     alpha = fg[:, :, 3]
-    if not np.any(alpha > 0.05):
+    visible = alpha > (1.0 / 255.0)
+    if not np.any(visible):
         raise ValueError("empty ore sprite")
     # Perceptual sRGB differences are a diagnostic proxy, not WCAG text contrast.
     delta = np.mean(np.abs(fg[:, :, :3] - bg), axis=2)
-    return float(np.sum(delta * alpha * alpha) / np.sum(alpha))
+    # Ignore fully transparent RGB garbage; normalize only over visible pixels.
+    # The displayed pixel difference is alpha * (foreground - background).
+    return float(np.sum((delta * alpha)[visible]) / np.count_nonzero(visible))
 
 
 def analyze(assets):
