@@ -17,6 +17,20 @@ class CompositeTintTests(unittest.TestCase):
             with self.subTest(alpha=bad), self.assertRaises(ValueError):
                 blend_srgb((0, 0, 0), (255, 255, 255), bad)
 
+    def test_reject_malformed_rgb_without_silent_zip_truncation(self):
+        valid = (10, 20, 30)
+        invalid = ((), (1, 2), (1, 2, 3, 4), (0, 0, 256),
+                   (-1, 2, 3), (1.0, 2, 3), (True, 2, 3),
+                   ("1", 2, 3), None, "123")
+        for bad in invalid:
+            with self.subTest(rgb=bad):
+                with self.assertRaises(ValueError):
+                    blend_srgb(bad, valid, 0.65)
+                with self.assertRaises(ValueError):
+                    blend_srgb(valid, bad, 0.65)
+        self.assertEqual(blend_srgb([0, 128, 255], [255, 128, 0], 0),
+                         (0, 128, 255))
+
     def test_complete_matrix_and_limits(self):
         full = composited_palette_collisions(limit=576)
         self.assertEqual(len(full), 576)
