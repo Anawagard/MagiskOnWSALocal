@@ -140,22 +140,31 @@ def cave(index,color,path,w=360,h=570):
     # The cyan is intentionally restrained against the dark geological base.
     marker_rng=np.random.default_rng(910007+index*173)
     marker_side=index%2
-    marker_x=18 if marker_side==0 else w-18
+    marker_sx, marker_sy = w / 360.0, h / 570.0
+    marker_wall = max(1, min(70, w // 5))
+    # Depth rails stay inside the sidewall at every supported raster size.
+    marker_inset = min(marker_wall - 1, max(1, round(18 * marker_sx)))
+    marker_x = marker_inset if marker_side == 0 else w - 1 - marker_inset
+    toward = 1 if marker_side == 0 else -1
+    rail_end = max(0, min(w - 1, marker_x + toward * max(1, round(7 * marker_sx))))
     for marker in range(3+(index%3)):
-        marker_y=105+marker*83+int(marker_rng.integers(-12,13))
-        if marker_y+17>=h-48:
+        marker_y = round((105 + marker*83 + int(marker_rng.integers(-12,13))) * marker_sy)
+        half_height = max(1, round(12 * marker_sy))
+        if marker_y + half_height >= h - max(1, round(48 * marker_sy)):
             continue
         glow=(67,213,202,30)
         rail=(104,235,219,105)
-        d.line([(marker_x,marker_y-12),(marker_x,marker_y+12)],
-               fill=glow,width=7)
-        d.line([(marker_x,marker_y-10),(marker_x,marker_y+10)],
-               fill=rail,width=2)
-        toward=1 if marker_side==0 else -1
-        d.line([(marker_x,marker_y-10),
-                (marker_x+7*toward,marker_y-10)],
+        d.line([(marker_x,marker_y-half_height),(marker_x,marker_y+half_height)],
+               fill=glow,width=max(1,round(7*marker_sx)))
+        d.line([(marker_x,marker_y-max(1,round(10*marker_sy))),
+                (marker_x,marker_y+max(1,round(10*marker_sy)))],
+               fill=rail,width=max(1,round(2*marker_sx)))
+        d.line([(marker_x,marker_y-max(1,round(10*marker_sy))),
+                (rail_end,marker_y-max(1,round(10*marker_sy)))],
                fill=(131,243,226,95),width=1)
-        d.ellipse((marker_x-2,marker_y-2,marker_x+2,marker_y+2),
+        dot_radius=max(1,round(2*min(marker_sx,marker_sy)))
+        d.ellipse((marker_x-dot_radius,marker_y-dot_radius,
+                   marker_x+dot_radius,marker_y+dot_radius),
                   fill=(164,249,230,150))
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
     d.polygon([(int(round(w * x / 360)), int(round(h * y / 570)))
