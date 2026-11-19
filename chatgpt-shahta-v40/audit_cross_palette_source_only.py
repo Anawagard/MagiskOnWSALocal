@@ -10,6 +10,13 @@ def blend_srgb(background, foreground, alpha):
     """Approximate displayed RGB when an ore tint overlays its biome tint."""
     if not isinstance(alpha, (int, float)) or isinstance(alpha, bool) or not 0 <= alpha <= 1:
         raise ValueError("alpha must be in [0, 1]")
+    # Reject malformed RGB rather than silently truncating zip() or producing
+    # out-of-range colors. This diagnostic must never mask asset corruption.
+    for name, rgb in (("background", background), ("foreground", foreground)):
+        if not isinstance(rgb, (tuple, list)) or len(rgb) != 3:
+            raise ValueError(f"{name} must contain exactly three RGB channels")
+        if any(type(channel) is not int or not 0 <= channel <= 255 for channel in rgb):
+            raise ValueError(f"{name} RGB channels must be integers in [0, 255]")
     return tuple(round((1 - alpha) * bg + alpha * fg)
                  for bg, fg in zip(background, foreground))
 
