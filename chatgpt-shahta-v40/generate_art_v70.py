@@ -268,10 +268,18 @@ def cave(index,color,path,w=360,h=570):
     # signatures instead of letting all fall through the final branch.
     signature=index//4 if index < 24 else (index-30)%6
     if signature==0:
-        # Fine parallel quartz seams.
+        # Fine parallel quartz seams, normalized to the actual sidewall width.
+        # The old 72px endpoint escaped the 48px wall on 240px previews.
+        signature_sx, signature_sy = w / 360.0, h / 570.0
+        signature_wall = max(1, min(70, w // 5))
         for j in range(9):
-            y=78+j*46
-            d.line([(5,y),(45,y-8),(72,y-4)],fill=(*color,75),width=1)
+            y = round((78 + j * 46) * signature_sy)
+            seam = [(min(signature_wall - 1, round(x * signature_sx)),
+                     max(0, min(h - 1, round(yy * signature_sy))))
+                    for x, yy in ((5, 78 + j * 46),
+                                  (45, 70 + j * 46),
+                                  (72, 74 + j * 46))]
+            d.line(seam, fill=(*color,75), width=max(1, round(signature_sx)))
     elif signature==1:
         # Sparse stratified dark inclusions.
         for j in range(16):
