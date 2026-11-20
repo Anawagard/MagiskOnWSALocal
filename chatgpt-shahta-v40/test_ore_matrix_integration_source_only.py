@@ -11,6 +11,7 @@ from PIL import Image
 
 from audit_ore_biome_composites_source_only import (
     BACKGROUND_SIZE, COUNT, ORE_SIZE, analyze, summarize_risks,
+    contrast_score, visibility_details,
 )
 
 
@@ -49,6 +50,35 @@ class OreMatrixIntegrationTest(unittest.TestCase):
                              summary["risk_pairs"])
             self.assertEqual(sum(summary["risk_count_by_ore"].values()),
                              summary["risk_pairs"])
+
+    def test_displayed_alpha_math_and_transparent_rgb(self):
+        # A fully transparent RGB value must never affect the score.
+        # Half-opacity ore must contribute half the displayed difference.
+        background = Image.new("RGB", (2, 1), (0, 0, 0))
+        ore = Image.new("RGBA", (2, 1))
+        ore.putpixel((0, 0), (255, 255, 255, 128))
+        ore.putpixel((1, 0), (255, 0, 255, 0))
+        expected = 128 / 255
+        self.assertAlmostEqual(contrast_score(background, ore), expected,
+                               places=6)
+        details = visibility_details(background, ore)
+        self.assertAlmostEqual(details["visible_coverage"], 0.5)
+        self.assertAlmostEqual(details["core_coverage"], 0.5)
+        self.assertEqual(details["core_low_contrast_fraction"], 0.0)
+        # Transparent pixel colors are irrelevant even if wildly different.
+        ore.putpixel((1, 0), (0, 255, 0, 0))
+        self.assertAlmostEqual(contrast_score(background, ore), expected,
+                               places=6)
+
+    def test_translucent_fringe_is_not_misclassified_as_solid_core(self):
+        background = Image.new("RGB", (2, 1), (0, 0, 0))
+        ore = Image.new("RGBA", (2, 1))
+        ore.putpixel((0, 0), (255, 255, 255, 255))
+        ore.putpixel((1, 0), (0, 0, 0, 20))
+        details = visibility_details(background, ore)
+        self.assertEqual(details["visible_coverage"], 1.0)
+        self.assertEqual(details["core_coverage"], 0.5)
+        self.assertEqual(details["core_low_contrast_fraction"], 0.0)
 
     def test_partial_matrix_fails_closed(self):
         # A complete first pair must not disguise missing remaining assets.
