@@ -73,10 +73,17 @@ def visibility_details(background, ore):
     # Separate the opaque ore core from near-transparent antialiased edges.
     # Preserve existing metrics for backwards-compatible reports.
     core = alpha >= 0.5
-    # Measure how much of the solid ore body nearly blends into the backdrop.\n    # Fringe antialiasing must not inflate this fraction.\n    core_low_contrast_fraction = (\n        round(float(np.mean(displayed[core] < 0.08)), 6)\n        if np.any(core) else None\n    )\n    return {
+    # Measure how much of the solid ore body nearly blends into the backdrop.
+    # Fringe antialiasing must not inflate this fraction.
+    core_low_contrast_fraction = (
+        round(float(np.mean(displayed[core] < 0.08)), 6)
+        if np.any(core) else None
+    )
+    return {
         "visible_coverage": round(float(np.mean(visible)), 6),
         "weakest_decile": round(float(np.percentile(displayed[visible], 10)), 6),
-        "core_coverage": round(float(np.mean(core)), 6),\n        "core_low_contrast_fraction": core_low_contrast_fraction,
+        "core_coverage": round(float(np.mean(core)), 6),
+        "core_low_contrast_fraction": core_low_contrast_fraction,
         "core_weakest_decile": (
             round(float(np.percentile(displayed[core], 10)), 6)
             if np.any(core) else None
