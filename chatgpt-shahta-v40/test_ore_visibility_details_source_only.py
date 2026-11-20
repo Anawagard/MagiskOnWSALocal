@@ -29,6 +29,22 @@ class VisibilityDetailsTests(unittest.TestCase):
         self.assertEqual(result["visible_coverage"], 0.5)
         self.assertEqual(result["weakest_decile"], 1.0)
 
+    def test_minimum_nonzero_alpha_is_counted(self):
+        bg = Image.new("RGB", (SAMPLE_SIZE, SAMPLE_SIZE), (0, 0, 0))
+        fg = Image.new("RGBA", (SAMPLE_SIZE, SAMPLE_SIZE), (255, 255, 255, 1))
+        result = visibility_details(bg, fg)
+        self.assertEqual(result["visible_coverage"], 1.0)
+        self.assertAlmostEqual(result["weakest_decile"], round(1 / 255, 6), places=6)
+
+    def test_sparse_visible_pixel_ignores_transparent_rgb(self):
+        bg = Image.new("RGB", (SAMPLE_SIZE, SAMPLE_SIZE), (0, 0, 0))
+        data = np.zeros((SAMPLE_SIZE, SAMPLE_SIZE, 4), dtype=np.uint8)
+        data[:, :, :3] = 255
+        data[0, 0] = (128, 128, 128, 255)
+        result = visibility_details(bg, Image.fromarray(data, mode="RGBA"))
+        self.assertEqual(result["visible_coverage"], round(1 / (SAMPLE_SIZE ** 2), 6))
+        self.assertAlmostEqual(result["weakest_decile"], round(128 / 255, 6), places=6)
+
     def test_empty_sprite_rejected(self):
         bg = Image.new("RGB", (SAMPLE_SIZE, SAMPLE_SIZE), (0, 0, 0))
         fg = Image.new("RGBA", (SAMPLE_SIZE, SAMPLE_SIZE), (255, 255, 255, 0))
