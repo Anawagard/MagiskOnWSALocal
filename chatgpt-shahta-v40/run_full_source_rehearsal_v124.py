@@ -199,6 +199,21 @@ def rehearse(art_output=None):
                 or sum(risks["risk_count_by_ore"].values()) != flagged
                 or len(risks["worst_pairs"]) != flagged):
             raise AssertionError("Inconsistent raster visibility risk counts")
+        # Persist the full deterministic 576-pair matrix when a review folder
+        # was explicitly requested. The console top-ten is not enough to fix
+        # every problematic ore/biome combination in a later art pass.
+        if art_output is not None:
+            import json
+            output_dir = Path(art_output)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            report_path = output_dir / "ore_biome_visibility_576.json"
+            report = {"pair_count": len(scores), "scores": scores,
+                      "visibility_risks": risks}
+            report_path.write_text(
+                json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\\n",
+                encoding="utf-8",
+            )
+            print(f"RASTER REVIEW REPORT: {report_path}", flush=True)
         print(f"RASTER VISIBILITY REVIEW: {flagged}/576 pairs have >=25% "
               f"low-contrast ore core; worst 10: "
               f"{[(r['biome'], r['ore']) for r in risks['worst_pairs'][:10]]}",
