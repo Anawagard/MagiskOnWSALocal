@@ -190,6 +190,19 @@ def rehearse(art_output=None):
                 raise AssertionError(f"Core fraction/coverage mismatch: {row}")
             if row["core_coverage"] == 0 and core_score is not None:
                 raise AssertionError(f"Empty ore core must have no score: {row}")
+        # Turn pixel diagnostics into a reproducible, per-biome review queue.
+        # Counts must account for every flagged pair exactly once.
+        from audit_ore_biome_composites_source_only import summarize_risks
+        risks = summarize_risks(scores)
+        flagged = risks["risk_pairs"]
+        if (sum(risks["risk_count_by_biome"].values()) != flagged
+                or sum(risks["risk_count_by_ore"].values()) != flagged
+                or len(risks["worst_pairs"]) != flagged):
+            raise AssertionError("Inconsistent raster visibility risk counts")
+        print(f"RASTER VISIBILITY REVIEW: {flagged}/576 pairs have >=25% "
+              f"low-contrast ore core; worst 10: "
+              f"{[(r['biome'], r['ore']) for r in risks['worst_pairs'][:10]]}",
+              flush=True)
         print(f"PIXEL CONTRAST PASS: {len(scores)} decoded biome/ore pairs; "
               f"lowest={scores[0]['score']:.6f}", flush=True)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
