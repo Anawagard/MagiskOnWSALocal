@@ -99,7 +99,14 @@ def rehearse(art_output=None):
                  "test_viewport_transform_v126.py",
                  "test_affine_source_contract_v127.py",
                  "test_modernist_shop_control_isolation_v128.py",
-                 "test_modernist_toast_viewport_v129.py"):
+                 "test_modernist_toast_viewport_v129.py",
+                 # Pixel-level raster regressions must run, not merely parse.
+                 "test_ore_biome_displayed_contrast_source_only.py",
+                 "test_ore_visibility_pixels_source_only.py",
+                 "test_ore_visibility_details_source_only.py",
+                 "test_ore_raster_inputs_source_only.py",
+                 "test_alpha_sensitivity_source_only.py",
+                 "test_alpha_sensitivity_matrix_source_only.py"):
         subprocess.run(
             [sys.executable, "-X", "utf8", str(HERE / test)],
             cwd=HERE, check=True, timeout=60,
@@ -155,6 +162,22 @@ def rehearse(art_output=None):
         # incorrect dimensions and visually indistinguishable button states.
         from audit_raster_assets_v710 import audit as audit_raster_identity
         audit_raster_identity(project / "app/src/main/assets/shahta_v70")
+        # Measure decoded pixels of every biome/ore combination, not just
+        # file headers or palette constants. Fail on missing/non-finite scores.
+        import math
+        from audit_ore_biome_composites_source_only import analyze
+        scores = analyze(project / "app/src/main/assets/shahta_v70")
+        if len(scores) != 24 * 24:
+            raise AssertionError(f"Expected 576 biome/ore pairs, got {len(scores)}")
+        pairs = {(row["biome"], row["ore"]) for row in scores}
+        if pairs != {(i, j) for i in range(1, 25) for j in range(1, 25)}:
+            raise AssertionError("Incomplete or duplicated biome/ore contrast matrix")
+        for row in scores:
+            if not all(math.isfinite(row[key]) and 0 <= row[key] <= 1
+                       for key in ("score", "visible_coverage", "weakest_decile")):
+                raise AssertionError(f"Invalid raster contrast measurement: {row}")
+        print(f"PIXEL CONTRAST PASS: {len(scores)} decoded biome/ore pairs; "
+              f"lowest={scores[0]['score']:.6f}", flush=True)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
         subprocess.run(
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
