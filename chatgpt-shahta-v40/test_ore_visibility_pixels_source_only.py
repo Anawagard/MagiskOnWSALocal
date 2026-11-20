@@ -51,13 +51,18 @@ class OreVisibilityPixelTests(unittest.TestCase):
     def test_partially_transparent_pixels_are_counted(self):
         data = np.zeros((SAMPLE_SIZE, SAMPLE_SIZE, 4), dtype=np.uint8)
         data[0, 0] = (255, 255, 255, 1)
-        with self.assertRaisesRegex(ValueError, "empty ore"):
-            contrast_score(background((0, 0, 0)),
-                           Image.fromarray(data, mode="RGBA"))
+        score = contrast_score(background((0, 0, 0)),
+                               Image.fromarray(data, mode="RGBA"))
+        self.assertAlmostEqual(score, 1 / 255, places=6)
         data[0, 0, 3] = 2
         score = contrast_score(background((0, 0, 0)),
                                Image.fromarray(data, mode="RGBA"))
         self.assertAlmostEqual(score, 2 / 255, places=6)
+
+    def test_mismatched_image_dimensions_rejected(self):
+        wrong = Image.new("RGBA", (SAMPLE_SIZE - 1, SAMPLE_SIZE), (255, 255, 255, 255))
+        with self.assertRaisesRegex(ValueError, "matching"):
+            contrast_score(background((0, 0, 0)), wrong)
 
 
 if __name__ == "__main__":
