@@ -50,6 +50,38 @@ class OreMatrixIntegrationTest(unittest.TestCase):
             self.assertEqual(sum(summary["risk_count_by_ore"].values()),
                              summary["risk_pairs"])
 
+    def test_partial_matrix_fails_closed(self):
+        # A complete first pair must not disguise missing remaining assets.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.new("RGB", BACKGROUND_SIZE, (30, 50, 70)).save(
+                root / "biome_00.jpg", "JPEG")
+            Image.new("RGBA", ORE_SIZE, (100, 150, 200, 255)).save(
+                root / "ore_00.png", "PNG")
+            with self.assertRaises(FileNotFoundError):
+                analyze(root)
+
+    def test_invalid_ore_format_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.new("RGB", BACKGROUND_SIZE, (30, 50, 70)).save(
+                root / "biome_00.jpg", "JPEG")
+            # A JPEG renamed to PNG must not be silently accepted.
+            Image.new("RGB", ORE_SIZE, (100, 150, 200)).save(
+                root / "ore_00.png", "JPEG")
+            with self.assertRaises(ValueError):
+                analyze(root)
+
+    def test_fully_transparent_ore_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.new("RGB", BACKGROUND_SIZE, (30, 50, 70)).save(
+                root / "biome_00.jpg", "JPEG")
+            Image.new("RGBA", ORE_SIZE, (0, 0, 0, 0)).save(
+                root / "ore_00.png", "PNG")
+            with self.assertRaisesRegex(ValueError, "empty ore sprite"):
+                analyze(root)
+
     def test_missing_asset_fails_instead_of_reporting_partial_matrix(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(FileNotFoundError):
