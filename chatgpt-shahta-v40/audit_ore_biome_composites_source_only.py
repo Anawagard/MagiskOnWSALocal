@@ -8,6 +8,7 @@ pixel contrast diagnostics, not a substitute for reviewing the five UI screens.
 """
 import argparse
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -119,7 +120,9 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
     channel difference below 0.08. These are diagnostics, not accessibility
     certification or proof of an in-game rendering defect.
     """
-    if not 0 <= low_contrast_threshold <= 1 or not 0 <= affected_fraction <= 1:
+    if (not math.isfinite(low_contrast_threshold) or not math.isfinite(affected_fraction)
+            or not 0 <= low_contrast_threshold <= 1
+            or not 0 <= affected_fraction <= 1):
         raise ValueError("risk thresholds must be in [0, 1]")
     # Fractions in scores were precomputed at the fixed 0.08 cutoff.
     # Accepting another cutoff would silently mislabel the risk report.
