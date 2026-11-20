@@ -105,6 +105,7 @@ def rehearse(art_output=None):
                  "test_ore_visibility_pixels_source_only.py",
                  "test_ore_visibility_details_source_only.py",
                  "test_ore_raster_inputs_source_only.py",
+                 "test_ore_core_visibility_source_only.py",
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py"):
         subprocess.run(
@@ -174,8 +175,13 @@ def rehearse(art_output=None):
             raise AssertionError("Incomplete or duplicated biome/ore contrast matrix")
         for row in scores:
             if not all(math.isfinite(row[key]) and 0 <= row[key] <= 1
-                       for key in ("score", "visible_coverage", "weakest_decile")):
+                       for key in ("score", "visible_coverage", "weakest_decile", "core_coverage")):
                 raise AssertionError(f"Invalid raster contrast measurement: {row}")
+            core_score = row["core_weakest_decile"]
+            if core_score is not None and not (math.isfinite(core_score) and 0 <= core_score <= 1):
+                raise AssertionError(f"Invalid ore core contrast measurement: {row}")
+            if row["core_coverage"] == 0 and core_score is not None:
+                raise AssertionError(f"Empty ore core must have no score: {row}")
         print(f"PIXEL CONTRAST PASS: {len(scores)} decoded biome/ore pairs; "
               f"lowest={scores[0]['score']:.6f}", flush=True)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
