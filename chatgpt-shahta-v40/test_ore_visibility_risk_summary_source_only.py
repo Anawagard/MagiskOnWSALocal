@@ -37,6 +37,14 @@ class RiskSummaryTests(unittest.TestCase):
         self.assertEqual(result["risk_pairs"], 0)
         self.assertEqual(result["worst_pairs"], [])
 
+    def test_nondefault_displayed_cutoff_is_rejected(self):
+        # The per-pair fraction is measured at 0.08, not recomputed here.
+        for value in (0.0, 0.05, 0.1, 1.0):
+            with self.assertRaisesRegex(ValueError, "precomputed scores"):
+                summarize_risks([row(1, 1, 0.5)], low_contrast_threshold=value)
+        self.assertEqual(summarize_risks([row(1, 1, 0.5)],
+                                         low_contrast_threshold=0.08)["risk_pairs"], 1)
+
     def test_invalid_thresholds(self):
         for value in (-0.01, 1.01):
             with self.assertRaises(ValueError):
