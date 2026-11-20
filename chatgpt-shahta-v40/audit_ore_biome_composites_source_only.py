@@ -121,6 +121,10 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
     """
     if not 0 <= low_contrast_threshold <= 1 or not 0 <= affected_fraction <= 1:
         raise ValueError("risk thresholds must be in [0, 1]")
+    # Fractions in scores were precomputed at the fixed 0.08 cutoff.
+    # Accepting another cutoff would silently mislabel the risk report.
+    if low_contrast_threshold != 0.08:
+        raise ValueError("low_contrast_threshold must be 0.08 for precomputed scores")
     risky = [
         row for row in scores
         if row["core_low_contrast_fraction"] is not None
