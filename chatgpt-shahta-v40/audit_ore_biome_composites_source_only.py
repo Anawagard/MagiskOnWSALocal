@@ -84,6 +84,12 @@ def visibility_details(background, ore):
         "visible_coverage": round(float(np.mean(visible)), 6),
         "weakest_decile": round(float(np.percentile(displayed[visible], 10)), 6),
         "core_coverage": round(float(np.mean(core)), 6),
+        # Mean contrast across the solid body complements the weakest decile:
+        # a tiny dark patch should not be confused with a broadly muted ore.
+        "core_mean_contrast": (
+            round(float(np.mean(displayed[core])), 6)
+            if np.any(core) else None
+        ),
         "core_low_contrast_fraction": core_low_contrast_fraction,
         "core_weakest_decile": (
             round(float(np.percentile(displayed[core], 10)), 6)
