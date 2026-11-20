@@ -24,6 +24,21 @@ class OpaqueCoreMetrics(unittest.TestCase):
         self.assertEqual(result["core_coverage"], 0.0)
         self.assertIsNone(result["core_weakest_decile"])
 
+    def test_low_contrast_fraction_ignores_transparent_fringe(self):
+        bg = np.zeros((2, 2, 3), dtype=np.uint8)
+        ore = np.zeros((2, 2, 4), dtype=np.uint8)
+        ore[0, 0] = [255, 255, 255, 255]
+        ore[0, 1] = [10, 10, 10, 255]
+        ore[1, 0] = [0, 0, 0, 1]
+        result = visibility_details(bg, ore)
+        self.assertEqual(result["core_coverage"], 0.5)
+        self.assertEqual(result["core_low_contrast_fraction"], 0.5)
+
+    def test_no_core_has_no_low_contrast_fraction(self):
+        bg = np.zeros((1, 1, 3), dtype=np.uint8)
+        ore = np.array([[[255, 255, 255, 1]]], dtype=np.uint8)
+        self.assertIsNone(visibility_details(bg, ore)["core_low_contrast_fraction"])
+
     def test_half_alpha_counts_as_core(self):
         bg = np.zeros((1, 1, 3), dtype=np.uint8)
         ore = np.array([[[255, 255, 255, 128]]], dtype=np.uint8)
