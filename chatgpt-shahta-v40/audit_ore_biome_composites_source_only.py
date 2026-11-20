@@ -70,9 +70,17 @@ def visibility_details(background, ore):
     if not np.any(visible):
         raise ValueError("empty ore sprite")
     displayed = np.mean(np.abs(fg[:, :, :3] - bg), axis=2) * alpha
+    # Separate the opaque ore core from near-transparent antialiased edges.
+    # Preserve existing metrics for backwards-compatible reports.
+    core = alpha >= 0.5
     return {
         "visible_coverage": round(float(np.mean(visible)), 6),
         "weakest_decile": round(float(np.percentile(displayed[visible], 10)), 6),
+        "core_coverage": round(float(np.mean(core)), 6),
+        "core_weakest_decile": (
+            round(float(np.percentile(displayed[core], 10)), 6)
+            if np.any(core) else None
+        ),
     }
 
 
