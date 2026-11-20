@@ -82,6 +82,26 @@ class OreMatrixIntegrationTest(unittest.TestCase):
         self.assertEqual(details["core_coverage"], 0.5)
         self.assertEqual(details["core_low_contrast_fraction"], 0.0)
 
+    def test_soft_ore_without_opaque_core_is_reported_not_misclassified(self):
+        # A translucent ore is visible but has no alpha>=0.5 solid core.
+        # Its missing core statistics must remain JSON-safe nulls, not NaN.
+        import json
+        background = Image.new("RGB", (2, 2), (30, 40, 50))
+        ore = Image.new("RGBA", (2, 2), (240, 200, 160, 64))
+        details = visibility_details(background, ore)
+        self.assertEqual(details["visible_coverage"], 1.0)
+        self.assertEqual(details["core_coverage"], 0.0)
+        for key in ("core_mean_contrast", "core_low_contrast_fraction",
+                    "core_weakest_decile"):
+            self.assertIsNone(details[key])
+        row = {"biome": 1, "ore": 1, "score": contrast_score(background, ore),
+               **details}
+        summary = summarize_risks([row])
+        self.assertEqual(summary["risk_pairs"], 0)
+        self.assertEqual(summary["worst_pairs"], [])
+        json.dumps({"scores": [row], "visibility_risks": summary},
+                   allow_nan=False)
+
     def test_partial_matrix_fails_closed(self):
         # A complete first pair must not disguise missing remaining assets.
         with tempfile.TemporaryDirectory() as directory:
