@@ -120,8 +120,22 @@ def main():
     if not 1 <= args.limit <= COUNT * COUNT:
         parser.error("--limit must be in [1, 576]")
     scores = analyze(args.assets)
-    print(json.dumps({"pairs": len(scores), "lowest_contrast": scores[:args.limit]},
-                     ensure_ascii=False, indent=2))
+    # The mean can hide large low-contrast patches in an otherwise bright ore.
+    # Keep the historical ranking while also reporting the weakest solid cores.
+    core_scores = [row for row in scores if row["core_weakest_decile"] is not None]
+    core_scores.sort(key=lambda row: (
+        row["core_weakest_decile"], row["biome"], row["ore"]
+    ))
+    missing_cores = [
+        {"biome": row["biome"], "ore": row["ore"]}
+        for row in scores if row["core_weakest_decile"] is None
+    ]
+    print(json.dumps({
+        "pairs": len(scores),
+        "lowest_contrast": scores[:args.limit],
+        "lowest_core_contrast": core_scores[:args.limit],
+        "missing_opaque_cores": missing_cores,
+    }, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
