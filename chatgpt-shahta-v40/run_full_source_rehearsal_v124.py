@@ -108,7 +108,9 @@ def rehearse(art_output=None):
                  "test_ore_core_visibility_source_only.py",
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py",
-                 "test_ore_visibility_risk_summary_source_only.py"):
+                 "test_ore_visibility_risk_summary_source_only.py",
+                 # Exercise the complete 24x24 fixture and malformed raster inputs.
+                 "test_ore_matrix_integration_source_only.py"):
         subprocess.run(
             [sys.executable, "-X", "utf8", str(HERE / test)],
             cwd=HERE, check=True, timeout=60,
