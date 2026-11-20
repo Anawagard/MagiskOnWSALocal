@@ -47,6 +47,8 @@ class OreMatrixIntegrationTest(unittest.TestCase):
                 self.assertTrue(0 <= row["core_mean_contrast"] <= 1)
                 self.assertTrue(0 <= row["core_low_contrast_fraction"] <= 1)
             summary = summarize_risks(first)
+            self.assertEqual(summary["unscorable_core_pairs"], 0)
+            self.assertEqual(summary["unscorable_core_locations"], [])
             self.assertEqual(sum(summary["risk_count_by_biome"].values()),
                              summary["risk_pairs"])
             self.assertEqual(sum(summary["risk_count_by_ore"].values()),
@@ -99,6 +101,9 @@ class OreMatrixIntegrationTest(unittest.TestCase):
         summary = summarize_risks([row])
         self.assertEqual(summary["risk_pairs"], 0)
         self.assertEqual(summary["worst_pairs"], [])
+        self.assertEqual(summary["unscorable_core_pairs"], 1)
+        self.assertEqual(summary["unscorable_core_locations"],
+                         [{"biome": 1, "ore": 1}])
         json.dumps({"scores": [row], "visibility_risks": summary},
                    allow_nan=False)
 
