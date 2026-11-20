@@ -169,13 +169,14 @@ def main():
         {"biome": row["biome"], "ore": row["ore"]}
         for row in scores if row["core_weakest_decile"] is None
     ]
+    risk_summary = summarize_risks(scores)
+    risk_summary["worst_pairs"] = risk_summary["worst_pairs"][:args.limit]
     print(json.dumps({
         "pairs": len(scores),
         "lowest_contrast": scores[:args.limit],
         "lowest_core_contrast": core_scores[:args.limit],
         "missing_opaque_cores": missing_cores,
-        "visibility_risks": {**summarize_risks(scores),
-                             "worst_pairs": summarize_risks(scores)["worst_pairs"][:args.limit]},
+        "visibility_risks": risk_summary,
     }, ensure_ascii=False, indent=2))
 
 
