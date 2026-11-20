@@ -112,6 +112,45 @@ def analyze(assets):
     return scores
 
 
+def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25):
+    """Rank actionable ore/biome visibility risks without hiding individual pairs.
+
+    A risk means at least 25% of the alpha>=0.5 ore body has displayed
+    channel difference below 0.08. These are diagnostics, not accessibility
+    certification or proof of an in-game rendering defect.
+    """
+    if not 0 <= low_contrast_threshold <= 1 or not 0 <= affected_fraction <= 1:
+        raise ValueError("risk thresholds must be in [0, 1]")
+    risky = [
+        row for row in scores
+        if row["core_low_contrast_fraction"] is not None
+        and row["core_low_contrast_fraction"] >= affected_fraction
+    ]
+    risky.sort(key=lambda row: (
+        -row["core_low_contrast_fraction"], row["core_weakest_decile"],
+        row["biome"], row["ore"]
+    ))
+    return {
+        "threshold_displayed_difference": low_contrast_threshold,
+        "threshold_affected_core_fraction": affected_fraction,
+        "risk_pairs": len(risky),
+        "worst_pairs": [
+            {"biome": row["biome"], "ore": row["ore"],
+             "affected_core_fraction": row["core_low_contrast_fraction"],
+             "core_weakest_decile": row["core_weakest_decile"]}
+            for row in risky
+        ],
+        "risk_count_by_biome": {
+            str(i): sum(row["biome"] == i for row in risky)
+            for i in range(1, COUNT + 1)
+        },
+        "risk_count_by_ore": {
+            str(i): sum(row["ore"] == i for row in risky)
+            for i in range(1, COUNT + 1)
+        },
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, required=True)
@@ -135,6 +174,8 @@ def main():
         "lowest_contrast": scores[:args.limit],
         "lowest_core_contrast": core_scores[:args.limit],
         "missing_opaque_cores": missing_cores,
+        "visibility_risks": {**summarize_risks(scores),
+                             "worst_pairs": summarize_risks(scores)["worst_pairs"][:args.limit]},
     }, ensure_ascii=False, indent=2))
 
 
