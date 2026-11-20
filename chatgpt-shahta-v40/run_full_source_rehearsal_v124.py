@@ -180,6 +180,11 @@ def rehearse(art_output=None):
             if not all(math.isfinite(row[key]) and 0 <= row[key] <= 1
                        for key in ("score", "visible_coverage", "weakest_decile", "core_coverage")):
                 raise AssertionError(f"Invalid raster contrast measurement: {row}")
+            core_mean = row["core_mean_contrast"]
+            if core_mean is not None and not (math.isfinite(core_mean) and 0 <= core_mean <= 1):
+                raise AssertionError(f"Invalid mean ore core contrast: {row}")
+            if (row["core_coverage"] == 0) != (core_mean is None):
+                raise AssertionError(f"Core mean/coverage mismatch: {row}")
             core_score = row["core_weakest_decile"]
             if core_score is not None and not (math.isfinite(core_score) and 0 <= core_score <= 1):
                 raise AssertionError(f"Invalid ore core contrast measurement: {row}")
