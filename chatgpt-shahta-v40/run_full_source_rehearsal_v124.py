@@ -180,6 +180,11 @@ def rehearse(art_output=None):
             core_score = row["core_weakest_decile"]
             if core_score is not None and not (math.isfinite(core_score) and 0 <= core_score <= 1):
                 raise AssertionError(f"Invalid ore core contrast measurement: {row}")
+            fraction = row["core_low_contrast_fraction"]
+            if fraction is not None and not (math.isfinite(fraction) and 0 <= fraction <= 1):
+                raise AssertionError(f"Invalid low-contrast core fraction: {row}")
+            if (row["core_coverage"] == 0) != (fraction is None):
+                raise AssertionError(f"Core fraction/coverage mismatch: {row}")
             if row["core_coverage"] == 0 and core_score is not None:
                 raise AssertionError(f"Empty ore core must have no score: {row}")
         print(f"PIXEL CONTRAST PASS: {len(scores)} decoded biome/ore pairs; "
