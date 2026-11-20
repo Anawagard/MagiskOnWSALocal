@@ -156,6 +156,16 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
         "risk_pairs": len(risky),
         "unscorable_core_pairs": len(unscorable),
         "unscorable_core_locations": unscorable,
+        # Identify whether missing opaque cores cluster in a particular
+        # biome or ore. These counts are independent of the risk threshold.
+        "unscorable_count_by_biome": {
+            str(i): sum(row["biome"] == i for row in unscorable)
+            for i in range(1, COUNT + 1)
+        },
+        "unscorable_count_by_ore": {
+            str(i): sum(row["ore"] == i for row in unscorable)
+            for i in range(1, COUNT + 1)
+        },
         "worst_pairs": [
             {"biome": row["biome"], "ore": row["ore"],
              "affected_core_fraction": row["core_low_contrast_fraction"],
