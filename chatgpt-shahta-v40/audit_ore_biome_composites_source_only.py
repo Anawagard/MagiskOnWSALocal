@@ -52,6 +52,28 @@ def contrast_score(background, ore):
     return float(np.sum((delta * alpha)[visible]) / np.count_nonzero(visible))
 
 
+def visibility_details(background, ore):
+    """Measure coverage and the weakest visible tenth, not just mean contrast.
+
+    The mean can hide low-contrast ore regions. A tenth-percentile score
+    highlights patches that visually disappear against the current biome.
+    Values are in displayed sRGB units [0, 1].
+    """
+    bg = np.asarray(background, dtype=np.float32) / 255.0
+    fg = np.asarray(ore, dtype=np.float32) / 255.0
+    if bg.shape != fg.shape[:2] + (3,) or fg.shape[-1] != 4:
+        raise ValueError("background and ore must have matching RGB/RGBA dimensions")
+    alpha = fg[:, :, 3]
+    visible = alpha > (1.0 / 255.0)
+    if not np.any(visible):
+        raise ValueError("empty ore sprite")
+    displayed = np.mean(np.abs(fg[:, :, :3] - bg), axis=2) * alpha
+    return {
+        "visible_coverage": round(float(np.mean(visible)), 6),
+        "weakest_decile": round(float(np.percentile(displayed[visible], 10)), 6),
+    }
+
+
 def analyze(assets):
     assets = Path(assets)
     scenes = []
@@ -67,7 +89,8 @@ def analyze(assets):
     for i, scene in enumerate(scenes):
         for j, ore in enumerate(ores):
             scores.append({"biome": i + 1, "ore": j + 1,
-                           "score": round(contrast_score(scene, ore), 6)})
+                           "score": round(contrast_score(scene, ore), 6),
+                           **visibility_details(scene, ore)})
     scores.sort(key=lambda row: (row["score"], row["biome"], row["ore"]))
     return scores
 
