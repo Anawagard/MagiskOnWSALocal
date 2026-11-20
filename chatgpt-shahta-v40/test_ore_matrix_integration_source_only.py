@@ -44,6 +44,7 @@ class OreMatrixIntegrationTest(unittest.TestCase):
                 self.assertTrue(0 <= row["score"] <= 1)
                 self.assertTrue(0 < row["visible_coverage"] <= 1)
                 self.assertTrue(0 < row["core_coverage"] <= 1)
+                self.assertTrue(0 <= row["core_mean_contrast"] <= 1)
                 self.assertTrue(0 <= row["core_low_contrast_fraction"] <= 1)
             summary = summarize_risks(first)
             self.assertEqual(sum(summary["risk_count_by_biome"].values()),
@@ -65,6 +66,7 @@ class OreMatrixIntegrationTest(unittest.TestCase):
         self.assertAlmostEqual(details["visible_coverage"], 0.5)
         self.assertAlmostEqual(details["core_coverage"], 0.5)
         self.assertEqual(details["core_low_contrast_fraction"], 0.0)
+        self.assertAlmostEqual(details["core_mean_contrast"], 1.0, places=6)
         # Transparent pixel colors are irrelevant even if wildly different.
         ore.putpixel((1, 0), (0, 255, 0, 0))
         self.assertAlmostEqual(contrast_score(background, ore), expected,
