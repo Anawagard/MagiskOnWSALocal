@@ -41,8 +41,10 @@ def contrast_score(background, ore):
     """Mean absolute displayed RGB difference, weighted by actual ore alpha."""
     bg = np.asarray(background, dtype=np.float32) / 255.0
     fg = np.asarray(ore, dtype=np.float32) / 255.0
+    if bg.shape != fg.shape[:2] + (3,) or fg.shape[-1] != 4:
+        raise ValueError("background and ore must have matching RGB/RGBA dimensions")
     alpha = fg[:, :, 3]
-    visible = alpha > (1.0 / 255.0)
+    visible = alpha > 0.0
     if not np.any(visible):
         raise ValueError("empty ore sprite")
     # Perceptual sRGB differences are a diagnostic proxy, not WCAG text contrast.
@@ -64,7 +66,7 @@ def visibility_details(background, ore):
     if bg.shape != fg.shape[:2] + (3,) or fg.shape[-1] != 4:
         raise ValueError("background and ore must have matching RGB/RGBA dimensions")
     alpha = fg[:, :, 3]
-    visible = alpha > (1.0 / 255.0)
+    visible = alpha > 0.0
     if not np.any(visible):
         raise ValueError("empty ore sprite")
     displayed = np.mean(np.abs(fg[:, :, :3] - bg), axis=2) * alpha
