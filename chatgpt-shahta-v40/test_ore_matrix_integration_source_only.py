@@ -66,7 +66,7 @@ class OreMatrixIntegrationTest(unittest.TestCase):
         self.assertAlmostEqual(details["visible_coverage"], 0.5)
         self.assertAlmostEqual(details["core_coverage"], 0.5)
         self.assertEqual(details["core_low_contrast_fraction"], 0.0)
-        self.assertAlmostEqual(details["core_mean_contrast"], 1.0, places=6)
+        self.assertAlmostEqual(details["core_mean_contrast"], expected, places=6)
         # Transparent pixel colors are irrelevant even if wildly different.
         ore.putpixel((1, 0), (0, 255, 0, 0))
         self.assertAlmostEqual(contrast_score(background, ore), expected,
