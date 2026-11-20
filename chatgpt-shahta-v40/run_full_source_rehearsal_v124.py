@@ -193,8 +193,8 @@ def rehearse(art_output=None):
                 raise AssertionError(f"Invalid low-contrast core fraction: {row}")
             if (row["core_coverage"] == 0) != (fraction is None):
                 raise AssertionError(f"Core fraction/coverage mismatch: {row}")
-            if row["core_coverage"] == 0 and core_score is not None:
-                raise AssertionError(f"Empty ore core must have no score: {row}")
+            if (row["core_coverage"] == 0) != (core_score is None):
+                raise AssertionError(f"Core weakest-decile/coverage mismatch: {row}")
         # Turn pixel diagnostics into a reproducible, per-biome review queue.
         # Counts must account for every flagged pair exactly once.
         from audit_ore_biome_composites_source_only import summarize_risks
@@ -204,6 +204,13 @@ def rehearse(art_output=None):
                 or sum(risks["risk_count_by_ore"].values()) != flagged
                 or len(risks["worst_pairs"]) != flagged):
             raise AssertionError("Inconsistent raster visibility risk counts")
+        unscorable = risks["unscorable_core_pairs"]
+        locations = risks["unscorable_core_locations"]
+        if (unscorable != len(locations)
+                or unscorable + flagged > len(scores)
+                or len({(r["biome"], r["ore"]) for r in locations}) != unscorable
+                or any((r["biome"], r["ore"]) not in pairs for r in locations)):
+            raise AssertionError("Inconsistent unscorable ore-core accounting")
         # Persist the full deterministic 576-pair matrix when a review folder
         # was explicitly requested. The console top-ten is not enough to fix
         # every problematic ore/biome combination in a later art pass.
@@ -219,6 +226,7 @@ def rehearse(art_output=None):
                 encoding="utf-8",
             )
             print(f"RASTER REVIEW REPORT: {report_path}", flush=True)
+        print(f"RASTER CORE COVERAGE REVIEW: {unscorable}/576 pairs lack a scorable opaque core", flush=True)
         print(f"RASTER VISIBILITY REVIEW: {flagged}/576 pairs have >=25% "
               f"low-contrast ore core; worst 10: "
               f"{[(r['biome'], r['ore']) for r in risks['worst_pairs'][:10]]}",
