@@ -46,7 +46,7 @@ class RiskSummaryTests(unittest.TestCase):
                                          low_contrast_threshold=0.08)["risk_pairs"], 1)
 
     def test_invalid_thresholds(self):
-        for value in (-0.01, 1.01):
+        for value in (-0.01, 1.01, float('nan'), float('inf'), -float('inf')):
             with self.assertRaises(ValueError):
                 summarize_risks([], affected_fraction=value)
             with self.assertRaises(ValueError):
