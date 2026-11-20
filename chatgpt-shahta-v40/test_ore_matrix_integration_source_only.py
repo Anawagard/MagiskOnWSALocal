@@ -107,6 +107,34 @@ class OreMatrixIntegrationTest(unittest.TestCase):
         json.dumps({"scores": [row], "visibility_risks": summary},
                    allow_nan=False)
 
+    def test_solid_core_alpha_boundary_is_inclusive(self):
+        # 127/255 is fringe; 128/255 is the first solid-core alpha.
+        background = Image.new("RGB", (3, 1), (0, 0, 0))
+        ore = Image.new("RGBA", (3, 1))
+        ore.putpixel((0, 0), (0, 0, 0, 127))
+        ore.putpixel((1, 0), (255, 255, 255, 128))
+        ore.putpixel((2, 0), (255, 255, 255, 255))
+        details = visibility_details(background, ore)
+        self.assertAlmostEqual(details["core_coverage"], 2 / 3, places=6)
+        self.assertEqual(details["core_low_contrast_fraction"], 0.0)
+        self.assertGreater(details["core_mean_contrast"], 0.7)
+
+    def test_risk_threshold_is_inclusive_and_counts_each_axis(self):
+        # Exactly one quarter of the core is weak: it must be reported.
+        background = Image.new("RGB", (4, 1), (0, 0, 0))
+        ore = Image.new("RGBA", (4, 1), (255, 255, 255, 255))
+        ore.putpixel((0, 0), (0, 0, 0, 255))
+        details = visibility_details(background, ore)
+        self.assertEqual(details["core_low_contrast_fraction"], 0.25)
+        row = {"biome": 3, "ore": 7, "score": contrast_score(background, ore),
+               **details}
+        summary = summarize_risks([row])
+        self.assertEqual(summary["risk_pairs"], 1)
+        self.assertEqual(summary["risk_count_by_biome"]["3"], 1)
+        self.assertEqual(summary["risk_count_by_ore"]["7"], 1)
+        self.assertEqual(summary["unscorable_core_pairs"], 0)
+        self.assertEqual(summarize_risks([row], affected_fraction=0.250001)["risk_pairs"], 0)
+
     def test_partial_matrix_fails_closed(self):
         # A complete first pair must not disguise missing remaining assets.
         with tempfile.TemporaryDirectory() as directory:
