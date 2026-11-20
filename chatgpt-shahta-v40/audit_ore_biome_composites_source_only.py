@@ -134,6 +134,13 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
     # Accepting another cutoff would silently mislabel the risk report.
     if low_contrast_threshold != 0.08:
         raise ValueError("low_contrast_threshold must be 0.08 for precomputed scores")
+    # A visible sprite with no alpha>=0.5 core cannot be classified as
+    # low-risk: its core contrast is unmeasurable. Report it explicitly.
+    unscorable = sorted(
+        ({"biome": row["biome"], "ore": row["ore"]}
+         for row in scores if row["core_low_contrast_fraction"] is None),
+        key=lambda row: (row["biome"], row["ore"]),
+    )
     risky = [
         row for row in scores
         if row["core_low_contrast_fraction"] is not None
@@ -147,6 +154,8 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
         "threshold_displayed_difference": low_contrast_threshold,
         "threshold_affected_core_fraction": affected_fraction,
         "risk_pairs": len(risky),
+        "unscorable_core_pairs": len(unscorable),
+        "unscorable_core_locations": unscorable,
         "worst_pairs": [
             {"biome": row["biome"], "ore": row["ore"],
              "affected_core_fraction": row["core_low_contrast_fraction"],
