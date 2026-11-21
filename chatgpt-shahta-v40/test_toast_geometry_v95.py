@@ -18,7 +18,7 @@ PAGE_SHIFT = 60
 
 def toasts(source):
     match = re.search(
-        r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+        r"int toastY = page==0 \? (\d+) : \(page==1 \? (\d+) : (\d+)\);",
         source,
     )
     if match is None:
