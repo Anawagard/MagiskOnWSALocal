@@ -1,135 +1,118 @@
-"""Source-only regression: inspect actual Java replacement template from v7.9.
+"""Source-only regression for v7.9's final five-page toast Java template.
 
-No Gradle, APK, emulator, or Actions execution.
+Checks actual replacement Java parsed out of the patch, including the +60
+translation of the PAGE artwork that is not applied to the global toast.
+No Android SDK, emulator, APK, Gradle, or Actions execution.
 """
 import ast
 from pathlib import Path
 import re
 import unittest
 
-PATCH = Path(__file__).with_name("patch_modernist_v79.py")
+ROOT = Path(__file__).resolve().parent
+PATCH = ROOT / "patch_modernist_v79.py"
+HEIGHT = 26
 
 
-def replacement_java(source):
-    module = ast.parse(source)
-    values = [node.value for node in module.body if isinstance(node, ast.Assign)
-              and any(isinstance(t, ast.Name) and t.id == "new" for t in node.targets)]
-    if len(values) != 1:
-        raise AssertionError("Expected exactly one Java replacement template")
-    return ast.literal_eval(values[0])
+def templates(source):
+    result = {}
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign):
+            for name in node.targets:
+                if isinstance(name, ast.Name) and name.id in ("old", "new"):
+                    result[name.id] = ast.literal_eval(node.value)
+    if set(result) != {"old", "new"}:
+        raise AssertionError("Expected exactly one old/new Java replacement")
+    return result
 
 
 def positions(java):
     match = re.search(
-        r"int\s+toastY\s*=\s*page\s*==\s*0\s*\?\s*(\d+)\s*:\s*"
-        r"\(page\s*==\s*1\s*\?\s*(\d+)\s*:\s*(\d+)\);", java)
+        r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+        java,
+    )
     if match is None:
-        raise AssertionError("Missing contextual toast expression")
+        raise AssertionError("Missing five-page Java toast coordinate expression")
     return tuple(map(int, match.groups()))
 
 
-def validate_toast_geometry(java):
-    """Check production toast placement for every page; reusable by mutation tests."""
+def validate(java):
     mine, shop, feature = positions(java)
-    for page in range(5):
-        y = mine if page == 0 else shop if page == 1 else feature
-        if not (0 <= y and y + 26 <= 690):
-            raise AssertionError(f"Toast outside content viewport on page {page}: {y}")
-        if page == 0 and y + 26 > 205:
-            raise AssertionError("Mine toast overlaps telemetry")
-        if page == 1 and not (615 <= y and y + 26 <= 653):
-            raise AssertionError("Shop toast overlaps card grid or controls")
-        if page >= 2 and y < 653:
-            raise AssertionError(f"Feature toast overlaps clipped content on page {page}")
+    if not (240 <= mine and mine + HEIGHT <= 266):
+        raise AssertionError("Mine toast covers shifted HUD or ore")
+    if not (690 < shop and shop + HEIGHT <= 720):
+        raise AssertionError("Shop toast covers shifted cards/settings")
+    if not (174 < feature and feature + HEIGHT <= 203):
+        raise AssertionError("Feature toast covers header title or feature controls")
+    for top in (mine, shop, feature):
+        if not (136 < top and top + HEIGHT <= 720):
+            raise AssertionError("Toast off the 360x720 screen")
+    return mine, shop, feature
 
 
 class ToastSourceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.java = replacement_java(PATCH.read_text(encoding="utf-8"))
+        cls.patch = PATCH.read_text(encoding="utf-8")
+        cls.java = templates(cls.patch)["new"]
 
-    def test_single_surface(self):
+    def test_real_java_geometry(self):
+        self.assertEqual(validate(self.java), (240, 691, 177))
+        v70 = (ROOT / "patch_full_redesign_v70.py").read_text(encoding="utf-8")
+        self.assertIn("canvas.translate(0,60);", v70)
+        self.assertIn("canvas.clipRect(0,87,360,653);", v70)
+
+    def test_single_panel_and_safe_content(self):
         self.assertEqual(self.java.count('v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);'), 1)
-        self.assertEqual(self.java.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,285);'), 1)
-
-    def test_geometry_from_java(self):
-        validate_toast_geometry(self.java)
-
-    def test_decorations_inside_panel(self):
-        self.assertIn('rect(canvas,26,toastY+4,3,18,0xff65e1d0);', self.java)
+        self.assertEqual(self.java.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);'), 1)
+        self.assertIn('rect(canvas,26,toastY+4,3,18,toastAccent);', self.java)
         self.assertIn('rect(canvas,36,toastY+22,296,1,0xff315d60);', self.java)
+        self.assertIn('v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24)', self.java)
+        self.assertLess(39 + 251, 301)  # Text doesn't touch 25px ore badge.
+        self.assertLessEqual(301 + 25, 18 + 324)
+        self.assertLessEqual(305 + 18, 301 + 25)
 
-    def test_accent_rails_stay_within_toast_panel(self):
-        # Inspect all literal rect calls tied to toastY, not just their presence.
-        rails = re.findall(
-            r"rect\(canvas,(\d+),toastY\+(\d+),(\d+),(\d+),0x[0-9a-f]+\);",
-            self.java)
-        self.assertEqual(len(rails), 4, "All four notification accents must be checked")
-        for x, offset, width, height in rails:
-            x, offset, width, height = map(int, (x, offset, width, height))
-            with self.subTest(x=x, offset=offset):
-                self.assertGreaterEqual(x, 18)
-                self.assertLessEqual(x + width, 342)
-                self.assertGreaterEqual(offset, 0)
-                self.assertLessEqual(offset + height, 26)
+    def test_palette_unique_for_all_five_pages(self):
+        match = re.search(r"int toastAccent = (.*?);", self.java, re.S)
+        self.assertIsNotNone(match)
+        colors = re.findall(r"0xff[0-9a-fA-F]{6}", match.group(1))
+        self.assertEqual(len(colors), 5)
+        self.assertEqual(len(set(colors)), 5)
 
-    def test_patch_changes_only_the_notification_block(self):
-        # Verify the exact old/new templates rather than trusting a comment.
-        tree = ast.parse(PATCH.read_text(encoding="utf-8"))
-        templates = {}
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id in ("old", "new"):
-                        templates[target.id] = ast.literal_eval(node.value)
-        self.assertEqual(set(templates), {"old", "new"})
-        old, new = templates["old"], templates["new"]
-        self.assertEqual(new, self.java)
-        self.assertIn("if(System.currentTimeMillis()<toastUntil)", old)
-        self.assertEqual(old.count("if(System.currentTimeMillis()<toastUntil)"), 1)
-        self.assertEqual(new.count("if(System.currentTimeMillis()<toastUntil)"), 1)
-        self.assertNotIn("onTouchEvent", new)
-        self.assertNotIn("getSharedPreferences", new)
-        self.assertNotIn("save()", new)
-        self.assertNotIn("rebirth()", new)
-        # A sentinel before and after the block must remain byte-for-byte
-        # identical when the production replacement is applied.
-        surrounding = "BEFORE\\n" + old + "\\nAFTER"
-        self.assertEqual(surrounding.replace(old, new, 1),
-                         "BEFORE\\n" + new + "\\nAFTER")
+    def test_patch_has_no_gameplay_or_touch_changes(self):
+        original = templates(self.patch)["old"]
+        self.assertEqual(original.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        self.assertEqual(self.java.count("if(System.currentTimeMillis()<toastUntil)"), 1)
+        for banned in ("onTouchEvent", "getSharedPreferences", "save()", "rebirth()"):
+            self.assertNotIn(banned, self.java)
+        sentinel = "before\n" + original + "\nafter"
+        self.assertEqual(sentinel.replace(original, self.java, 1),
+                         "before\n" + self.java + "\nafter")
 
-    def test_toast_text_and_accents_fit_panel(self):
-        # Keep the label within the same 324px-wide panel as its accents.
-        match = re.search(
-            r"leftFittedText\(canvas,toast,(\d+),toastY\+(\d+),"
-            r"(\d+),0x[0-9a-f]+,(\d+)\);", self.java)
-        self.assertIsNotNone(match, "Toast text geometry must be inspectable")
-        x, baseline, font_size, max_width = map(int, match.groups())
-        self.assertGreaterEqual(x, 18)
-        self.assertLessEqual(x + max_width, 342)
-        self.assertGreater(baseline, 0)
-        self.assertLessEqual(baseline, 26)
-        self.assertGreater(font_size, 0)
-        self.assertLessEqual(font_size, baseline)
+    def test_screen_space_fits_eleven_device_sizes(self):
+        tops = (240, 691, 177, 177, 177)
+        sizes = ((176,320),(240,320),(280,560),(320,568),(360,720),
+                 (393,873),(720,1280),(1080,2400),(1272,2772),
+                 (2560,720),(720,2560))
+        for width, height in sizes:
+            scale = min(width / 360, height / 720)
+            ox, oy = (width - 360 * scale) / 2, (height - 720 * scale) / 2
+            for top in tops:
+                with self.subTest(device=(width,height), top=top):
+                    self.assertGreaterEqual(ox + 18 * scale, 0)
+                    self.assertLessEqual(ox + 342 * scale, width)
+                    self.assertGreaterEqual(oy + top * scale, 0)
+                    self.assertLessEqual(oy + (top + HEIGHT) * scale, height)
 
-    def test_notification_boundaries_survive_mutation(self):
-        # Deliberately move the shop toast onto the final card row.
-        changed = self.java.replace("? 623 :", "? 610 :")
-        self.assertNotEqual(changed, self.java)
-        with self.assertRaisesRegex(AssertionError, "Shop toast"):
-            validate_toast_geometry(changed)
-        # Moving feature notifications into navigation must also be caught.
-        changed = self.java.replace(": 655);", ": 680);")
-        self.assertNotEqual(changed, self.java)
-        with self.assertRaisesRegex(AssertionError, "outside content viewport"):
-            validate_toast_geometry(changed)
-
-    def test_mutation_detection(self):
-        original = positions(self.java)
-        self.assertNotEqual(positions(self.java.replace("? 623 :", "? 610 :")), original)
-        with self.assertRaises(AssertionError):
-            positions(self.java.replace("int toastY", "int removedY"))
+    def test_adversarial_old_coordinates_rejected(self):
+        for original, changed in (("? 240 :", "? 178 :"),
+                                  ("? 691 :", "? 655 :"),
+                                  (": 177);", ": 145);")):
+            broken = self.java.replace(original, changed)
+            self.assertNotEqual(broken, self.java)
+            with self.assertRaises(AssertionError):
+                validate(broken)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
