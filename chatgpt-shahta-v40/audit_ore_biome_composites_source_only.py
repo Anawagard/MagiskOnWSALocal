@@ -19,6 +19,33 @@ BACKGROUND_SIZE = (360, 570)
 ORE_SIZE = (300, 300)
 SAMPLE_SIZE = 96
 
+# Read directly from the v7.1 Java drawPage/drawMine rectangles. The biome
+# fills (0,87,360,566) in page coordinates; the ore is drawn at
+# (105,210,225,230). The global +60 translation cancels for both layers.
+# These values are deliberately centralized to prevent diagnostics from
+# measuring an unrelated 96px background patch.
+BIOME_DEST = (0, 87, 360, 566)
+ORE_DEST = (105, 210, 225, 230)
+
+
+def ore_backdrop(scene, sample_size=SAMPLE_SIZE):
+    """Sample the biome pixels actually underneath the rendered ore sprite."""
+    if scene.size != BACKGROUND_SIZE:
+        raise ValueError(f"Expected biome size {BACKGROUND_SIZE}, got {scene.size}")
+    bx, by, bw, bh = BIOME_DEST
+    ox, oy, ow, oh = ORE_DEST
+    if bw <= 0 or bh <= 0 or ow <= 0 or oh <= 0:
+        raise ValueError("Non-positive Java render rectangle")
+    # PIL EXTENT maps the exact source-space rectangle to a square sample,
+    # avoiding integer-rounded crop edges and preserving source registration.
+    bounds = ((ox-bx)*scene.width/bw, (oy-by)*scene.height/bh,
+              (ox+ow-bx)*scene.width/bw, (oy+oh-by)*scene.height/bh)
+    if not (0 <= bounds[0] < bounds[2] <= scene.width and
+            0 <= bounds[1] < bounds[3] <= scene.height):
+        raise ValueError("Ore rectangle extends outside biome")
+    return scene.transform((sample_size, sample_size), Image.Transform.EXTENT,
+                           bounds, resample=Image.Resampling.BILINEAR)
+
 
 def read_rgb(path, size, expected_format):
     with Image.open(path) as im:
@@ -104,10 +131,8 @@ def analyze(assets):
     ores = []
     for i in range(COUNT):
         scene = read_rgb(assets / f"biome_{i:02d}.jpg", BACKGROUND_SIZE, "JPEG")
-        # The gameplay corridor is central. Use the same fixed crop for all
-        # biomes to avoid ranking unrelated decorative side-wall details.
-        crop = scene.crop((132, 200, 228, 296))
-        scenes.append(crop)
+        # Match the actual backdrop below the on-screen ore hitbox.
+        scenes.append(ore_backdrop(scene))
         ores.append(read_ore(assets / f"ore_{i:02d}.png"))
     scores = []
     for i, scene in enumerate(scenes):
@@ -238,7 +263,7 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
         biome, ore = item["biome"] - 1, item["ore"] - 1
         scene = read_rgb(Path(assets) / f"biome_{biome:02d}.jpg",
                          BACKGROUND_SIZE, "JPEG")
-        background = scene.crop((132, 200, 228, 296)).resize((tile, tile))
+        background = ore_backdrop(scene, sample_size=tile)
         # Render the review tile directly from the 300px source rather than
         # upscaling the 96px analysis sample; preserve fine ore details.
         foreground = read_ore(Path(assets) / f"ore_{ore:02d}.png", sample_size=tile)
