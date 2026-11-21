@@ -183,10 +183,46 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
     }
 
 
+def render_risk_contact_sheet(assets, scores, output, limit=24):
+    """Render actual high-risk ore over biome crops for visual review.
+
+    The sheet is diagnostic only; it does not modify source art or game state.
+    """
+    from PIL import ImageDraw
+
+    risks = summarize_risks(scores)
+    selected = risks["worst_pairs"][:limit]
+    if not selected:
+        return 0
+    tile = 128
+    columns = min(6, len(selected))
+    rows = (len(selected) + columns - 1) // columns
+    sheet = Image.new("RGB", (columns * tile, rows * (tile + 28)), (22, 27, 32))
+    draw = ImageDraw.Draw(sheet)
+    for index, item in enumerate(selected):
+        biome, ore = item["biome"] - 1, item["ore"] - 1
+        scene = read_rgb(Path(assets) / f"biome_{biome:02d}.jpg",
+                         BACKGROUND_SIZE, "JPEG")
+        background = scene.crop((132, 200, 228, 296)).resize((tile, tile))
+        foreground = read_ore(Path(assets) / f"ore_{ore:02d}.png").resize(
+            (tile, tile), Image.Resampling.LANCZOS)
+        background.paste(foreground, (0, 0), foreground)
+        x, y = (index % columns) * tile, (index // columns) * (tile + 28)
+        sheet.paste(background, (x, y))
+        draw.text((x + 4, y + tile + 5),
+                  f"B{biome + 1:02d} O{ore + 1:02d}  {item['affected_core_fraction']:.0%}",
+                  fill=(224, 245, 244))
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output, format="PNG")
+    return len(selected)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=15)
+    parser.add_argument("--risk-sheet", type=Path, help="optional PNG contact sheet of worst ore/biome pairs")
     args = parser.parse_args()
     if not 1 <= args.limit <= COUNT * COUNT:
         parser.error("--limit must be in [1, 576]")
@@ -202,6 +238,8 @@ def main():
         for row in scores if row["core_weakest_decile"] is None
     ]
     risk_summary = summarize_risks(scores)
+    if args.risk_sheet is not None:
+        render_risk_contact_sheet(args.assets, scores, args.risk_sheet, args.limit)
     risk_summary["worst_pairs"] = risk_summary["worst_pairs"][:args.limit]
     print(json.dumps({
         "pairs": len(scores),
