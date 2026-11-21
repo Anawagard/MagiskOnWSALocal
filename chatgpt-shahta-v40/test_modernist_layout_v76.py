@@ -4,7 +4,7 @@ from pathlib import Path
 
 patch = Path(__file__).with_name("patch_modernist_v76.py").read_text()
 for marker in (
-    'rect(c,17,103,3,30,0xff65e1d0)',
+    'rect(c,17,103,3,30,identity)',
     'v72NineSlice(c,"panel.png",10,94,340,49,255)',
     'v72NineSlice(c,"button_off.png",298,98,44,41,214)',
     'v72NineSlice(c,"panel.png",x,y,165,145,255)',
@@ -14,11 +14,42 @@ for marker in (
 ):
     assert marker in patch, marker
 
+# Verify per-destination accents against the actual toast palette, not merely
+# the presence of arbitrary color literals. All three need high contrast on
+# graphite, and decorative strokes must stay away from localized headings.
+feature_accents = {2: 0xffffa77a, 3: 0xffc4a7ff, 4: 0xff82bfff}
+identity_expression = (
+    'int identity=tab==2 ? 0xffffa77a : '
+    '(tab==3 ? 0xffc4a7ff : 0xff82bfff);'
+)
+assert identity_expression in patch
+assert len(set(feature_accents.values())) == 3
+assert "rect(c,12,103,2,12,identity);" in patch
+assert "rect(c,12,118,2,7,0xff315d60);" in patch
+assert "rect(c,28,139,72,1,identity);" in patch
+
+def luminance(argb):
+    rgb = [(argb >> shift & 255) / 255.0 for shift in (16, 8, 0)]
+    linear = [v / 12.92 if v <= 0.04045
+              else ((v + 0.055) / 1.055) ** 2.4 for v in rgb]
+    return sum(value * weight for value, weight in
+               zip(linear, (0.2126, 0.7152, 0.0722)))
+
+graphite = 0xff17202f  # panel.png base is (23, 32, 47)
+for tab, accent in feature_accents.items():
+    ratio = (luminance(accent) + 0.05) / (luminance(graphite) + 0.05)
+    assert ratio >= 7.0, ("Low-contrast feature accent", tab, ratio)
+    assert 12 + 2 < 28  # Tiny registration marks are left of the title.
+    assert 94 <= 103 < 115 <= 143
+    assert 94 <= 118 < 125 <= 143
+
 # A five-page toast is drawn outside the translated page Canvas. When a
 # feature-page toast occupies screen y=177..203, its header must hide
 # the subtitle and ore badge rather than painting invisible overlapping text.
 v79 = Path(__file__).with_name("patch_modernist_v79.py").read_text()
 assert "int toastY = page==0 ? 240 : (page==1 ? 691 : 177);" in v79
+for color in feature_accents.values():
+    assert f"0x{color:08x}" in v79, ("Feature accent disagrees with toast", color)
 assert "boolean toastInHeader=System.currentTimeMillis()<toastUntil;" in patch
 assert "leftFittedText(c,title,28,toastInHeader?110:114,16,0xfff0fffd,253);" in patch
 block_start = patch.index("        if(!toastInHeader){")
