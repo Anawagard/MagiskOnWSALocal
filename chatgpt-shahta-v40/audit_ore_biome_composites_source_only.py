@@ -191,7 +191,13 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     from PIL import ImageDraw
 
     risks = summarize_risks(scores)
-    selected = risks["worst_pairs"][:limit]
+    # Include unscorable translucent sprites: otherwise a completely missing
+    # opaque core is invisible in the visual review despite being flagged.
+    selected = [
+        {**item, "affected_core_fraction": None}
+        for item in risks["unscorable_core_locations"]
+    ][:limit]
+    selected += risks["worst_pairs"][:max(0, limit - len(selected))]
     if not selected:
         return 0
     tile = 128
@@ -206,11 +212,14 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
         background = scene.crop((132, 200, 228, 296)).resize((tile, tile))
         foreground = read_ore(Path(assets) / f"ore_{ore:02d}.png").resize(
             (tile, tile), Image.Resampling.LANCZOS)
-        background.paste(foreground, (0, 0), foreground)
+        # Composite exactly once in RGBA; do not apply the alpha twice.
+        background = Image.alpha_composite(background.convert("RGBA"), foreground).convert("RGB")
         x, y = (index % columns) * tile, (index // columns) * (tile + 28)
         sheet.paste(background, (x, y))
+        risk_label = ("NO CORE" if item["affected_core_fraction"] is None
+                      else f"{item['affected_core_fraction']:.0%}")
         draw.text((x + 4, y + tile + 5),
-                  f"B{biome + 1:02d} O{ore + 1:02d}  {item['affected_core_fraction']:.0%}",
+                  f"B{biome + 1:02d} O{ore + 1:02d}  {risk_label}",
                   fill=(224, 245, 244))
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
