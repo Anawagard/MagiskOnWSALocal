@@ -195,8 +195,8 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     assets_root = Path(assets).resolve()
     destination = Path(output).resolve()
     protected = {
-        *(assets_root / f"biome_{i:02d}.jpg" for i in range(COUNT)),
-        *(assets_root / f"ore_{i:02d}.png" for i in range(COUNT)),
+        *((assets_root / f"biome_{i:02d}.jpg").resolve() for i in range(COUNT)),
+        *((assets_root / f"ore_{i:02d}.png").resolve() for i in range(COUNT)),
     }
     if destination in protected:
         raise ValueError("risk contact sheet output would overwrite a source texture")
