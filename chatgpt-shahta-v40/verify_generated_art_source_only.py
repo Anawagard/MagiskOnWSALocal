@@ -33,6 +33,11 @@ def run(script, *args, env=None):
 def verify(root):
     """Generate and inspect real assets inside an isolated output directory."""
     root = Path(root)
+    # Never follow an output-directory symlink: a seemingly empty alias can
+    # redirect generated rasters and audit files outside the requested path.
+    # Check before mkdir, since exist_ok=True accepts directory symlinks.
+    if root.is_symlink():
+        raise ValueError(f"Refusing symlinked art output directory: {root}")
     root.mkdir(parents=True, exist_ok=True)
     if any(root.iterdir()):
         raise ValueError(f"Refusing to overwrite a nonempty art directory: {root}")
