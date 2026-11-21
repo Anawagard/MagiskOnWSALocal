@@ -282,11 +282,82 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     return len(selected)
 
 
+
+def render_visibility_heatmap(scores, output):
+    """Plot all 576 ore/biome pairs, including translucent-core failures.
+
+    Columns are ores 01..24, rows are biomes 01..24. A red tile indicates
+    >=25% of the solid ore has low displayed contrast (<0.08); graphite
+    denotes a healthy measured pair, and magenta means no measurable core.
+    This is a diagnostic image, never a replacement for Android screenshots.
+    """
+    from PIL import ImageDraw
+
+    expected = {(biome, ore) for biome in range(1, COUNT + 1)
+                for ore in range(1, COUNT + 1)}
+    actual = [(int(row["biome"]), int(row["ore"])) for row in scores]
+    if len(actual) != COUNT * COUNT or set(actual) != expected:
+        raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
+    # Never overwrite a source asset, even if the output path is mistyped.
+    destination = Path(output).resolve()
+    if destination.name.startswith(("biome_", "ore_")) and destination.suffix.lower() in (".jpg", ".png"):
+        raise ValueError("Heatmap output resembles a production raster filename")
+    tile, left, top, right, bottom = 25, 70, 65, 22, 55
+    canvas = Image.new("RGB", (left + COUNT * tile + right,
+                               top + COUNT * tile + bottom), (17, 25, 37))
+    draw = ImageDraw.Draw(canvas)
+    for row in scores:
+        biome, ore = int(row["biome"]), int(row["ore"])
+        weak = row["core_low_contrast_fraction"]
+        if weak is None:
+            color = (195, 91, 192)
+        elif weak >= 0.25:
+            # Gradually hotter red as more of the ore becomes hard to see.
+            heat = min(1.0, max(0.0, (weak - 0.25) / 0.75))
+            color = (int(174 + 69 * heat), int(98 - 50 * heat),
+                     int(75 - 37 * heat))
+        else:
+            # Cool, restrained teal for measured non-risky combinations.
+            strength = max(0.0, min(1.0, 1.0 - weak / 0.25))
+            color = (int(30 + 18 * strength), int(75 + 67 * strength),
+                     int(88 + 46 * strength))
+        x, y = left + (ore - 1) * tile, top + (biome - 1) * tile
+        draw.rectangle((x + 1, y + 1, x + tile - 2, y + tile - 2), fill=color)
+    for index in range(1, COUNT + 1):
+        draw.text((left + (index - 1) * tile + 3, top - 19),
+                  f"{index:02d}", fill=(211, 226, 227))
+        draw.text((left - 30, top + (index - 1) * tile + 5),
+                  f"{index:02d}", fill=(211, 226, 227))
+    draw.text((left, 12), "ORE ->", fill=(131, 229, 217))
+    draw.text((left, top + COUNT * tile + 8),
+              "TEAL: measurable  RED: low contrast  MAGENTA: no solid core",
+              fill=(211, 226, 227))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    # Save to a temporary sibling, then replace atomically to avoid a
+    # truncated diagnostic being mistaken for a complete visibility matrix.
+    import os
+    import tempfile
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=".shahta-heatmap-", suffix=".png",
+            dir=destination.parent, delete=False
+        ) as handle:
+            temporary = Path(handle.name)
+        canvas.save(temporary, format="PNG")
+        os.replace(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return destination
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=15)
     parser.add_argument("--risk-sheet", type=Path, help="optional PNG contact sheet of worst ore/biome pairs")
+    parser.add_argument("--heatmap", type=Path, help="optional full 24x24 PNG visibility heatmap")
     args = parser.parse_args()
     if not 1 <= args.limit <= COUNT * COUNT:
         parser.error("--limit must be in [1, 576]")
@@ -304,6 +375,8 @@ def main():
     risk_summary = summarize_risks(scores)
     if args.risk_sheet is not None:
         render_risk_contact_sheet(args.assets, scores, args.risk_sheet, args.limit)
+    if args.heatmap is not None:
+        render_visibility_heatmap(scores, args.heatmap)
     risk_summary["worst_pairs"] = risk_summary["worst_pairs"][:args.limit]
     print(json.dumps({
         "pairs": len(scores),
