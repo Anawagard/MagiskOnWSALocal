@@ -1,8 +1,11 @@
 """v7.9: context-aware toast placement for all five modernist pages.
 
-Mine has a reserved gap at y=178..204. Shop notifications sit below the content viewport (ends at 653), at y=655..681; this also avoids the settings modal ending at 630.
-Forge/guild/atlas notifications occupy y=145..171, below the fixed
-navigation (ends at 137) and above transformed feature content (starts at 205).
+Coordinates are in SCREEN space, whereas page content is rendered +60px down.
+Mine: telemetry ends at screen y=236, rock begins at 270; toast y=240..266.
+Shop: last shop card ends at y=675, settings sheet at y=690;
+toast y=691..717 (inside the 720px canvas, clear of shop actions).
+Forge/guild/atlas: toast y=177..203 temporarily replaces the non-interactive
+section-header subtitle, below the title and above active content (starts at 205).
 The toast is drawn in screen-space outside the translated page canvas. Presentation-only: no hitboxes, balance, persistence,
 package identifier or signing changes. Apply after v7.8.
 """
@@ -18,9 +21,9 @@ old = '''        if(System.currentTimeMillis()<toastUntil){
             leftFittedText(canvas,toast,39,196,12,0xfff0fffb,285);
         }'''
 new = '''        if(System.currentTimeMillis()<toastUntil){
-            // Mine: telemetry gap; shop: below cards and settings; feature pages: reserved upper gap.
+            // Screen-space: mine rock gap, shop footer, feature header subtitle strip.
             // This overlay never changes onTouchEvent geometry.
-            int toastY = page==0 ? 178 : (page==1 ? 655 : 145);
+            int toastY = page==0 ? 240 : (page==1 ? 691 : 177);
             // Page-aware rail: mine cyan, shop amber, forge orange,
             // guild violet, atlas blue. Presentation only; touch bounds stay unchanged.
             int toastAccent = page==0 ? 0xff65e1d0 :
@@ -48,7 +51,7 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
 TOAST_HEIGHT = 26
 TOAST_WIDTH = 324
 TOAST_X = 18
-TOAST_Y = {0: 178, 1: 655, 2: 145, 3: 145, 4: 145}
+TOAST_Y = {0: 240, 1: 691, 2: 177, 3: 177, 4: 177}
 def validate_toast_geometry():
     """Enforce the five-page visual contract even under Python -O."""
     # Constants used by the verifier must match the actual Java expression.
@@ -81,14 +84,15 @@ def validate_toast_geometry():
         raise RuntimeError("v7.9: toast badge sprite exceeds its container")
     for page_index, top in TOAST_Y.items():
         if not (0 <= TOAST_X and TOAST_X + TOAST_WIDTH <= 360
-                and 137 < top and top + TOAST_HEIGHT <= 682):
+                and 137 < top and top + TOAST_HEIGHT <= 720):
             raise RuntimeError(f"v7.9: toast outside safe screen area on page {page_index}")
-        if page_index == 0 and not top + TOAST_HEIGHT < 210:
-            raise RuntimeError("v7.9: mine toast overlaps ore hitbox")
-        if page_index == 1 and not (top > 653 and top > 630):
-            raise RuntimeError("v7.9: shop toast overlaps content or settings")
-        if page_index >= 2 and not top + TOAST_HEIGHT < 205:
-            raise RuntimeError(f"v7.9: feature toast overlaps content on page {page_index}")
+        # Translated page content is +60px below the old page-local tests.
+        if page_index == 0 and not (top >= 240 and top + TOAST_HEIGHT <= 266):
+            raise RuntimeError("v7.9: mine toast overlaps shifted telemetry or ore")
+        if page_index == 1 and not (top > 690 and top + TOAST_HEIGHT <= 720):
+            raise RuntimeError("v7.9: shop toast overlaps shifted cards/settings")
+        if page_index >= 2 and not (top >= 175 and top + TOAST_HEIGHT <= 203):
+            raise RuntimeError(f"v7.9: feature toast overlaps title or live content on page {page_index}")
         if not 0 <= (page_index * 5) % 24 < 24:
             raise RuntimeError("v7.9: invalid ore badge index")
 
