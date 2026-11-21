@@ -28,7 +28,7 @@ def templates(source):
 
 def positions(java):
     match = re.search(
-        r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+        r"int toastY = page==0 \? (\d+) : \(page==1 \? (\d+) : (\d+)\);",
         java,
     )
     if match is None:
