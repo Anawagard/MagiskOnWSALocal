@@ -172,6 +172,7 @@ def rehearse(art_output=None):
                  "test_ore_macro_lodes_source_only_v131.py",
                  # Confirm corners remain pixel-perfect after nine-slice scaling.
                  "test_raster_chrome_nineslice_corners_v132.py",
+                 "test_ui_asset_dimensions_source_only_v133.py",
                  "test_ore_core_visibility_source_only.py",
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py",
