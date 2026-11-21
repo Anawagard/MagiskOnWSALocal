@@ -19,6 +19,21 @@ assert "c.scale(.93f,.94f);" in patch
 assert "x=(x-13f)/.93f;" in patch
 assert "y=(y-18f)/.94f;" in patch
 
+# Verify the real v7.0 navigation dispatcher, not just idealized hitboxes.
+v70 = (root / "patch_full_redesign_v70.py").read_text(encoding="utf-8")
+assert "float tabX=x-next*72f;" in v70
+assert "if(screenY<90f||screenY>134f||tabX<5f||tabX>69f)" in v70
+
+def nav_target(x, y):
+    """Match the painted-only navigation input on the 360x720 canvas."""
+    if not (0 <= x < 360 and 88 <= y <= 136):
+        return None
+    tab = max(0, min(4, int(x // 72)))
+    local = x - tab * 72
+    if y < 90 or y > 134 or local < 5 or local > 69:
+        return None
+    return tab
+
 # Five logical navigation cells must partition the full 360 px canvas.
 cells = [(i * 72, (i + 1) * 72) for i in range(5)]
 assert cells[0][0] == 0 and cells[-1][1] == 360
@@ -123,6 +138,7 @@ for width, height in viewports + ((240, 320), (320, 480), (1000, 720), (360, 100
             painted = cell_left + 5 <= restored_x <= cell_left + 69
             expected = 5 <= logical_x - cell_left <= 69
             assert painted == expected
+            assert nav_target(restored_x, restored_y) == (tab if painted else None)
             gutter_checks += 1
 print(f"PASS: {gutter_checks} fractional-scale tab/gutter assertions")
 
@@ -144,14 +160,16 @@ for width, height in viewports + ((240, 320), (320, 480), (1768, 2208)):
             y = (py - oy) / scale
             assert int(x // 72) == expected_tab
             assert 88 <= y <= 136
+            assert nav_target(x, y) is None  # Invisible inter-tab seam
             seam_checks += 1
-    # Vertical touch strip is inclusive in the current source. Outside
-    # the strip, taps must not trigger navigation, at any screen scale.
-    for logical_y, expected in ((87.75, False), (88.25, True),
-                                (135.75, True), (136.25, False)):
+    # Only the painted 90..134 vertical range can switch tabs.
+    for logical_y, expected in ((87.75, False), (88.25, False),
+                                (89.75, False), (90.25, True),
+                                (133.75, True), (134.25, False),
+                                (135.75, False), (136.25, False)):
         py = oy + logical_y * scale
         y = (py - oy) / scale
-        assert (88 <= y <= 136) == expected
+        assert (nav_target(36, y) is not None) == expected
         seam_checks += 1
 print(f"PASS: {seam_checks} fractional-scale seam and vertical-strip assertions")
 
@@ -176,5 +194,11 @@ for width, height in ((176, 320), (200, 400), (240, 1080),
                 y = (py - oy) / scale
                 assert int(x // 72) == tab
                 assert 88 <= y <= 136
+                # Test slightly inside the painted boundary to avoid float edge noise.
+                xi = x + (0.05 if logical_x % 72 < 10 else
+                          (-0.05 if logical_x % 72 > 60 else 0))
+                yi = y + (0.05 if logical_y == 90 else
+                          (-0.05 if logical_y == 134 else 0))
+                assert nav_target(xi, yi) == tab
                 extreme_checks += 1
 print(f"PASS: {extreme_checks} extreme-aspect navigation assertions")
