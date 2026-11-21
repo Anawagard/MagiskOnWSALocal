@@ -521,6 +521,21 @@ def cave(index,color,path,w=360,h=570):
                 y = round(rail_top + (rail_bottom - rail_top) * fraction)
                 frame.line([(x, y), (x + direction * tick, y)],
                            fill=(122, 236, 222, 88), width=stroke)
+    # Distinct four-step destination index on menu backgrounds. Unlike text,
+    # these tiny bitmap markers cannot overlap translated screen headings.
+    # Keep them inside the sidewall margin and away from the bottom tab bar.
+    if 31 <= index <= 34:
+        frame = ImageDraw.Draw(im, "RGBA")
+        unit = max(1, round(min(w / 360.0, h / 570.0) * 3))
+        x0 = max(2, round(w * .065))
+        y0 = max(2, round(h * .135))
+        gap = max(unit + 2, round(w * .024))
+        for step in range(4):
+            x = x0 + step * gap
+            active = step == index - 31
+            ink = (119, 245, 225, 215) if active else (103, 151, 160, 88)
+            frame.rounded_rectangle((x, y0, x + unit, y0 + unit * 3),
+                                    radius=max(1, unit // 2), fill=ink)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
