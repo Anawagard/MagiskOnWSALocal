@@ -782,7 +782,10 @@ for i,color in enumerate(SCENES):
     cave(i,color,OUT/("biome_%02d.jpg"%i))
 for i,color in enumerate(ORES):
     ore(i,color,OUT/("ore_%02d.png"%i))
-for j,base in enumerate([(59,118,137),(132,74,51),(73,108,133),(101,93,143)],start=1):
+# Distinct cool mineral identities for the four menu backdrops. Avoid the old
+# rust-orange/purple palette: graphite HUD panels and turquoise controls must
+# read as one coherent interface, while each destination remains recognizable.
+for j,base in enumerate([(43,103,119),(57,90,104),(48,112,119),(73,103,121)],start=1):
     cave(30+j,base,OUT/("menu_%d.jpg"%j))
 panel_art(OUT/"panel.png",(23,32,47),(85,125,148))
 panel_art(OUT/"button.png",(21,103,109),(92,227,207),size=(160,64),bright=True)
