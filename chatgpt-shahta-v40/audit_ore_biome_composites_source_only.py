@@ -257,7 +257,7 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     if not 1 <= limit <= COUNT * COUNT:
         raise ValueError("contact sheet limit must be in [1, 576]")
 
-    risks = summarize_risks(scores)
+    risks = summarize_risks(scores, require_complete=True)
     # Include unscorable translucent sprites: otherwise a completely missing
     # opaque core is invisible in the visual review despite being flagged.
     # Reserve slots for both failure classes. Previously, 24+ missing-core
@@ -401,7 +401,7 @@ def main():
         {"biome": row["biome"], "ore": row["ore"]}
         for row in scores if row["core_weakest_decile"] is None
     ]
-    risk_summary = summarize_risks(scores)
+    risk_summary = summarize_risks(scores, require_complete=True)
     if args.risk_sheet is not None:
         render_risk_contact_sheet(args.assets, scores, args.risk_sheet, args.limit)
     if args.heatmap is not None:
