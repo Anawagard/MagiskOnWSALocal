@@ -7,7 +7,7 @@ from math import isclose
 from pathlib import Path
 
 patch = Path(__file__).with_name('patch_modernist_v79.py').read_text(encoding='utf-8')
-assert 'int toastY = page==0 ? 178 : (page==1 ? 655 : 145);' in patch
+assert 'int toastY = page==0 ? 240 : (page==1 ? 691 : 177);' in patch
 assert 'v72NineSlice(canvas,"panel.png",18,toastY,324,26,252)' in patch
 assert 'leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251)' in patch
 assert 'rect(canvas,26,toastY+4,3,18,toastAccent)' in patch
@@ -22,25 +22,26 @@ colors = re.findall(r'0xff[0-9a-fA-F]{6}', palette.group(1))
 assert len(colors) == 5 and len(set(colors)) == 5, colors
 assert 'rect(canvas,36,toastY+22,296,1,0xff315d60)' in patch
 # Rail and baseline must stay inside the toast panel at both anchors.
-for toast_y in (178, 655, 145):
+for toast_y in (240, 691, 177):
     assert toast_y <= toast_y+4 < toast_y+22 <= toast_y+26
     assert 18 <= 26 and 26+3 <= 342
     assert 18 <= 36 and 36+296 <= 342
 
-buttons = [(10 + (i % 2) * 175 + 13, 164 + (i // 2) * 153 + 102,
-            10 + (i % 2) * 175 + 152, 164 + (i // 2) * 153 + 138)
+buttons = [(10 + (i % 2) * 175 + 13, 164 + (i // 2) * 153 + 102 + 60,
+            10 + (i % 2) * 175 + 152, 164 + (i // 2) * 153 + 138 + 60)
            for i in range(6)]
-toasts = [(18, 178, 342, 204), (18, 655, 342, 681),
-          (18, 145, 342, 171)]
+toasts = [(18, 240, 342, 266), (18, 691, 342, 717),
+          (18, 177, 342, 203)]
 
 def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 assert all(not overlaps(toasts[1], button) for button in buttons)
-assert toasts[0][3] < 205
-assert toasts[1][1] > 653 and toasts[1][1] > 630 and toasts[1][3] < 686
-assert toasts[2][1] >= 137  # below fixed navigation
-assert toasts[2][3] < 205  # above translated feature content
+assert 176 + 60 < toasts[0][1] and toasts[0][3] < 210 + 60
+assert toasts[1][1] > 615 + 60 and toasts[1][1] > 630 + 60
+assert toasts[1][3] <= 720
+assert toasts[2][1] > 114 + 60  # overlays the non-touch header subtitle
+assert toasts[2][3] <= 145 + 60 - 2  # above interactive feature clip
 assert toasts[2][3] <= 720
 
 sizes = [(320, 568), (320, 640), (360, 720), (393, 852),
@@ -114,7 +115,7 @@ for width, height in sizes:
 
 # A toast must never intersect another page's fixed navigation region.
 # Check both the mine's notification slot and the feature-page slot.
-nav = (0, 686, 360, 720)
+nav = (0, 88, 360, 136)
 for toast in toasts:
     assert not overlaps(toast, nav), (toast, nav)
 print(f'PASS: {pixel_checks} exterior/centre hitbox samples; toast clear of navigation')
