@@ -811,42 +811,35 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
         d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
-    # Quiet technical-grid signature: subtle cyan circuitry etched into the
-    # top-right corner. Kept entirely in the fixed nine-slice corner region,
-    # away from central labels and touch targets. Different surfaces retain
-    # the same design language without introducing runtime Canvas work.
+    # Nine-slice preserves only the outer 18px of each source edge.
+    # Every decorative pixel below stays inside one of those 18x18
+    # source corners; marks previously placed at w-57 or x=21..35
+    # were in the stretchable centre and became distorted on shop tiles.
+    # The border, fine grain and left vertical rail remain stretchable.
     trace_rgb=(93,224,210) if bright else border_rgb
     trace_alpha=105 if bright else 66
-    d.line([(w-57,12),(w-43,12),(w-38,17),(w-38,24)],
+    # Top-left hardware LEDs: three 2x2px lamps entirely inside 0..17.
+    for index, alpha in enumerate((190,110,55) if bright else (105,65,35)):
+        cx=4+index*5
+        d.rectangle((cx,5,cx+1,6),fill=(*trace_rgb,alpha))
+    # Top-right circuitry and three short status ticks: x >= w-18.
+    d.line([(w-16,8),(w-10,8),(w-6,12)],
            fill=(*trace_rgb,trace_alpha),width=1)
-    d.ellipse((w-40,22,w-36,26),fill=(*trace_rgb,trace_alpha+35))
-    d.line([(w-61,h-16),(w-48,h-16),(w-44,h-20)],
-           fill=(*trace_rgb,trace_alpha),width=1)
-    # Minimal dual-tone corner indexing distinguishes modernist panels from
-    # the old flat buttons without compromising high-contrast text areas.
-    d.line((19,h-12,32,h-12),fill=(*trace_rgb,trace_alpha),width=1)
-    # Three inset status LEDs establish a consistent technical identity across
-    # the five screens. The indicator sits in the top-left nine-slice corner,
-    # not the central text stretch or any interactive hitbox.
-    # Alternating brightness keeps disabled controls visually subdued.
-    for index, alpha in enumerate((190, 110, 55) if bright else (105, 65, 35)):
-        cx = 21 + index * 7
-        d.ellipse((cx, 12, cx + 2, 14),
-                  fill=(*trace_rgb, alpha))
-    # A short paired alignment rule is deliberately kept in the bottom-right
-    # corner: long full-width lines would cross localized labels on narrow UI.
-    d.line((w-56, h-11, w-40, h-11),
-           fill=(*trace_rgb, 96 if bright else 54), width=1)
-    d.line((w-56, h-8, w-47, h-8),
-           fill=(*trace_rgb, 65 if bright else 38), width=1)
-    # Engraved industrial status ticks: bitmap-only detail, no touch/layout changes.
-    # Confine marks to the corners so nine-slice stretching never distorts them.
+    d.ellipse((w-7,11,w-5,13),
+              fill=(*trace_rgb,min(255,trace_alpha+35)))
     tick=(112,226,216,118) if bright else (*border_rgb,96)
     for offset in (0,5,10):
-        x=w-28+offset
-        d.line((x,11,x,16+(offset==0)*4),fill=tick,width=1)
-    d.line((w-32,h-12,w-18,h-12),fill=(*border_rgb,85),width=1)
-    d.line((w-18,h-12,w-18,h-19),fill=(*border_rgb,85),width=1)
+        x=w-16+offset
+        d.line((x,14,x,16),fill=tick,width=1)
+    # Bottom-left index sits below the vertical accent bar.
+    d.line((12,h-7,16,h-7),fill=(*trace_rgb,trace_alpha),width=1)
+    # Bottom-right angular circuit and two reference strokes.
+    d.line([(w-17,h-16),(w-12,h-16),(w-7,h-11)],
+           fill=(*trace_rgb,trace_alpha),width=1)
+    d.line((w-16,h-9,w-7,h-9),
+           fill=(*trace_rgb,96 if bright else 54),width=1)
+    d.line((w-16,h-6,w-10,h-6),
+           fill=(*trace_rgb,65 if bright else 38),width=1)
     im.save(path,optimize=True)
 
 for i,color in enumerate(SCENES):
