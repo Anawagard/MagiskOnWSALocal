@@ -14,6 +14,30 @@ for marker in (
 ):
     assert marker in patch, marker
 
+# A five-page toast is drawn outside the translated page Canvas. When a
+# feature-page toast occupies screen y=177..203, its header must hide
+# the subtitle and ore badge rather than painting invisible overlapping text.
+v79 = Path(__file__).with_name("patch_modernist_v79.py").read_text()
+assert "int toastY = page==0 ? 240 : (page==1 ? 691 : 177);" in v79
+assert "boolean toastInHeader=System.currentTimeMillis()<toastUntil;" in patch
+assert "leftFittedText(c,title,28,toastInHeader?110:114,16,0xfff0fffd,253);" in patch
+block_start = patch.index("        if(!toastInHeader){")
+block_end = patch.index("        }", block_start)
+decorations = patch[block_start:block_end]
+for token in (
+    'leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);',
+    'v72NineSlice(c,"button_off.png",298,98,44,41,214);',
+    'v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),',
+):
+    assert token in decorations, ("feature decoration not hidden during toast",token)
+assert patch.index("leftFittedText(c,title,28,toastInHeader?110:114") < block_start
+# Title baseline y=170 during toast leaves 7px before notification top y=177.
+# Hidden subtitle baseline (132+60=192) and icon (102..134+60)
+# would both collide with notification.
+assert 110 + 60 <= 177 - 7
+assert 132 + 60 >= 177
+assert 102 + 60 < 177 < 134 + 60
+
 screens = [(320,568),(360,640),(360,720),(720,1280),(1080,2400),(1272,2772),(1440,3200)]
 header = (10,94,350,143)
 content_clip = (0,145,360,653)
