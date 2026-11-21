@@ -31,7 +31,16 @@ def replace_method(signature, body):
 replace_method("private void v72SectionHeader(Canvas c,String title,String subtitle,int tab)", r"""
     private void v72SectionHeader(Canvas c,String title,String subtitle,int tab){
         v72NineSlice(c,"panel.png",10,94,340,49,255);
-        rect(c,17,103,3,30,0xff65e1d0);
+        // The three feature destinations must be identifiable without
+        // relying on Russian labels alone. Match their contextual toast rails:
+        // forge = warm mineral, guild = violet, atlas = cold blue.
+        // This is paint-only; tab, clipping and hitboxes stay unchanged.
+        int identity=tab==2 ? 0xffffa77a : (tab==3 ? 0xffc4a7ff : 0xff82bfff);
+        rect(c,17,103,3,30,identity);
+        // Two short registration strokes make a technical section marker.
+        // Keep them outside title and tab badge text, including during toast.
+        rect(c,25,98,24,1,identity);
+        rect(c,50,98,9,1,0xff315d60);
         boolean toastInHeader=System.currentTimeMillis()<toastUntil;
         // Move the 16px title slightly upward while a toast is visible;
         // this leaves space for font descenders above its y=177 edge.
@@ -44,7 +53,8 @@ replace_method("private void v72SectionHeader(Canvas c,String title,String subti
         if(!toastInHeader){
             leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);
             // One-pixel raster-aligned divider keeps title and details apart.
-            rect(c,28,139,258,1,0xff315d60);
+            rect(c,28,139,72,1,identity);
+            rect(c,104,139,182,1,0xff315d60);
             // The bitmap is a genuine ore sprite from the 24-texture set.
             v72NineSlice(c,"button_off.png",298,98,44,41,214);
             v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),
