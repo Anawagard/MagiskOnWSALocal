@@ -175,6 +175,18 @@ def verify(root):
     # dimensions and alpha rules prevent accidentally publishing empty skins.
     ui_files = ("panel.png", "button.png", "button_off.png", "header.png",
                 "nav.png", "fractures.png", "miner.png")
+    # Match the dimensions consumed by Java's raster loader and nine-slice.
+    # Minimum-size checks alone allow a malformed but decodable PNG to
+    # silently change corner seams or make the miner/fracture overlay blurry.
+    ui_dimensions = {
+        "panel.png": (400, 96),
+        "button.png": (160, 64),
+        "button_off.png": (160, 64),
+        "header.png": (360, 88),
+        "nav.png": (360, 50),
+        "fractures.png": (300, 300),
+        "miner.png": (240, 340),
+    }
     menu_dimensions = set()
     for filename in (*ui_files, *(f"menu_{i}.jpg" for i in range(1, 5))):
         path = assets / filename
@@ -182,6 +194,11 @@ def verify(root):
             img.load()
             if img.width < 16 or img.height < 16:
                 raise ValueError(f"{filename}: undersized interface raster")
+            if filename in ui_dimensions and img.size != ui_dimensions[filename]:
+                raise ValueError(
+                    f"{filename}: expected raster dimensions "
+                    f"{ui_dimensions[filename]}, got {img.size}"
+                )
             if filename.startswith("menu_") and filename.endswith(".jpg"):
                 menu_dimensions.add(img.size)
                 # Menu art is authored in the 360x570 logical canvas.
