@@ -66,13 +66,13 @@ def verify_modernist_art(project):
     for index in range(1, 5):
         dimensions[f"menu_{index}.jpg"] = ("JPEG", (360, 570))
     dimensions.update({
-        "fractures.png": ("PNG", None),
+        "fractures.png": ("PNG", (300, 300)),
         "panel.png": ("PNG", (400, 96)),
         "button.png": ("PNG", (160, 64)),
         "button_off.png": ("PNG", (160, 64)),
         "header.png": ("PNG", (360, 88)),
         "nav.png": ("PNG", (360, 50)),
-        "miner.png": ("PNG", None),
+        "miner.png": ("PNG", (240, 340)),
     })
     expected = set(dimensions)
     actual = {item.name for item in folder.iterdir() if item.is_file()}
@@ -109,11 +109,17 @@ def verify_modernist_art(project):
             if family in families:
                 # Compare decoded pixels, so identical art with different
                 # compression settings cannot masquerade as distinct biomes.
-                digest = hashlib.sha256(
-                    image.mode.encode("ascii") +
-                    repr(image.size).encode("ascii") +
-                    image.tobytes()
-                ).digest()
+                # Invisible RGB values under alpha=0 must not make visually
+                # identical sprites appear distinct. Compare both black and
+                # white mattes to retain transparency and silhouette identity.
+                rgba = image.convert("RGBA")
+                fingerprint = hashlib.sha256()
+                fingerprint.update(repr(image.size).encode("ascii"))
+                for matte in ((0, 0, 0, 255), (255, 255, 255, 255)):
+                    composite = Image.alpha_composite(
+                        Image.new("RGBA", image.size, matte), rgba)
+                    fingerprint.update(composite.convert("RGB").tobytes())
+                digest = fingerprint.digest()
                 if digest in families[family]:
                     raise AssertionError(f"Duplicate decoded raster in {family}: {name}")
                 families[family].add(digest)
