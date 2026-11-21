@@ -33,14 +33,21 @@ replace_method("private void v72SectionHeader(Canvas c,String title,String subti
         v72NineSlice(c,"panel.png",10,94,340,49,255);
         rect(c,17,103,3,30,0xff65e1d0);
         leftFittedText(c,title,28,114,16,0xfff0fffd,253);
-        leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);
-        // One-pixel raster-aligned divider keeps the title separate from content.
-        rect(c,28,139,258,1,0xff315d60);
-        // Compact, consistent page identity: no medieval frames or
-        // effects. The bitmap is an actual ore sprite from the 24-set.
-        v72NineSlice(c,"button_off.png",298,98,44,41,214);
-        v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),
-            304,102,32,32,255);
+        // A screen-space toast on feature pages occupies y=177..203.
+        // In page coordinates this is y=117..143, where the subtitle and
+        // decorative ore badge would otherwise show through the toast.
+        // Retain the title (baseline y=114 -> screen y=174), but suppress
+        // competing decorations only during the short notification.
+        boolean toastInHeader=System.currentTimeMillis()<toastUntil;
+        if(!toastInHeader){
+            leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);
+            // One-pixel raster-aligned divider keeps title and details apart.
+            rect(c,28,139,258,1,0xff315d60);
+            // The bitmap is a genuine ore sprite from the 24-texture set.
+            v72NineSlice(c,"button_off.png",298,98,44,41,214);
+            v70Draw(c,String.format(Locale.US,"ore_%02d.png",(tab*5)%24),
+                304,102,32,32,255);
+        }
     }
 """)
 
