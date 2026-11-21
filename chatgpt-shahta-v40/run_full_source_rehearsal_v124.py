@@ -178,6 +178,7 @@ def rehearse(art_output=None):
                  "test_ore_visibility_risk_summary_source_only.py",
                  # Exercise the complete 24x24 fixture and malformed raster inputs.
                  "test_ore_matrix_integration_source_only.py",
+                 "test_ore_visibility_heatmap_v134.py",
                  # Verify the contrast sampler tracks the actual Java ore position.
                  "test_ore_backdrop_registration_v133.py"):
         subprocess.run(
