@@ -493,7 +493,13 @@ def cave(index,color,path,w=360,h=570):
         # This is baked into the menu JPEG, not a runtime Canvas overlay.
         footer=np.clip((title_y-h*.78)/(h*.22),0,1)**2
         footer_center=.55+.45*np.exp(-((title_x-w*.5)/(w*.52))**4)
-        opacity=np.clip(.12*fade*center+.22*footer*footer_center,0,1)[:,:,None]
+        # Readability across narrow screens: dim the title and footer more
+        # decisively, while adding a soft central reading lane for menu cards.
+        # Keep sidewall identity visible; all layers are bitmap-only.
+        reading=np.exp(-((title_x-w*.5)/(w*.34))**4)
+        reading_y=np.clip((title_y-h*.15)/(h*.16),0,1)*np.clip((h*.82-title_y)/(h*.16),0,1)
+        opacity=np.clip(.24*fade*center+.30*footer*footer_center+
+                        .10*reading*reading_y,0,1)[:,:,None]
         graphite=np.array([12,20,30],dtype=np.float32)
         im=image_array(pixels*(1-opacity)+graphite[None,None,:]*opacity)
     # Subtle dark vignette fixed in the image (no per-frame glow).
