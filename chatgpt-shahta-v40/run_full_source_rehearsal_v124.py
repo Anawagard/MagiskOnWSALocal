@@ -177,6 +177,7 @@ def rehearse(art_output=None):
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py",
                  "test_ore_visibility_risk_summary_source_only.py",
+                 "test_ore_matrix_completeness_v135.py",
                  # Exercise the complete 24x24 fixture and malformed raster inputs.
                  "test_art_occupancy_assignment_v133.py",
                  "test_ore_matrix_integration_source_only.py",
@@ -272,7 +273,7 @@ def rehearse(art_output=None):
         # Turn pixel diagnostics into a reproducible, per-biome review queue.
         # Counts must account for every flagged pair exactly once.
         from audit_ore_biome_composites_source_only import summarize_risks, render_risk_contact_sheet
-        risks = summarize_risks(scores)
+        risks = summarize_risks(scores, require_complete=True)
         flagged = risks["risk_pairs"]
         if (sum(risks["risk_count_by_biome"].values()) != flagged
                 or sum(risks["risk_count_by_ore"].values()) != flagged
