@@ -11,7 +11,7 @@ patch = (root / "patch_modernist_v79.py").read_text(encoding="utf-8")
 ast.parse(patch)
 assert "int toastY = page==0 ? 240 : (page==1 ? 691 : 177);" in patch
 assert "toastY+4" in patch and "toastY+18" in patch
-assert "s.count(old)==1" in patch
+assert "current.count(old) != 1" in patch
 
 # Page content is shifted by +60, but notifications use screen coordinates.
 # Mine telemetry ends at 236, ore begins at 270.
