@@ -710,6 +710,62 @@ def ore(index,color,path):
             facet_draw.line(vertices[1:],fill=(11,22,34,80),width=1)
     facets.putalpha(ImageChops.multiply(facets.getchannel("A"),mask))
     im=Image.alpha_composite(im,facets)
+    # Macroscopic mineral lodes give each of the 24 rocks a legible geological
+    # identity even when its 300px bitmap is displayed at game scale.
+    # All three layers are rasterized once and clipped by the original alpha
+    # silhouette; no Canvas geometry, hitbox, or gameplay values change.
+    lodes=Image.new("RGBA",(w,h),(0,0,0,0))
+    ld=ImageDraw.Draw(lodes,"RGBA")
+    lode_rng=np.random.default_rng(820413+index*701)
+    angle=index*math.pi/12 + (index%3-1)*.13
+    along=np.array([math.cos(angle),math.sin(angle)],dtype=np.float32)
+    across=np.array([-along[1],along[0]],dtype=np.float32)
+    center=np.array([150+int(lode_rng.integers(-12,13)),
+                     149+int(lode_rng.integers(-10,11))],dtype=np.float32)
+    # Six mineral families have different lode colours, branch widths and
+    # deposition patterns, while the seeded rotation makes all 24 distinct.
+    kind=index%6
+    if kind==4:  # carbon-rich basalt cleavage
+        seam_rgb=(25,36,43)
+        glimmer_rgb=(105,137,153)
+    elif kind==3:  # amber-gold inclusions
+        seam_rgb=(99,67,28)
+        glimmer_rgb=(255,213,116)
+    elif kind==5:  # amethyst fissures
+        seam_rgb=(52,35,85)
+        glimmer_rgb=(224,194,255)
+    elif kind==1:  # copper oxidation
+        seam_rgb=(28,81,76)
+        glimmer_rgb=(139,242,207)
+    elif kind==2:  # crystalline silver
+        seam_rgb=(38,65,82)
+        glimmer_rgb=(221,246,255)
+    else:  # milky quartz
+        seam_rgb=(48,69,75)
+        glimmer_rgb=(233,250,227)
+    for branch in range(2+index%3):
+        # Stagger the branches across the deposit rather than drawing the
+        # same centred stripe on every recoloured ore.
+        shift=(branch-(1+index%3)/2)*19
+        origin=center+across*shift+along*float(lode_rng.integers(-12,13))
+        trace=[]
+        for distance in (-71,-35,0,36,72):
+            jitter=float(lode_rng.integers(-8,9))
+            point=origin+along*(distance+(branch%2)*6)+across*jitter
+            trace.append((int(np.clip(round(float(point[0])),0,w-1)),
+                          int(np.clip(round(float(point[1])),0,h-1))))
+        ld.line(trace,fill=(*seam_rgb,104),width=8 if branch==0 else 5,
+                joint="curve")
+        ld.line(trace,fill=(*glimmer_rgb,110 if branch==0 else 83),
+                width=2 if kind!=4 else 1,joint="curve")
+        # Fracture intersections and secondary mineral growths.
+        middle=np.array(trace[2],dtype=np.float32)
+        tip=middle+across*(18+branch*4)+along*float(lode_rng.integers(9,25))
+        ld.line([trace[2],(int(np.clip(round(float(tip[0])),0,w-1)),
+                           int(np.clip(round(float(tip[1])),0,h-1)))],
+                fill=(*glimmer_rgb,76),width=2)
+    lodes.putalpha(ImageChops.multiply(lodes.getchannel("A"),mask))
+    im=Image.alpha_composite(im,lodes)
     # Directional mineral glints, pre-rendered and masked to the stone silhouette.
     # They do not add runtime draw calls or change hitboxes.
     glints=Image.new("RGBA",(w,h),(0,0,0,0))
