@@ -157,20 +157,37 @@ class ChromeNineSliceCornerTests(unittest.TestCase):
                     draw(path, base, border, size=size, bright=bright)
                     with Image.open(path) as im:
                         src = im.convert("RGB")
-                    for target in (size, (165, 145), (64, 44)):
+                    # Exercise every real control geometry, including the
+                    # thin 26px toast, not just one large card and one tab.
+                    for target in (size, *TARGETS):
                         resized = (src if target == size else
                                    nine_slice(src.convert("RGBA"), target, Image)[0]
                                    .convert("RGB"))
                         w, h = resized.size
-                        # Five samples distributed across the label-safe area.
-                        for x_fraction in (0.30, 0.40, 0.50, 0.60, 0.70):
-                            rgb = resized.getpixel((int(w * x_fraction),
-                                                    int(h * 0.50)))
-                            contrast = (foreground + 0.05) / (
-                                luminance(rgb) + 0.05)
-                            self.assertGreaterEqual(
-                                contrast, 4.5,
-                                f"{name} {target}: text contrast {contrast:.2f}")
+                        # Scan every pixel in the central label-safe region.
+                        # Five point samples could miss a bright local streak
+                        # or a stretched gradient under Cyrillic text.
+                        x0, x1 = int(w * .30), max(int(w * .30) + 1, int(w * .70))
+                        y0, y1 = int(h * .35), max(int(h * .35) + 1, int(h * .65))
+                        region = np.asarray(resized)[y0:y1, x0:x1, :3]
+                        self.assertGreater(region.size, 0, f"{name} {target}")
+                        pixels = region.astype(np.float64) / 255.0
+                        linear = np.where(pixels <= .04045, pixels / 12.92,
+                                          ((pixels + .055) / 1.055) ** 2.4)
+                        background = (linear[..., 0] * .2126 +
+                                      linear[..., 1] * .7152 +
+                                      linear[..., 2] * .0722)
+                        # Foreground is deliberately lighter than every
+                        # background sample; reject violations rather than
+                        # accidentally inverting the contrast formula.
+                        self.assertLess(float(background.max()), foreground,
+                                        f"{name} {target}: inverted text palette")
+                        worst_contrast = (foreground + .05) / (
+                            float(background.max()) + .05)
+                        self.assertGreaterEqual(
+                            worst_contrast, 4.5,
+                            f"{name} {target}: worst text contrast "
+                            f"{worst_contrast:.2f} at centre region")
 
 
 if __name__ == "__main__":
