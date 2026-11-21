@@ -199,6 +199,8 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     ][:limit]
     selected += risks["worst_pairs"][:max(0, limit - len(selected))]
     if not selected:
+        # A previous run's PNG must not masquerade as current risk evidence.
+        Path(output).unlink(missing_ok=True)
         return 0
     tile = 128
     columns = min(6, len(selected))
