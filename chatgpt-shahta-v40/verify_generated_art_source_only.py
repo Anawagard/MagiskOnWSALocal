@@ -465,7 +465,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix="shahta-real-art-") as tmp:
             verify(Path(tmp))
     else:
-        verify(args.output.expanduser().resolve())
+        verify(args.output.expanduser().absolute())
 
 
 
