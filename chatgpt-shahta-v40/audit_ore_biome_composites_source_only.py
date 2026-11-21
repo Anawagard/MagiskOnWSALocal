@@ -155,6 +155,40 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25)
             or not 0 <= low_contrast_threshold <= 1
             or not 0 <= affected_fraction <= 1):
         raise ValueError("risk thresholds must be in [0, 1]")
+    # Fail closed on truncated, duplicated or malformed matrices. Previously
+    # a partial 576-pair audit could be summarized as a reassuring low-risk
+    # result; the report must account for every actual biome/ore combination.
+    expected = {(biome, ore) for biome in range(1, COUNT + 1)
+                for ore in range(1, COUNT + 1)}
+    if len(scores) != COUNT * COUNT:
+        raise ValueError(f"Expected {COUNT * COUNT} biome/ore rows, got {len(scores)}")
+    seen = set()
+    for row in scores:
+        if not isinstance(row, dict):
+            raise ValueError("Non-dictionary biome/ore row")
+        biome, ore = row.get("biome"), row.get("ore")
+        if type(biome) is not int or type(ore) is not int:
+            raise ValueError("Biome and ore indices must be integers")
+        pair = (biome, ore)
+        if pair not in expected or pair in seen:
+            raise ValueError(f"Invalid or duplicate biome/ore pair: {pair}")
+        seen.add(pair)
+        for key in ("score", "visible_coverage", "weakest_decile",
+                    "core_coverage"):
+            value = row.get(key)
+            if type(value) not in (float, int) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f"Invalid {key} for {pair}: {value}")
+        core = row["core_coverage"]
+        for key in ("core_mean_contrast", "core_weakest_decile",
+                    "core_low_contrast_fraction"):
+            value = row.get(key)
+            if core == 0:
+                if value is not None:
+                    raise ValueError(f"Unexpected {key} without core for {pair}")
+            elif type(value) not in (float, int) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f"Missing/invalid {key} for {pair}: {value}")
+    if seen != expected:
+        raise ValueError("Incomplete biome/ore matrix")
     # Fractions in scores were precomputed at the fixed 0.08 cutoff.
     # Accepting another cutoff would silently mislabel the risk report.
     if low_contrast_threshold != 0.08:
