@@ -100,6 +100,10 @@ def rehearse(art_output=None):
                  "test_affine_source_contract_v127.py",
                  "test_modernist_shop_control_isolation_v128.py",
                  "test_modernist_toast_viewport_v129.py",
+                 # Exercise real five-page toast and header suppression contracts.
+                 "test_modernist_context_toast_v106.py",
+                 "test_modernist_layout_v76.py",
+                 "test_modernist_notification_geometry_v109.py",
                  # Pixel-level raster regressions must run, not merely parse.
                  "test_ore_biome_displayed_contrast_source_only.py",
                  "test_ore_visibility_pixels_source_only.py",
@@ -115,7 +119,9 @@ def rehearse(art_output=None):
                  "test_ore_matrix_integration_source_only.py"):
         subprocess.run(
             [sys.executable, "-X", "utf8", str(HERE / test)],
-            cwd=HERE, check=True, timeout=60,
+            # Raster-diff of 24 ores renders 48 images; a 60-second cap can
+            # falsely fail on slow machines despite no correctness issue.
+            cwd=HERE, check=True, timeout=180 if "macro_lodes" in test else 60,
             env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
                  "PYTHONUTF8": "1", "PYTHONOPTIMIZE": ""},
         )
