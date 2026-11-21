@@ -197,7 +197,7 @@ def rehearse(art_output=None):
                 raise AssertionError(f"Core weakest-decile/coverage mismatch: {row}")
         # Turn pixel diagnostics into a reproducible, per-biome review queue.
         # Counts must account for every flagged pair exactly once.
-        from audit_ore_biome_composites_source_only import summarize_risks
+        from audit_ore_biome_composites_source_only import summarize_risks, render_risk_contact_sheet
         risks = summarize_risks(scores)
         flagged = risks["risk_pairs"]
         if (sum(risks["risk_count_by_biome"].values()) != flagged
@@ -225,7 +225,22 @@ def rehearse(art_output=None):
                 json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
                 encoding="utf-8",
             )
+            # Generate the real 576-pair review contact sheet, not only JSON.
+            # Keep both unscorable cores and low-contrast combinations visible.
+            sheet_path = output_dir / "ore_biome_risks.png"
+            rendered = render_risk_contact_sheet(
+                project / "app/src/main/assets/shahta_v70", scores, sheet_path,
+                limit=24,
+            )
+            expected_rendered = min(24, flagged + unscorable)
+            if rendered != expected_rendered:
+                raise AssertionError(
+                    f"Risk contact sheet has {rendered} tiles, expected {expected_rendered}"
+                )
+            if (rendered > 0) != sheet_path.is_file():
+                raise AssertionError("Risk contact sheet output does not match flagged pairs")
             print(f"RASTER REVIEW REPORT: {report_path}", flush=True)
+            print(f"RASTER RISK SHEET: {sheet_path} ({rendered} tiles)", flush=True)
         print(f"RASTER CORE COVERAGE REVIEW: {unscorable}/576 pairs lack a scorable opaque core", flush=True)
         print(f"RASTER VISIBILITY REVIEW: {flagged}/576 pairs have >=25% "
               f"low-contrast ore core; worst 10: "
