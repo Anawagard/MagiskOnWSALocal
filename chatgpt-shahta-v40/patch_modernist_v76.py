@@ -37,10 +37,10 @@ replace_method("private void v72SectionHeader(Canvas c,String title,String subti
         // This is paint-only; tab, clipping and hitboxes stay unchanged.
         int identity=tab==2 ? 0xffffa77a : (tab==3 ? 0xffc4a7ff : 0xff82bfff);
         rect(c,17,103,3,30,identity);
-        // Two short registration strokes make a technical section marker.
-        // Keep them outside title and tab badge text, including during toast.
-        rect(c,25,98,24,1,identity);
-        rect(c,50,98,9,1,0xff315d60);
+        // Short registration ticks live to the left of the title, never
+        // under its glyphs even when the heading shifts up for a toast.
+        rect(c,12,103,2,12,identity);
+        rect(c,12,118,2,7,0xff315d60);
         boolean toastInHeader=System.currentTimeMillis()<toastUntil;
         // Move the 16px title slightly upward while a toast is visible;
         // this leaves space for font descenders above its y=177 edge.
