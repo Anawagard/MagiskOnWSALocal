@@ -190,6 +190,19 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     """
     from PIL import ImageDraw
 
+    # A mistyped --risk-sheet must never overwrite one of the 48 source
+    # textures. Keep the audit strictly read-only with respect to game art.
+    assets_root = Path(assets).resolve()
+    destination = Path(output).resolve()
+    protected = {
+        *(assets_root / f"biome_{i:02d}.jpg" for i in range(COUNT)),
+        *(assets_root / f"ore_{i:02d}.png" for i in range(COUNT)),
+    }
+    if destination in protected:
+        raise ValueError("risk contact sheet output would overwrite a source texture")
+    if not 1 <= limit <= COUNT * COUNT:
+        raise ValueError("contact sheet limit must be in [1, 576]")
+
     risks = summarize_risks(scores)
     # Include unscorable translucent sprites: otherwise a completely missing
     # opaque core is invisible in the visual review despite being flagged.
