@@ -123,5 +123,46 @@ class ChromeNineSliceCornerTests(unittest.TestCase):
                                            f"Lost ornament {name} -> {dest}")
 
 
+    def test_all_five_real_raster_surfaces_keep_readable_body_text(self):
+        """Sample actual rendered chrome under labels, not just palette literals.
+
+        Covers source skins and the compact purchase-button geometry. Text
+        ink is the light foreground used by the modernist UI. Sampling the
+        central 50% avoids intentionally luminous focus rails and borders.
+        """
+        draw, _, np, Image = load_renderers()
+
+        def luminance(rgb):
+            values = [float(v) / 255.0 for v in rgb]
+            linear = [v / 12.92 if v <= 0.04045
+                      else ((v + 0.055) / 1.055) ** 2.4
+                      for v in values]
+            return sum(a * b for a, b in
+                       zip(linear, (0.2126, 0.7152, 0.0722)))
+
+        foreground = luminance((240, 255, 251))
+        with TemporaryDirectory() as folder:
+            for name, size, base, border, bright in SKINS:
+                with self.subTest(skin=name):
+                    path = Path(folder) / (name + ".png")
+                    draw(path, base, border, size=size, bright=bright)
+                    with Image.open(path) as im:
+                        src = im.convert("RGB")
+                    for target in (size, (165, 145), (64, 44)):
+                        resized = (src if target == size else
+                                   nine_slice(src.convert("RGBA"), target, Image)[0]
+                                   .convert("RGB"))
+                        w, h = resized.size
+                        # Five samples distributed across the label-safe area.
+                        for x_fraction in (0.30, 0.40, 0.50, 0.60, 0.70):
+                            rgb = resized.getpixel((int(w * x_fraction),
+                                                    int(h * 0.50)))
+                            contrast = (foreground + 0.05) / (
+                                luminance(rgb) + 0.05)
+                            self.assertGreaterEqual(
+                                contrast, 4.5,
+                                f"{name} {target}: text contrast {contrast:.2f}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
