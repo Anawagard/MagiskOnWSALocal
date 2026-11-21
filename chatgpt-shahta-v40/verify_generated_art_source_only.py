@@ -106,7 +106,9 @@ def verify(root):
                 # Compare reported opacity with the decoded image pixels.
                 import numpy as np
                 rgba = np.asarray(img.convert("RGBA"), dtype=np.uint8)
-                # Match audit_visual_diversity.inspect(): antialiased fringe alpha\n                # values 1..16 are intentionally excluded from visible coverage.\n                actual_occupancy = float(np.mean(rgba[:, :, 3] > 16))
+                # Match audit_visual_diversity.inspect(): antialiased fringe alpha
+                # values 1..16 are intentionally excluded from visible coverage.
+                actual_occupancy = float(np.mean(rgba[:, :, 3] > 16))
                 if abs(actual_occupancy - entry["alpha_occupancy"]) > 0.001:
                     raise ValueError(
                         f"{group}: stale alpha occupancy for {asset.name}"
