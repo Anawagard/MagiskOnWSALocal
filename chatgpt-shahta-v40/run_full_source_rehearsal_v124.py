@@ -50,24 +50,77 @@ def verify_biome_textures(project):
 
 
 def verify_modernist_art(project):
-    """Validate the raster sprites actually loaded by v7.0 Java screens."""
+    """Fail closed on missing, malformed, duplicate or invisible game art.
+
+    This validates the *generated* files consumed by the Java renderer, not
+    fixture stand-ins. It does not invoke Android, Gradle or GitHub Actions.
+    """
+    import hashlib
     from PIL import Image
+
     folder = project / "app/src/main/assets/shahta_v70"
-    expected = ({f"ore_{i:02}.png" for i in range(24)} |
-                {f"biome_{i:02}.jpg" for i in range(24)} |
-                {f"menu_{i}.jpg" for i in range(1, 5)} |
-                {"fractures.png", "panel.png", "button.png",
-                 "button_off.png", "header.png", "nav.png", "miner.png"})
-    missing = sorted(name for name in expected if not (folder / name).is_file())
-    if missing:
-        raise AssertionError(f"Missing v7.0 art assets: {missing}")
+    dimensions = {}
+    for index in range(24):
+        dimensions[f"ore_{index:02}.png"] = ("PNG", (300, 300))
+        dimensions[f"biome_{index:02}.jpg"] = ("JPEG", (360, 570))
+    for index in range(1, 5):
+        dimensions[f"menu_{index}.jpg"] = ("JPEG", (360, 570))
+    dimensions.update({
+        "fractures.png": ("PNG", None),
+        "panel.png": ("PNG", (400, 96)),
+        "button.png": ("PNG", (160, 64)),
+        "button_off.png": ("PNG", (160, 64)),
+        "header.png": ("PNG", (360, 88)),
+        "nav.png": ("PNG", (360, 50)),
+        "miner.png": ("PNG", None),
+    })
+    expected = set(dimensions)
+    actual = {item.name for item in folder.iterdir() if item.is_file()}
+    missing, unexpected = sorted(expected - actual), sorted(actual - expected)
+    if missing or unexpected:
+        raise AssertionError(f"Art inventory mismatch: missing={missing}, extra={unexpected}")
+
+    families = {"ore": set(), "biome": set(), "menu": set()}
     for name in sorted(expected):
         path = folder / name
         if path.stat().st_size < 700:
             raise AssertionError(f"Suspiciously small art asset: {name}")
-        with Image.open(path) as img:
-            img.verify()
-    print(f"ART PASS: {len(expected)} decoded raster assets, including 24 ore sprites", flush=True)
+        fmt, size = dimensions[name]
+        with Image.open(path) as image:
+            image.load()  # Decode actual pixels, not just the file header.
+            if image.format != fmt or (size is not None and image.size != size):
+                raise AssertionError(
+                    f"Invalid raster {name}: {image.format} {image.size}; "
+                    f"expected {fmt} {size}")
+            if name.startswith("ore_"):
+                if image.mode != "RGBA":
+                    raise AssertionError(f"Ore must have RGBA transparency: {name}")
+                alpha = image.getchannel("A")
+                low, high = alpha.getextrema()
+                if (low, high) != (0, 255):
+                    raise AssertionError(f"Ore silhouette must contain clear and opaque pixels: {name}")
+                histogram = alpha.histogram()
+                coverage = sum(histogram[128:]) / (image.width * image.height)
+                if not 0.15 < coverage < 0.85:
+                    raise AssertionError(f"Ore coverage out of bounds: {name} {coverage:.3f}")
+            if name.startswith(("biome_", "menu_")) and image.mode != "RGB":
+                raise AssertionError(f"Background must be RGB: {name}")
+            family = name.split("_", 1)[0]
+            if family in families:
+                # Compare decoded pixels, so identical art with different
+                # compression settings cannot masquerade as distinct biomes.
+                digest = hashlib.sha256(
+                    image.mode.encode("ascii") +
+                    repr(image.size).encode("ascii") +
+                    image.tobytes()
+                ).digest()
+                if digest in families[family]:
+                    raise AssertionError(f"Duplicate decoded raster in {family}: {name}")
+                families[family].add(digest)
+    if tuple(len(families[k]) for k in ("ore", "biome", "menu")) != (24, 24, 4):
+        raise AssertionError("Incomplete raster families")
+    print("ART PASS: 59 decoded assets; 24 unique opaque/transparent ores, "
+          "24 unique biomes, 4 unique menus, 7 chrome/sprite assets", flush=True)
 
 def rehearse(art_output=None):
     if not __debug__:
