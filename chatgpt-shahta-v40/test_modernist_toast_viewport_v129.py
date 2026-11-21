@@ -31,7 +31,7 @@ assert 'v72NineSlice(c,"panel.png",18,93,324,83,255);' in v77
 assert 'v71ShopTile(c,10+(i%2)*175,164+(i/2)*153' in v74
 assert 'v72NineSlice(c,"panel.png",14,153,332,477,255);' in v73
 match = re.search(
-    r"int toastY = page==0 \\? (\\d+) : \\(page==1 \\? (\\d+) : (\\d+)\\);",
+    r"int toastY = page==0 \? (\d+) : \(page==1 \? (\d+) : (\d+)\);",
     v79,
 )
 assert match, "Missing final Java toast placement"
