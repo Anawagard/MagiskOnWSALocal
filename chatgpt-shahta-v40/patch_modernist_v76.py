@@ -32,13 +32,15 @@ replace_method("private void v72SectionHeader(Canvas c,String title,String subti
     private void v72SectionHeader(Canvas c,String title,String subtitle,int tab){
         v72NineSlice(c,"panel.png",10,94,340,49,255);
         rect(c,17,103,3,30,0xff65e1d0);
-        leftFittedText(c,title,28,114,16,0xfff0fffd,253);
+        boolean toastInHeader=System.currentTimeMillis()<toastUntil;
+        // Move the 16px title slightly upward while a toast is visible;
+        // this leaves space for font descenders above its y=177 edge.
+        leftFittedText(c,title,28,toastInHeader?110:114,16,0xfff0fffd,253);
         // A screen-space toast on feature pages occupies y=177..203.
         // In page coordinates this is y=117..143, where the subtitle and
         // decorative ore badge would otherwise show through the toast.
         // Retain the title (baseline y=114 -> screen y=174), but suppress
         // competing decorations only during the short notification.
-        boolean toastInHeader=System.currentTimeMillis()<toastUntil;
         if(!toastInHeader){
             leftFittedText(c,subtitle,28,132,10,0xffb3d2d4,253);
             // One-pixel raster-aligned divider keeps title and details apart.
