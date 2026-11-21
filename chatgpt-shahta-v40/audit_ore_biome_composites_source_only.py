@@ -237,6 +237,21 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
     }
 
 
+def validate_diagnostic_destination(assets, output):
+    """Keep diagnostic writes outside the entire production raster directory.
+
+    A heatmap or contact sheet must never overwrite a menu, UI chrome, miner,
+    fracture overlay, ore or biome. Resolve symlinks before checking ancestry.
+    """
+    assets_root = Path(assets).resolve()
+    destination = Path(output).resolve()
+    if destination == assets_root or assets_root in destination.parents:
+        raise ValueError("Diagnostic output must be outside production assets")
+    if destination.suffix.lower() != ".png":
+        raise ValueError("Diagnostic output must have a .png extension")
+    return destination
+
+
 def render_risk_contact_sheet(assets, scores, output, limit=24):
     """Render actual high-risk ore over biome crops for visual review.
 
@@ -244,16 +259,7 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     """
     from PIL import ImageDraw
 
-    # A mistyped --risk-sheet must never overwrite one of the 48 source
-    # textures. Keep the audit strictly read-only with respect to game art.
-    assets_root = Path(assets).resolve()
-    destination = Path(output).resolve()
-    protected = {
-        *((assets_root / f"biome_{i:02d}.jpg").resolve() for i in range(COUNT)),
-        *((assets_root / f"ore_{i:02d}.png").resolve() for i in range(COUNT)),
-    }
-    if destination in protected:
-        raise ValueError("risk contact sheet output would overwrite a source texture")
+    destination = validate_diagnostic_destination(assets, output)
     if not 1 <= limit <= COUNT * COUNT:
         raise ValueError("contact sheet limit must be in [1, 576]")
 
@@ -281,7 +287,7 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
             selected.append(measurable[index])
     if not selected:
         # A previous run's PNG must not masquerade as current risk evidence.
-        Path(output).unlink(missing_ok=True)
+        destination.unlink(missing_ok=True)
         return 0
     tile = 128
     columns = min(6, len(selected))
@@ -305,9 +311,8 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
         draw.text((x + 4, y + tile + 5),
                   f"B{biome + 1:02d} O{ore + 1:02d}  {risk_label}",
                   fill=(224, 245, 244))
-    output = Path(output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(output, format="PNG")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(destination, format="PNG")
     return len(selected)
 
 
@@ -327,10 +332,9 @@ def render_visibility_heatmap(scores, output):
     actual = [(int(row["biome"]), int(row["ore"])) for row in scores]
     if len(actual) != COUNT * COUNT or set(actual) != expected:
         raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
-    # Never overwrite a source asset, even if the output path is mistyped.
     destination = Path(output).resolve()
-    if destination.name.startswith(("biome_", "ore_")) and destination.suffix.lower() in (".jpg", ".png"):
-        raise ValueError("Heatmap output resembles a production raster filename")
+    if destination.suffix.lower() != ".png":
+        raise ValueError("Heatmap output must have a .png extension")
     tile, left, top, right, bottom = 25, 70, 65, 22, 55
     canvas = Image.new("RGB", (left + COUNT * tile + right,
                                top + COUNT * tile + bottom), (17, 25, 37))
@@ -390,6 +394,10 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.limit <= COUNT * COUNT:
         parser.error("--limit must be in [1, 576]")
+    if args.risk_sheet is not None:
+        validate_diagnostic_destination(args.assets, args.risk_sheet)
+    if args.heatmap is not None:
+        validate_diagnostic_destination(args.assets, args.heatmap)
     scores = analyze(args.assets)
     # The mean can hide large low-contrast patches in an otherwise bright ore.
     # Keep the historical ranking while also reporting the weakest solid cores.
