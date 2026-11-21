@@ -268,6 +268,12 @@ new=r"""        float x=e.getX()*W/Math.max(1,getWidth());
         float screenY=e.getY()*H/Math.max(1,getHeight());
         if(screenY>=88&&screenY<=136){
             int next=clamp((int)(x/72f),0,4);
+            // Only the painted 64x44 tab is interactive (x=5..69 in
+            // each 72px cell, y=90..134). Avoid invisible tap gutters,
+            // including on letterboxed or narrow physical displays.
+            float tabX=x-next*72f;
+            if(screenY<90f||screenY>134f||tabX<5f||tabX>69f)
+                return true;
             if(page!=next){
                 previousPage=page;page=next;pageSlide=1f;
                 toastUntil=0;screenFlash=0;pressPulse=1f;

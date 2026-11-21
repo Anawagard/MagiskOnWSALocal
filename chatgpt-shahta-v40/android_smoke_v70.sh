@@ -89,9 +89,30 @@ PY
 # Only screenshots are taken; no upgrade buttons or player data are modified.
 adb shell input tap 109 135
 sleep 1
-adb shell input tap 180 183
+# The v7.4 shop tabs live at page y=130..158, translated down by 60,
+# plus the emulator status bar (~24px): physical tap y=225.
+# First verify that the v7.3 settings sheet can open and close.
+adb shell input tap 295 212
+sleep 1
+capture_ready screenshots/03b-settings.png
+adb shell input tap 180 664
+sleep 1
+adb shell input tap 180 225
 sleep 1
 capture_ready screenshots/04-tech-shop.png
+python3 - <<'PY'
+from pathlib import Path
+from PIL import Image, ImageChops, ImageStat
+shop=Image.open('screenshots/02-shop.png').convert('RGB')
+settings=Image.open('screenshots/03b-settings.png').convert('RGB')
+tech=Image.open('screenshots/04-tech-shop.png').convert('RGB')
+for name,other in [('settings',settings),('technology tab',tech)]:
+    a=shop.crop((18,230,342,635))
+    b=other.crop((18,230,342,635))
+    delta=sum(ImageStat.Stat(ImageChops.difference(a,b)).mean)/3
+    assert delta>3,(name,delta)
+    print('Modernist UI transition:',name,round(delta,2))
+PY
 adb shell input tap 180 135
 sleep 1
 capture_ready screenshots/05-forge-relics.png
