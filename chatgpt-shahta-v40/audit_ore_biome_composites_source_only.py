@@ -327,15 +327,15 @@ def render_visibility_heatmap(scores, output, *, assets=None):
     """
     from PIL import ImageDraw
 
+    destination = (validate_diagnostic_destination(assets, output)
+                   if assets is not None else Path(output).resolve())
+    if destination.suffix.lower() != ".png":
+        raise ValueError("Heatmap output must have a .png extension")
     expected = {(biome, ore) for biome in range(1, COUNT + 1)
                 for ore in range(1, COUNT + 1)}
     actual = [(int(row["biome"]), int(row["ore"])) for row in scores]
     if len(actual) != COUNT * COUNT or set(actual) != expected:
         raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
-    destination = (validate_diagnostic_destination(assets, output)
-                   if assets is not None else Path(output).resolve())
-    if destination.suffix.lower() != ".png":
-        raise ValueError("Heatmap output must have a .png extension")
     tile, left, top, right, bottom = 25, 70, 65, 22, 55
     canvas = Image.new("RGB", (left + COUNT * tile + right,
                                top + COUNT * tile + bottom), (17, 25, 37))
