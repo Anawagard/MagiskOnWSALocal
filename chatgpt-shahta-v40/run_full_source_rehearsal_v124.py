@@ -105,6 +105,8 @@ def rehearse(art_output=None):
                  "test_ore_visibility_pixels_source_only.py",
                  "test_ore_visibility_details_source_only.py",
                  "test_ore_raster_inputs_source_only.py",
+                 # Compare the actual 24 rendered lodes against pre-lode rasters.
+                 "test_ore_macro_lodes_source_only_v131.py",
                  "test_ore_core_visibility_source_only.py",
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py",
