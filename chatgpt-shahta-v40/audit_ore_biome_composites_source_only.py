@@ -193,11 +193,25 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
     risks = summarize_risks(scores)
     # Include unscorable translucent sprites: otherwise a completely missing
     # opaque core is invisible in the visual review despite being flagged.
-    selected = [
+    # Reserve slots for both failure classes. Previously, 24+ missing-core
+    # combinations could fill the sheet and hide every measurable risk.
+    unscorable = [
         {**item, "affected_core_fraction": None}
         for item in risks["unscorable_core_locations"]
-    ][:limit]
-    selected += risks["worst_pairs"][:max(0, limit - len(selected))]
+    ]
+    measurable = risks["worst_pairs"]
+    selected = []
+    # Alternate categories when both exist, retaining each category's
+    # deterministic risk ordering and never duplicating a pair.
+    for index in range(max(len(unscorable), len(measurable))):
+        if len(selected) >= limit:
+            break
+        if index < len(unscorable):
+            selected.append(unscorable[index])
+        if len(selected) >= limit:
+            break
+        if index < len(measurable):
+            selected.append(measurable[index])
     if not selected:
         # A previous run's PNG must not masquerade as current risk evidence.
         Path(output).unlink(missing_ok=True)
