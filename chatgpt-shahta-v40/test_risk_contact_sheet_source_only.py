@@ -42,6 +42,12 @@ class RiskSheetTests(unittest.TestCase):
             }):
                 self.assertEqual(audit.render_risk_contact_sheet(folder, [], output), 0)
             self.assertFalse(output.exists())
+            output.write_bytes(b"stale PNG")
+            with patch.object(audit, "summarize_risks", return_value={
+                "unscorable_core_locations": [], "worst_pairs": []
+            }):
+                self.assertEqual(audit.render_risk_contact_sheet(folder, [], output), 0)
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":
