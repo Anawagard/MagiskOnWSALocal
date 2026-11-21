@@ -502,6 +502,25 @@ def cave(index,color,path,w=360,h=570):
                         .10*reading*reading_y,0,1)[:,:,None]
         graphite=np.array([12,20,30],dtype=np.float32)
         im=image_array(pixels*(1-opacity)+graphite[None,None,:]*opacity)
+    # Four menu backdrops share a restrained technical navigation frame.
+    # Place the cyan registration rails in the peripheral 5% of the bitmap:
+    # the centre remains clear for localized labels and interactive cards.
+    # All dimensions scale with the actual preview resolution.
+    if 31 <= index <= 34:
+        frame = ImageDraw.Draw(im, "RGBA")
+        rail_x = max(1, round(w * .035))
+        rail_right = w - 1 - rail_x
+        rail_top = max(1, round(h * .105))
+        rail_bottom = min(h - 2, round(h * .865))
+        tick = max(2, round(w * .022))
+        stroke = max(1, round(w / 360))
+        for x, direction in ((rail_x, 1), (rail_right, -1)):
+            frame.line([(x, rail_top), (x, rail_bottom)],
+                       fill=(75, 213, 204, 43), width=stroke)
+            for fraction in (.0, .25, .5, .75, 1.0):
+                y = round(rail_top + (rail_bottom - rail_top) * fraction)
+                frame.line([(x, y), (x + direction * tick, y)],
+                           fill=(122, 236, 222, 88), width=stroke)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
