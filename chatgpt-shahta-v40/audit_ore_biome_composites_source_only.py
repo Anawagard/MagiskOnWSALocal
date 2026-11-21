@@ -317,7 +317,7 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
 
 
 
-def render_visibility_heatmap(scores, output):
+def render_visibility_heatmap(scores, output, *, assets=None):
     """Plot all 576 ore/biome pairs, including translucent-core failures.
 
     Columns are ores 01..24, rows are biomes 01..24. A red tile indicates
@@ -332,7 +332,8 @@ def render_visibility_heatmap(scores, output):
     actual = [(int(row["biome"]), int(row["ore"])) for row in scores]
     if len(actual) != COUNT * COUNT or set(actual) != expected:
         raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
-    destination = Path(output).resolve()
+    destination = (validate_diagnostic_destination(assets, output)
+                   if assets is not None else Path(output).resolve())
     if destination.suffix.lower() != ".png":
         raise ValueError("Heatmap output must have a .png extension")
     tile, left, top, right, bottom = 25, 70, 65, 22, 55
@@ -413,7 +414,7 @@ def main():
     if args.risk_sheet is not None:
         render_risk_contact_sheet(args.assets, scores, args.risk_sheet, args.limit)
     if args.heatmap is not None:
-        render_visibility_heatmap(scores, args.heatmap)
+        render_visibility_heatmap(scores, args.heatmap, assets=args.assets)
     risk_summary["worst_pairs"] = risk_summary["worst_pairs"][:args.limit]
     print(json.dumps({
         "pairs": len(scores),
