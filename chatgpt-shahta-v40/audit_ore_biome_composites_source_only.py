@@ -28,14 +28,14 @@ def read_rgb(path, size, expected_format):
         return im.convert("RGB")
 
 
-def read_ore(path):
+def read_ore(path, sample_size=SAMPLE_SIZE):
     with Image.open(path) as im:
         im.load()
         if im.format != "PNG" or im.size != ORE_SIZE:
             raise ValueError(f"{path.name}: expected PNG {ORE_SIZE}, got {im.format} {im.size}")
         if im.mode not in ("RGBA", "LA") and not (im.mode == "P" and "transparency" in im.info):
             raise ValueError(f"{path.name}: ore has no alpha channel")
-        return im.convert("RGBA").resize((SAMPLE_SIZE, SAMPLE_SIZE), Image.Resampling.LANCZOS)
+        return im.convert("RGBA").resize((sample_size, sample_size), Image.Resampling.LANCZOS)
 
 
 def contrast_score(background, ore):
@@ -239,8 +239,9 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
         scene = read_rgb(Path(assets) / f"biome_{biome:02d}.jpg",
                          BACKGROUND_SIZE, "JPEG")
         background = scene.crop((132, 200, 228, 296)).resize((tile, tile))
-        foreground = read_ore(Path(assets) / f"ore_{ore:02d}.png").resize(
-            (tile, tile), Image.Resampling.LANCZOS)
+        # Render the review tile directly from the 300px source rather than
+        # upscaling the 96px analysis sample; preserve fine ore details.
+        foreground = read_ore(Path(assets) / f"ore_{ore:02d}.png", sample_size=tile)
         # Composite exactly once in RGBA; do not apply the alpha twice.
         background = Image.alpha_composite(background.convert("RGBA"), foreground).convert("RGB")
         x, y = (index % columns) * tile, (index // columns) * (tile + 28)
