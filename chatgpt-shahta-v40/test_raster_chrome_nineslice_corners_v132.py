@@ -27,7 +27,9 @@ def load_renderers():
         import numpy as np
         from PIL import Image, ImageDraw
     except ImportError as exc:
-        raise unittest.SkipTest(f"numpy and Pillow needed: {exc}")
+        # This test is a mandatory pixel gate in the full rehearsal.
+        # SkipTest would report success without examining a single PNG.
+        raise RuntimeError("Required raster audit dependencies missing: numpy/Pillow") from exc
     tree = ast.parse(GEN.read_text(encoding="utf-8"), filename=str(GEN))
     funcs = [node for node in tree.body if isinstance(node, ast.FunctionDef)
              and node.name in ("image_array", "panel_art")]
@@ -68,9 +70,16 @@ def nine_slice(src, size, Image):
     sw, sh = src.size
     w, h = size
     sx, sy = min(18, sw // 4), min(18, sh // 4)
-    dx, dy = round(min(11.0, w / 3.0)), round(min(11.0, h / 3.0))
+    # Java draws with floating-point destination seams. A preview raster
+    # must not silently collapse a fractional seam to zero or omit a slice.
+    dx, dy = min(11.0, w / 3.0), min(11.0, h / 3.0)
+    if not (0 < dx < w / 2 and 0 < dy < h / 2):
+        raise AssertionError(f"Invalid nine-slice target: {size}")
+    # Integer rasterization is only an approximation of Android Canvas:
+    # round the seam locations, not the source dimensions.
+    ix, iy = round(dx), round(dy)
     src_x, src_y = (0, sx, sw - sx, sw), (0, sy, sh - sy, sh)
-    dst_x, dst_y = (0, dx, w - dx, w), (0, dy, h - dy, h)
+    dst_x, dst_y = (0, ix, w - ix, w), (0, iy, h - iy, h)
     output = Image.new("RGBA", size)
     for row in range(3):
         for col in range(3):
@@ -82,7 +91,7 @@ def nine_slice(src, size, Image):
                 raise AssertionError(f"Degenerate slice {size}")
             output.paste(crop.resize(area, Image.Resampling.BILINEAR),
                          (dst_x[col], dst_y[row]))
-    return output, dx, dy
+    return output, ix, iy
 
 
 class ChromeNineSliceCornerTests(unittest.TestCase):
