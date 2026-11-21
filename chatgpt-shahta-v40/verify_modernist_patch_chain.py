@@ -155,7 +155,8 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     # again can silently duplicate draw calls or shift touch geometry.
     modern_markers = [
         "v72NineSlice(", "v73", "v74", "v75", "v76",
-        "v77", "v78", "int toastY = page==0 ? 178 : (page==1 ? 655 : 145);",
+        "v77", "v78", "int toastY = page==0 ? 240 : (page==1 ? 691 : 177);",
+        "int toastY = page==0 ? 178 : (page==1 ? 655 : 145);",
     ]
     found_modern = [marker for marker in modern_markers if marker in before]
     if found_modern:
@@ -239,14 +240,14 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
         'getSharedPreferences("mine_save_v1"',
         'public void save()',
         'private void rebirth()',
-        'int toastY = page==0 ? 178 : (page==1 ? 655 : 145);',
+        'int toastY = page==0 ? 240 : (page==1 ? 691 : 177);',
     ):
         assert marker in after, f"Missing post-chain invariant: {marker}"
     assert 'v72NineSlice(canvas,"panel.png",18,178,324,26,252);' not in after, "Stale v7.8 toast placement remains"
     assert 'v72NineSlice(canvas,"panel.png",18,240,324,26,252);' not in after, "Stale v7.7 toast placement remains"
     # Validate the final toast geometry, not only the existence of a marker.
-    # Mine toast uses the telemetry gap; shop sits below its cards;
-    # feature pages use the gap between navigation and transformed content.
+    # Compare screen-space boxes with the actual +60 page transform.
+    # The feature toast temporarily replaces a subtitle in a non-touch header.
     import re
     toast_match = re.search(
         r"int toastY\s*=\s*page\s*==\s*0\s*\?\s*(\d+)\s*:\s*"
@@ -254,13 +255,13 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert toast_match is not None, "Missing five-page toast coordinates"
     mine_y, shop_y, feature_y = map(int, toast_match.groups())
     toast_height = 26
-    assert (mine_y, shop_y, feature_y) == (178, 655, 145), "Unexpected toast placement"
-    assert mine_y + toast_height <= 205, "Mine toast overlaps content"
-    assert shop_y > 653 and shop_y + toast_height <= 682, "Shop toast overlaps cards or controls"
-    assert feature_y > 137 and feature_y + toast_height < 205, "Feature toast overlaps navigation or content"
-    assert after.count("int toastY = page==0 ? 178 : (page==1 ? 655 : 145);") == 1
+    assert (mine_y, shop_y, feature_y) == (240, 691, 177), "Unexpected toast placement"
+    assert mine_y >= 236 + 4 and mine_y + toast_height <= 270 - 4, "Mine toast overlaps shifted telemetry or ore"
+    assert shop_y > 690 and shop_y + toast_height <= 720, "Shop toast overlaps shifted cards/settings"
+    assert feature_y > 174 and feature_y + toast_height <= 203, "Feature toast overlaps title or active content"
+    assert after.count("int toastY = page==0 ? 240 : (page==1 ? 691 : 177);") == 1
     assert after.count('v72NineSlice(canvas,"panel.png",18,toastY,324,26,252);') == 1
-    assert after.count('rect(canvas,26,toastY+4,3,18,0xff65e1d0);') == 1
+    assert after.count('rect(canvas,26,toastY+4,3,18,toastAccent);') == 1
     assert after.count('rect(canvas,36,toastY+22,296,1,0xff315d60);') == 1
     assert after.count('leftFittedText(canvas,toast,39,toastY+18,12,0xfff0fffb,251);') == 1
     assert after.count("c.translate(13f,18f);") == 3
