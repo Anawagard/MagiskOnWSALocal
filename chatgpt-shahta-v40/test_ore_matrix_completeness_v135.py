@@ -29,20 +29,20 @@ def fixture():
 
 class MatrixCompleteness(unittest.TestCase):
     def test_complete_matrix_has_no_risks(self):
-        summary = module.summarize_risks(fixture())
+        summary = module.summarize_risks(fixture(), require_complete=True)
         self.assertEqual(summary["risk_pairs"], 0)
         self.assertEqual(summary["unscorable_core_pairs"], 0)
         self.assertEqual(sum(summary["risk_count_by_ore"].values()), 0)
 
     def test_missing_pair_rejected(self):
         with self.assertRaisesRegex(ValueError, "Expected 576"):
-            module.summarize_risks(fixture()[:-1])
+            module.summarize_risks(fixture()[:-1], require_complete=True)
 
     def test_duplicate_pair_rejected_even_when_row_count_correct(self):
         rows = fixture()
         rows[-1] = dict(rows[0])
         with self.assertRaisesRegex(ValueError, "duplicate"):
-            module.summarize_risks(rows)
+            module.summarize_risks(rows, require_complete=True)
 
     def test_nonfinite_and_out_of_range_metrics_rejected(self):
         for key, value in (("score", float("nan")),
@@ -54,13 +54,13 @@ class MatrixCompleteness(unittest.TestCase):
                 rows = fixture()
                 rows[7][key] = value
                 with self.assertRaises(ValueError):
-                    module.summarize_risks(rows)
+                    module.summarize_risks(rows, require_complete=True)
 
     def test_missing_core_metrics_are_explicitly_unscorable(self):
         rows = fixture()
         rows[0].update(core_coverage=0, core_mean_contrast=None,
                        core_weakest_decile=None, core_low_contrast_fraction=None)
-        summary = module.summarize_risks(rows)
+        summary = module.summarize_risks(rows, require_complete=True)
         self.assertEqual(summary["unscorable_core_pairs"], 1)
         self.assertEqual(summary["unscorable_core_locations"],
                          [{"biome": 1, "ore": 1}])
@@ -71,13 +71,13 @@ class MatrixCompleteness(unittest.TestCase):
                 rows = fixture()
                 rows[1]["ore"] = invalid
                 with self.assertRaises(ValueError):
-                    module.summarize_risks(rows)
+                    module.summarize_risks(rows, require_complete=True)
 
     def test_core_without_metrics_rejected(self):
         rows = fixture()
         rows[0]["core_weakest_decile"] = None
         with self.assertRaises(ValueError):
-            module.summarize_risks(rows)
+            module.summarize_risks(rows, require_complete=True)
 
 
 if __name__ == "__main__":
