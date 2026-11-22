@@ -460,6 +460,11 @@ def main():
         validate_diagnostic_destination(args.assets, args.risk_sheet)
     if args.heatmap is not None:
         validate_diagnostic_destination(args.assets, args.heatmap)
+    # Two diagnostics must never target the same resolved path: otherwise the
+    # second image silently replaces the first and invalidates the review.
+    if (args.risk_sheet is not None and args.heatmap is not None
+            and args.risk_sheet.resolve() == args.heatmap.resolve()):
+        parser.error("--risk-sheet and --heatmap must use distinct output paths")
     scores = analyze(args.assets)
     # The mean can hide large low-contrast patches in an otherwise bright ore.
     # Keep the historical ranking while also reporting the weakest solid cores.
