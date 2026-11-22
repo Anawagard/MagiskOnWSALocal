@@ -193,6 +193,15 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
                         raise ValueError(f"Unexpected {key} without core for {(i, j)}")
                 elif type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
                     raise ValueError(f"Missing/invalid {key} for {(i, j)}: {value}")
+            # The overall displayed mean is averaged across every visible
+            # pixel. Solid-core pixels are a subset, so their nonnegative
+            # contribution is a strict lower bound on the overall score.
+            # Six-decimal input rounding permits a small numerical margin.
+            if row["core_coverage"] > 0:
+                minimum = (row["core_mean_contrast"] * row["core_coverage"]
+                           / row["visible_coverage"])
+                if row["score"] + 0.000004 < minimum:
+                    raise ValueError(f"Inconsistent overall/core contrast for {(i, j)}")
             # If fraction f of the opaque core is below 0.08, its mean
             # cannot exceed f*0.08 + (1-f)*1.0. Catch fabricated or
             # corrupted reports that otherwise appear safe on the heatmap.
