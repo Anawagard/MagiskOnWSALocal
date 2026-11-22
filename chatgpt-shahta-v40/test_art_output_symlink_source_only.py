@@ -30,4 +30,19 @@ with tempfile.TemporaryDirectory(prefix="shahta-symlink-guard-") as tmp:
         raise AssertionError("Symlinked audit destination was accepted")
     assert not list(target.iterdir()), "Audit unexpectedly wrote through symlink"
 
-print("PASS: symlinked output rejected before raster generation (source-only)")
+    # The destination itself is not a symlink, but one of its parents is.
+    # This previously bypassed the leaf-only guard and created files outside
+    # the caller's requested directory.
+    nested = alias / "new-output"
+    assert not nested.is_symlink()
+    assert alias.is_symlink()
+    try:
+        module.verify(nested)
+    except ValueError as exc:
+        assert "symlinked art output" in str(exc), str(exc)
+    else:
+        raise AssertionError("Symlinked parent directory was accepted")
+    assert not nested.exists(), "Audit created an output via symlinked parent"
+    assert not list(target.iterdir()), "Audit wrote through symlinked parent"
+
+print("PASS: symlinked output and ancestors rejected before raster generation (source-only)")
