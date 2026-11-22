@@ -27,6 +27,17 @@ class HeatmapMetricIntegrityTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertEqual(output.read_bytes()[:8], bytes.fromhex("89504e470d0a1a0a"))
 
+    def test_opaque_core_cannot_exceed_visible_coverage(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "heatmap.png"
+            output.write_bytes(b"previous diagnostic")
+            rows = valid_rows()
+            rows[0]["visible_coverage"] = 0.2
+            rows[0]["core_coverage"] = 0.4
+            with self.assertRaisesRegex(ValueError, "Opaque core exceeds"):
+                render_visibility_heatmap(rows, output)
+            self.assertEqual(output.read_bytes(), b"previous diagnostic")
+
     def test_invalid_metrics_fail_without_overwriting_existing_image(self):
         invalid = [
             ("score", float("nan")),
