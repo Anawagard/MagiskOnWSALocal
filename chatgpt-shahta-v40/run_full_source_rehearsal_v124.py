@@ -167,6 +167,7 @@ def rehearse(art_output=None):
                  "test_ore_biome_displayed_contrast_source_only.py",
                  "test_ore_visibility_pixels_source_only.py",
                  "test_heatmap_metric_integrity_source_only.py",
+                 "test_core_mean_bound_source_only.py",
                  "test_ore_visibility_details_source_only.py",
                  "test_ore_raster_inputs_source_only.py",
                  # Compare the actual 24 rendered lodes against pre-lode rasters.
