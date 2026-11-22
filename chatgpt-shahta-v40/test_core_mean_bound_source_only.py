@@ -62,6 +62,32 @@ class CoreMeanBoundTests(unittest.TestCase):
         result = summarize_risks(data, require_complete=True)
         self.assertEqual(result["risk_pairs"], 1)
 
+    def test_fraction_above_decile_conflicts_with_high_percentile(self):
+        data = rows()
+        data[0]["core_low_contrast_fraction"] = 0.5
+        data[0]["core_weakest_decile"] = 0.2
+        with self.assertRaisesRegex(ValueError, "Inconsistent core decile"):
+            summarize_risks(data, require_complete=True)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "heatmap.png"
+            output.write_bytes(b"previous report")
+            with self.assertRaisesRegex(ValueError, "Inconsistent core decile"):
+                render_visibility_heatmap(data, output)
+            self.assertEqual(output.read_bytes(), b"previous report")
+
+    def test_fraction_below_decile_conflicts_with_low_percentile(self):
+        data = rows()
+        data[0]["core_low_contrast_fraction"] = 0.0
+        data[0]["core_weakest_decile"] = 0.01
+        with self.assertRaisesRegex(ValueError, "Inconsistent core decile"):
+            summarize_risks(data, require_complete=True)
+
+    def test_consistent_low_percentile_accepted(self):
+        data = rows()
+        data[0]["core_low_contrast_fraction"] = 0.5
+        data[0]["core_weakest_decile"] = 0.04
+        self.assertEqual(summarize_risks(data, require_complete=True)["risk_pairs"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
