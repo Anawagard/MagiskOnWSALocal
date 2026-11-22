@@ -177,6 +177,11 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
                 value = row.get(key)
                 if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
                     raise ValueError(f"Invalid {key} for {(i, j)}: {value}")
+            # Alpha >= 0.5 is a subset of alpha > 0. The source metrics
+            # are rounded to six decimals, so allow one unit of rounding
+            # drift but reject impossible coverage relationships.
+            if row["core_coverage"] > row["visible_coverage"] + 0.000002:
+                raise ValueError(f"Opaque core exceeds visible ore coverage for {(i, j)}")
             for key in ("core_mean_contrast", "core_weakest_decile",
                         "core_low_contrast_fraction"):
                 value = row.get(key)
