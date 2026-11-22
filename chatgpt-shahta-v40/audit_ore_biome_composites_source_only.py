@@ -315,7 +315,22 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
                   f"B{biome + 1:02d} O{ore + 1:02d}  {risk_label}",
                   fill=(224, 245, 244))
     destination.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(destination, format="PNG")
+    # A failed write must never leave a truncated risk sheet at the final path.
+    # Match the heatmap's atomic publication contract.
+    import os
+    import tempfile
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=".shahta-risk-sheet-", suffix=".png",
+            dir=destination.parent, delete=False
+        ) as handle:
+            temporary = Path(handle.name)
+        sheet.save(temporary, format="PNG")
+        os.replace(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return len(selected)
 
 
