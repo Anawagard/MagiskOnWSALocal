@@ -331,11 +331,32 @@ def render_visibility_heatmap(scores, output, *, assets=None):
                    if assets is not None else Path(output).resolve())
     if destination.suffix.lower() != ".png":
         raise ValueError("Heatmap output must have a .png extension")
+    # Never silently coerce fractional/boolean indices to valid grid cells.
+    # Validate the plotted metric too: NaN, infinity and out-of-range values
+    # must not produce a reassuring-looking diagnostic.
     expected = {(biome, ore) for biome in range(1, COUNT + 1)
                 for ore in range(1, COUNT + 1)}
-    actual = [(int(row["biome"]), int(row["ore"])) for row in scores]
+    actual = []
+    for row in scores:
+        if not isinstance(row, dict):
+            raise ValueError("Heatmap requires dictionary rows")
+        biome, ore = row.get("biome"), row.get("ore")
+        if type(biome) is not int or type(ore) is not int:
+            raise ValueError("Heatmap requires integer biome/ore indices")
+        actual.append((biome, ore))
+        weak = row.get("core_low_contrast_fraction")
+        if weak is not None and (type(weak) not in (int, float)
+                                 or not math.isfinite(weak) or not 0 <= weak <= 1):
+            raise ValueError("Heatmap requires finite core contrast fractions in [0, 1]")
     if len(actual) != COUNT * COUNT or set(actual) != expected:
         raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
+    # Without an assets path we cannot establish ancestry, but known production
+    # filenames must still be protected from accidental diagnostic overwrite.
+    reserved = ({f"ore_{i:02d}.png" for i in range(COUNT)}
+                | {"fractures.png", "panel.png", "button.png",
+                   "button_off.png", "header.png", "nav.png", "miner.png"})
+    if destination.name.lower() in reserved:
+        raise ValueError("Heatmap output conflicts with production raster filename")
     tile, left, top, right, bottom = 25, 70, 65, 22, 55
     canvas = Image.new("RGB", (left + COUNT * tile + right,
                                top + COUNT * tile + bottom), (17, 25, 37))
