@@ -315,8 +315,11 @@ def rehearse(art_output=None):
                 raise AssertionError(
                     f"Risk contact sheet has {rendered} tiles, expected {expected_rendered}"
                 )
-            if (rendered > 0) != sheet_path.is_file():
-                raise AssertionError("Risk contact sheet output does not match flagged pairs")
+            # The renderer deliberately publishes a current NO RISK PAIRS PNG
+            # even when there are zero flagged combinations. A missing file
+            # is always a failure; zero selected tiles is not.
+            if not sheet_path.is_file():
+                raise AssertionError("Risk contact sheet PNG was not published")
             print(f"RASTER REVIEW REPORT: {report_path}", flush=True)
             print(f"RASTER RISK SHEET: {sheet_path} ({rendered} tiles)", flush=True)
         print(f"RASTER CORE COVERAGE REVIEW: {unscorable}/576 pairs lack a scorable opaque core", flush=True)
