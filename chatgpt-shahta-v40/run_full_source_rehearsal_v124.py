@@ -177,6 +177,7 @@ def rehearse(art_output=None):
                  "test_alpha_sensitivity_source_only.py",
                  "test_alpha_sensitivity_matrix_source_only.py",
                  "test_ore_visibility_risk_summary_source_only.py",
+                 "test_ore_risk_threshold_types_source_only.py",
                  "test_diagnostic_output_isolation_source_only_v135.py",
                  "test_ore_matrix_completeness_v135.py",
                  # Exercise the complete 24x24 fixture and malformed raster inputs.
