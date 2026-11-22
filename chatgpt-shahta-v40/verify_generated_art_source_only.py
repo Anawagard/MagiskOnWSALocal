@@ -60,6 +60,26 @@ def verify(root):
         "--report", report)
     run("render_art_contact_sheet.py", "--assets", assets,
         "--output", sheets)
+    # Audit all 24 x 24 *displayed* ore/biome combinations using the exact
+    # Java render registration. Keep the diagnostics outside the asset pack.
+    # This stage runs on the real generated rasters, never an Android build.
+    run("audit_ore_biome_composites_source_only.py",
+        "--assets", assets,
+        "--risk-sheet", sheets / "shahta_ore_biome_risks.png",
+        "--heatmap", sheets / "shahta_ore_biome_heatmap.png")
+    for diagnostic in ("shahta_ore_biome_heatmap.png",
+                       "shahta_ore_biome_risks.png"):
+        image_path = sheets / diagnostic
+        if not image_path.is_file():
+            # The risk sheet may legitimately be absent when no pairs are
+            # flagged; the 576-cell heatmap must always be present.
+            if diagnostic.endswith("risks.png"):
+                continue
+            raise ValueError(f"Missing ore/biome matrix diagnostic: {diagnostic}")
+        with Image.open(image_path) as matrix_image:
+            matrix_image.load()
+            if matrix_image.format != "PNG" or min(matrix_image.size) < 300:
+                raise ValueError(f"Invalid ore/biome diagnostic: {diagnostic}")
     import json
     data = json.loads(report.read_text(encoding="utf-8"))
     # Reject malformed or mathematically inconsistent similarity metadata.
