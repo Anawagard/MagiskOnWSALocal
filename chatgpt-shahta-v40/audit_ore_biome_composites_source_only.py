@@ -370,6 +370,10 @@ def render_visibility_heatmap(scores, output, *, assets=None):
             raise ValueError("Heatmap requires finite core contrast fractions in [0, 1]")
     if len(actual) != COUNT * COUNT or set(actual) != expected:
         raise ValueError("Heatmap requires exactly 576 unique ore/biome pairs")
+    # A heatmap must not publish a reassuring green grid from incomplete or
+    # contradictory measurements. Apply the same full-row validation as the
+    # JSON risk summary, including core coverage/metric consistency.
+    summarize_risks(scores, require_complete=True)
     # Without an assets path we cannot establish ancestry, but known production
     # filenames must still be protected from accidental diagnostic overwrite.
     reserved = ({f"ore_{i:02d}.png" for i in range(COUNT)}
