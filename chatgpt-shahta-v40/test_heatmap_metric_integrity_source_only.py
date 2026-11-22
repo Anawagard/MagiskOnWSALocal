@@ -38,6 +38,18 @@ class HeatmapMetricIntegrityTests(unittest.TestCase):
                 render_visibility_heatmap(rows, output)
             self.assertEqual(output.read_bytes(), b"previous diagnostic")
 
+    def test_core_contribution_cannot_exceed_overall_mean(self):
+        # Core is 40% of the entire image and 2/3 of visible pixels.
+        # A core mean of 0.2 forces overall visible mean >= 0.13333.
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "heatmap.png"
+            output.write_bytes(b"previous heatmap")
+            rows = valid_rows()
+            rows[0]["score"] = 0.05
+            with self.assertRaisesRegex(ValueError, "Inconsistent overall/core contrast"):
+                render_visibility_heatmap(rows, output)
+            self.assertEqual(output.read_bytes(), b"previous heatmap")
+
     def test_invalid_metrics_fail_without_overwriting_existing_image(self):
         invalid = [
             ("score", float("nan")),
