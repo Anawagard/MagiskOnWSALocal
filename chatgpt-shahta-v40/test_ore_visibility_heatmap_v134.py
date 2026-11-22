@@ -51,6 +51,24 @@ class VisibilityHeatmapTests(unittest.TestCase):
                     render_visibility_heatmap(invalid, output)
                 self.assertFalse(output.exists())
 
+    def test_rejects_fractional_boolean_and_nonfinite_diagnostics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "matrix.png"
+            for key, value in (
+                ("biome", 1.5), ("ore", True),
+                ("core_low_contrast_fraction", float("nan")),
+                ("core_low_contrast_fraction", float("inf")),
+                ("core_low_contrast_fraction", -0.01),
+                ("core_low_contrast_fraction", 1.01),
+                ("core_low_contrast_fraction", "0.2"),
+            ):
+                scores = self.make_scores()
+                scores[0] = {**scores[0], key: value}
+                with self.subTest(key=key, value=value):
+                    with self.assertRaises(ValueError):
+                        render_visibility_heatmap(scores, output)
+                    self.assertFalse(output.exists())
+
     def test_rejects_production_asset_names(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "production raster"):
