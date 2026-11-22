@@ -88,6 +88,31 @@ class CoreMeanBoundTests(unittest.TestCase):
         data[0]["core_weakest_decile"] = 0.04
         self.assertEqual(summarize_risks(data, require_complete=True)["risk_pairs"], 1)
 
+    def test_missing_core_metric_rejected_without_clobbering_heatmap(self):
+        for missing in ("core_mean_contrast", "core_weakest_decile",
+                        "core_low_contrast_fraction"):
+            with self.subTest(missing=missing):
+                data = rows()
+                del data[0][missing]
+                with self.assertRaisesRegex(ValueError, "Missing/invalid"):
+                    summarize_risks(data, require_complete=True)
+                with tempfile.TemporaryDirectory() as folder:
+                    output = Path(folder) / "heatmap.png"
+                    output.write_bytes(b"previous report")
+                    with self.assertRaisesRegex(ValueError, "Missing/invalid"):
+                        render_visibility_heatmap(data, output)
+                    self.assertEqual(output.read_bytes(), b"previous report")
+
+    def test_invalid_core_metric_types_rejected(self):
+        for field, value in (("core_mean_contrast", "not a number"),
+                             ("core_weakest_decile", None),
+                             ("core_low_contrast_fraction", True)):
+            with self.subTest(field=field):
+                data = rows()
+                data[0][field] = value
+                with self.assertRaisesRegex(ValueError, "Missing/invalid"):
+                    summarize_risks(data, require_complete=True)
+
 
 if __name__ == "__main__":
     unittest.main()
