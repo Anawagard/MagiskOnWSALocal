@@ -185,6 +185,7 @@ def rehearse(art_output=None):
                  "test_art_occupancy_assignment_v133.py",
                  "test_ore_matrix_integration_source_only.py",
                  "test_ore_visibility_heatmap_v134.py",
+                 "test_rehearsal_heatmap_integration_source_only.py",
                  # Verify the contrast sampler tracks the actual Java ore position.
                  "test_ore_backdrop_registration_v133.py"):
         subprocess.run(
