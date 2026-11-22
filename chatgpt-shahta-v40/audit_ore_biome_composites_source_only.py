@@ -288,15 +288,17 @@ def render_risk_contact_sheet(assets, scores, output, limit=24):
             break
         if index < len(measurable):
             selected.append(measurable[index])
-    if not selected:
-        # A previous run's PNG must not masquerade as current risk evidence.
-        destination.unlink(missing_ok=True)
-        return 0
+    # Always publish a current diagnostic, even when no pair is risky.
+    # Deleting the requested output could destroy an unrelated existing file,
+    # while leaving it untouched would display stale failures from a prior run.
+    empty = not selected
     tile = 128
-    columns = min(6, len(selected))
-    rows = (len(selected) + columns - 1) // columns
+    columns = max(1, min(6, len(selected)))
+    rows = max(1, (len(selected) + columns - 1) // columns)
     sheet = Image.new("RGB", (columns * tile, rows * (tile + 28)), (22, 27, 32))
     draw = ImageDraw.Draw(sheet)
+    if empty:
+        draw.text((8, 12), "NO RISK PAIRS", fill=(131, 229, 217))
     for index, item in enumerate(selected):
         biome, ore = item["biome"] - 1, item["ore"] - 1
         scene = read_rgb(Path(assets) / f"biome_{biome:02d}.jpg",
