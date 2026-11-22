@@ -151,7 +151,10 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
     channel difference below 0.08. These are diagnostics, not accessibility
     certification or proof of an in-game rendering defect.
     """
-    if (not math.isfinite(low_contrast_threshold) or not math.isfinite(affected_fraction)
+    if (type(low_contrast_threshold) not in (int, float)
+            or type(affected_fraction) not in (int, float)
+            or not math.isfinite(low_contrast_threshold)
+            or not math.isfinite(affected_fraction)
             or not 0 <= low_contrast_threshold <= 1
             or not 0 <= affected_fraction <= 1):
         raise ValueError("risk thresholds must be in [0, 1]")
