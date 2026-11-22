@@ -36,8 +36,10 @@ def verify(root):
     # Never follow an output-directory symlink: a seemingly empty alias can
     # redirect generated rasters and audit files outside the requested path.
     # Check before mkdir, since exist_ok=True accepts directory symlinks.
-    if root.is_symlink():
-        raise ValueError(f"Refusing symlinked art output directory: {root}")
+    # Reject symlinks in every existing ancestor too: checking only the leaf
+    # misses paths such as alias/new-output where alias points elsewhere.
+    if any(part.is_symlink() for part in (root, *root.parents)):
+        raise ValueError(f"Refusing symlinked art output directory or parent: {root}")
     root.mkdir(parents=True, exist_ok=True)
     if any(root.iterdir()):
         raise ValueError(f"Refusing to overwrite a nonempty art directory: {root}")
