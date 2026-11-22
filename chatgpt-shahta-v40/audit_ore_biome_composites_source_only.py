@@ -182,6 +182,17 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
             # drift but reject impossible coverage relationships.
             if row["core_coverage"] > row["visible_coverage"] + 0.000002:
                 raise ValueError(f"Opaque core exceeds visible ore coverage for {(i, j)}")
+            # Validate optional core metrics before arithmetic or direct indexing.
+            # Corrupted/incomplete JSON must fail with ValueError, not KeyError
+            # or TypeError, and must not replace an existing diagnostic PNG.
+            for key in ("core_mean_contrast", "core_weakest_decile",
+                        "core_low_contrast_fraction"):
+                value = row.get(key)
+                if row["core_coverage"] == 0:
+                    if value is not None:
+                        raise ValueError(f"Unexpected {key} without core for {(i, j)}")
+                elif type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
+                    raise ValueError(f"Missing/invalid {key} for {(i, j)}: {value}")
             # If fraction f of the opaque core is below 0.08, its mean
             # cannot exceed f*0.08 + (1-f)*1.0. Catch fabricated or
             # corrupted reports that otherwise appear safe on the heatmap.
@@ -206,14 +217,6 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
                         and ((fraction >= 0.11 and decile > 0.080002)
                              or (fraction <= 0.09 and decile < 0.079998))):
                     raise ValueError(f"Inconsistent core decile and low-contrast fraction for {(i, j)}")
-            for key in ("core_mean_contrast", "core_weakest_decile",
-                        "core_low_contrast_fraction"):
-                value = row.get(key)
-                if row["core_coverage"] == 0:
-                    if value is not None:
-                        raise ValueError(f"Unexpected {key} without core for {(i, j)}")
-                elif type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
-                    raise ValueError(f"Missing/invalid {key} for {(i, j)}: {value}")
         if seen != expected:
             raise ValueError("Incomplete biome/ore matrix")
     # Fractions in scores were precomputed at the fixed 0.08 cutoff.
