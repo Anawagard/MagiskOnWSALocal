@@ -194,6 +194,18 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
                         and (mean > 1 - 0.92 * fraction + 0.000002
                              or mean < 0.08 * (1 - fraction) - 0.000002)):
                     raise ValueError(f"Inconsistent core contrast mean for {(i, j)}")
+            # The 10th percentile must agree with the measured fraction of
+            # core pixels below the fixed 0.08 cutoff. Leave a 1% margin for
+            # finite-sample percentile interpolation and six-digit rounding.
+            if row["core_coverage"] > 0:
+                fraction = row["core_low_contrast_fraction"]
+                decile = row["core_weakest_decile"]
+                if (type(fraction) in (int, float)
+                        and type(decile) in (int, float)
+                        and math.isfinite(fraction) and math.isfinite(decile)
+                        and ((fraction >= 0.11 and decile > 0.080002)
+                             or (fraction <= 0.09 and decile < 0.079998))):
+                    raise ValueError(f"Inconsistent core decile and low-contrast fraction for {(i, j)}")
             for key in ("core_mean_contrast", "core_weakest_decile",
                         "core_low_contrast_fraction"):
                 value = row.get(key)
