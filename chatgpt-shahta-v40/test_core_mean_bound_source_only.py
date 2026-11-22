@@ -58,6 +58,7 @@ class CoreMeanBoundTests(unittest.TestCase):
         data = rows()
         data[0]["core_low_contrast_fraction"] = 0.5
         data[0]["core_mean_contrast"] = 0.54
+        data[0]["core_weakest_decile"] = 0.05
         result = summarize_risks(data, require_complete=True)
         self.assertEqual(result["risk_pairs"], 1)
 
