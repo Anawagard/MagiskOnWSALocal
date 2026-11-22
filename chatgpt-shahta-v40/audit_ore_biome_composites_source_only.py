@@ -177,6 +177,11 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
                 value = row.get(key)
                 if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
                     raise ValueError(f"Invalid {key} for {(i, j)}: {value}")
+            # analyze() rejects an empty alpha mask. A zero visible coverage
+            # in a purported complete report is therefore corrupt, and would
+            # also cause division by zero in the overall/core mean bound.
+            if row["visible_coverage"] <= 0:
+                raise ValueError(f"Empty visible ore coverage for {(i, j)}")
             # Alpha >= 0.5 is a subset of alpha > 0. The source metrics
             # are rounded to six decimals, so allow one unit of rounding
             # drift but reject impossible coverage relationships.
