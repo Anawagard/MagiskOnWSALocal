@@ -303,6 +303,17 @@ def rehearse(art_output=None):
                 json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
                 encoding="utf-8",
             )
+            # Publish the complete 24x24 visibility heatmap alongside JSON.
+            # Validate metrics before writing either diagnostic image.
+            from audit_ore_biome_composites_source_only import render_visibility_heatmap
+            heatmap_path = output_dir / "ore_biome_visibility_heatmap.png"
+            render_visibility_heatmap(
+                scores, heatmap_path,
+                assets=project / "app/src/main/assets/shahta_v70",
+            )
+            if not heatmap_path.is_file():
+                raise AssertionError("Visibility heatmap PNG was not published")
+            print(f"RASTER VISIBILITY HEATMAP: {heatmap_path}", flush=True)
             # Generate the real 576-pair review contact sheet, not only JSON.
             # Keep both unscorable cores and low-contrast combinations visible.
             sheet_path = output_dir / "ore_biome_risks.png"
