@@ -301,10 +301,25 @@ def rehearse(art_output=None):
             report_path = output_dir / "ore_biome_visibility_576.json"
             report = {"pair_count": len(scores), "scores": scores,
                       "visibility_risks": risks}
-            report_path.write_text(
-                json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-                encoding="utf-8",
-            )
+            # Publish JSON atomically: a failed serialization or interrupted
+            # write must not truncate a previously valid 576-pair report.
+            # Use a sibling file so os.replace stays on the same filesystem.
+            report_tmp = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", prefix=".shahta-visibility-",
+                    suffix=".json", dir=output_dir, delete=False,
+                ) as handle:
+                    report_tmp = Path(handle.name)
+                    json.dump(report, handle, ensure_ascii=False,
+                              indent=2, allow_nan=False)
+                    handle.write("\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(report_tmp, report_path)
+            finally:
+                if report_tmp is not None:
+                    report_tmp.unlink(missing_ok=True)
             # Publish the complete 24x24 visibility heatmap alongside JSON.
             # Validate metrics before writing either diagnostic image.
             from audit_ore_biome_composites_source_only import render_visibility_heatmap
