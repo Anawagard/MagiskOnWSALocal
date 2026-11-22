@@ -25,7 +25,7 @@ class HeatmapMetricIntegrityTests(unittest.TestCase):
             output = Path(folder) / "heatmap.png"
             render_visibility_heatmap(valid_rows(), output)
             self.assertTrue(output.is_file())
-            self.assertEqual(output.read_bytes()[:8], b"\\x89PNG\\r\\n\\x1a\\n")
+            self.assertEqual(output.read_bytes()[:8], bytes.fromhex("89504e470d0a1a0a"))
 
     def test_invalid_metrics_fail_without_overwriting_existing_image(self):
         invalid = [
