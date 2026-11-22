@@ -182,6 +182,17 @@ def summarize_risks(scores, low_contrast_threshold=0.08, affected_fraction=0.25,
             # drift but reject impossible coverage relationships.
             if row["core_coverage"] > row["visible_coverage"] + 0.000002:
                 raise ValueError(f"Opaque core exceeds visible ore coverage for {(i, j)}")
+            # If fraction f of the opaque core is below 0.08, its mean
+            # cannot exceed f*0.08 + (1-f)*1.0. Catch fabricated or
+            # corrupted reports that otherwise appear safe on the heatmap.
+            if row["core_coverage"] > 0:
+                fraction = row.get("core_low_contrast_fraction")
+                mean = row.get("core_mean_contrast")
+                if (type(fraction) in (int, float) and type(mean) in (int, float)
+                        and math.isfinite(fraction) and math.isfinite(mean)
+                        and 0 <= fraction <= 1 and 0 <= mean <= 1
+                        and mean > 1 - 0.92 * fraction + 0.000002):
+                    raise ValueError(f"Inconsistent core contrast mean for {(i, j)}")
             for key in ("core_mean_contrast", "core_weakest_decile",
                         "core_low_contrast_fraction"):
                 value = row.get(key)
