@@ -38,13 +38,22 @@ def test_full_atlas_and_atomic_failure():
                 for ore in range(24):
                     foreground = read_ore(assets / f"ore_{ore:02d}.png",
                                           sample_size=48)
-                    expected = Image.alpha_composite(
+                    expected_tile = Image.alpha_composite(
                         backdrop, foreground
-                    ).convert("RGB").getpixel((24, 24))
-                    actual = atlas.getpixel(
-                        (28 + ore * 51 + 24, 28 + biome * 51 + 24)
-                    )
-                    assert actual == expected, (biome, ore, actual, expected)
+                    ).convert("RGB")
+                    # The center alone cannot detect clipped corners, an
+                    # incorrect paste offset, or a repeated edge texture.
+                    # Sample the four interior corners and center of every
+                    # cell, including the final row and column.
+                    for x, y in ((1, 1), (46, 1), (24, 24),
+                                 (1, 46), (46, 46)):
+                        expected = expected_tile.getpixel((x, y))
+                        actual = atlas.getpixel(
+                            (28 + ore * 51 + x, 28 + biome * 51 + y)
+                        )
+                        assert actual == expected, (
+                            biome, ore, x, y, actual, expected
+                        )
         original = output.read_bytes()
         (assets / "ore_23.png").unlink()
         try:
