@@ -156,6 +156,12 @@ def rehearse(art_output=None):
                  "test_modernist_five_tab_viewports_v103.py",
                  "test_modernist_mine_sprite_touch_v138.py",
                  "test_feature_header_hidden_taps_v139.py",
+                 # Validate cave corridor and footer readability on narrow screens.
+                 "test_cave_narrow_wall_bounds_source_only.py",
+                 "test_cave_strata_corridor_source_only.py",
+                 "test_cave_foreground_scaling_source_only.py",
+                 "test_menu_footer_scrim_source_only.py",
+                 "test_volcanic_wall_clearance_source_only.py",
                  # Active tab identity must match the five contextual toasts.
                  "test_modernist_page_identity_nav_v136.py",
                  "test_modernist_toast_negative_geometry_v137.py",
