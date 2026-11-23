@@ -14,6 +14,14 @@ def audit(source: str) -> None:
     assert "SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" in source
     assert "secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" in source
     assert "base64 --decode" in source
+    assert 'temporary_key="$(mktemp "$HOME/.android/.shahta-key.XXXXXXXX")"' in source
+    assert "trap 'rm -f \"$temporary_key\"' EXIT" in source
+    assert 'base64 --decode > "$temporary_key"' in source
+    assert 'test -s "$temporary_key"' in source
+    assert 'keytool -list -keystore "$temporary_key" -alias androiddebugkey -storepass android >/dev/null' in source
+    assert 'mv -f "$temporary_key" "$HOME/.android/debug.keystore"' in source
+    assert source.index('keytool -list -keystore "$temporary_key"') < source.index('mv -f "$temporary_key"')
+    assert 'base64 --decode > "$HOME/.android/debug.keystore"' not in source
     assert '[ ! -s "$HOME/.android/debug.keystore" ]' in source
     assert "exit 1" in source
     assert "keytool -genkeypair" not in source
@@ -25,6 +33,8 @@ def negative_cases(source: str) -> None:
     for changed in (
         source.replace("secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64", "secrets.UNTRUSTED_KEY", 1),
         source.replace("actions/cache/restore@v4", "actions/cache@v4", 1),
+        source.replace('mv -f "$temporary_key" "$HOME/.android/debug.keystore"', 'cp "$temporary_key" "$HOME/.android/debug.keystore"', 1),
+        source.replace('keytool -list -keystore "$temporary_key"', 'true # keytool -list -keystore "$temporary_key"', 1),
         source + "\n# keytool -genkeypair must never be invoked\n",
     ):
         try:
