@@ -27,7 +27,7 @@ old = string_assignment(V79, "nav_old")
 new = string_assignment(V79, "nav_new")
 toast = string_assignment(V79, "new")
 assert V75.count(old) == 1, "The v7.9 patch cannot find the v7.5 navigation"
-assert V75.count('private void drawBottom(Canvas c)') == 1
+assert V75.count('private void drawBottom(Canvas c){') == 1
 assert new not in V75
 assert V79.count("current.count(nav_old) != 1") == 1
 assert V79.count("replace(nav_old, nav_new, 1)") == 1
