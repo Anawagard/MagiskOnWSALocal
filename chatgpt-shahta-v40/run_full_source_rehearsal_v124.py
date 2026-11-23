@@ -190,7 +190,13 @@ def rehearse(art_output=None):
                  "test_rehearsal_heatmap_integration_source_only.py",
                  "test_visibility_json_atomic_source_only.py",
                  # Verify the contrast sampler tracks the actual Java ore position.
-                 "test_ore_backdrop_registration_v133.py"):
+                 "test_ore_backdrop_registration_v133.py",
+                 # Audit all 576 displayed ore/biome pairs and the atlas publisher.
+                 "test_all_ore_biome_atlas_source_only.py",
+                 "test_render_art_contact_sheet_source_only.py",
+                 "test_risk_sheet_atomic_source_only.py",
+                 "test_risk_sheet_output_safety_source_only.py",
+                 "test_risk_sheet_symlink_guard_source_only.py"):
         subprocess.run(
             [sys.executable, "-X", "utf8", str(HERE / test)],
             # Raster-diff of 24 ores renders 48 images; a 60-second cap can
