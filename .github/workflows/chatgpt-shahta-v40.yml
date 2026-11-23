@@ -766,8 +766,14 @@ jobs:
           if [ -n "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" ]; then
             mkdir -p "$HOME/.android"
             umask 077
-            printf '%s' "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
-            test -s "$HOME/.android/debug.keystore"
+            temporary_key="$(mktemp "$HOME/.android/.shahta-key.XXXXXXXX")"
+            trap 'rm -f "$temporary_key"' EXIT
+            printf '%s' "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" | base64 --decode > "$temporary_key"
+            test -s "$temporary_key"
+            # Verify the secret is a usable original debug key before publishing it.
+            keytool -list -keystore "$temporary_key" -alias androiddebugkey -storepass android >/dev/null
+            mv -f "$temporary_key" "$HOME/.android/debug.keystore"
+            trap - EXIT
             echo "Restored original debug signing key from protected GitHub secret"
           fi
       - name: Verify original debug signing identity exists
