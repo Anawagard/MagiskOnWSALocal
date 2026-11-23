@@ -68,3 +68,27 @@ for width, height in sizes:
             assert (oy/2-oy)/scale < 0
             checks += 1
 print(f"PASS: {checks} feature-header visibility/touch checks; 5 mutation guards")
+
+
+# Boundary-sweep regression: all three feature pages must suppress taps
+# outside the 205..713 painted content strip after viewport letterboxing.
+# Exact boundary samples use tolerance because inverse float transforms can
+# produce 204.99999999999997 at a nominal 205px boundary.
+boundary_checks = 0
+for width, height in sizes:
+    scale = min(width/360, height/720)
+    ox, oy = (width-360*scale)/2, (height-720*scale)/2
+    for page in ("forge", "guild", "atlas"):
+        for y in (0, 88, 136, 204.9, 205.1, 350, 712.9, 713.1, 719.9):
+            for x in (0.1, 13, 180, 346, 359.9):
+                px, py = ox+x*scale, oy+y*scale
+                rx, ry = (px-ox)/scale, (py-oy)/scale
+                assert math.isclose(rx, x, abs_tol=1e-7)
+                assert math.isclose(ry, y, abs_tol=1e-7)
+                assert (205 <= ry <= 713) == (205 <= y <= 713), (page,width,height,x,y)
+                if 205 <= ry <= 713:
+                    lx, ly = (rx-13)/.93, (ry-78)/.94
+                    assert math.isclose(13+lx*.93,rx,abs_tol=1e-7)
+                    assert math.isclose(78+ly*.94,ry,abs_tol=1e-7)
+                boundary_checks += 1
+print(f"PASS: {boundary_checks} additional feature-page boundary checks")
