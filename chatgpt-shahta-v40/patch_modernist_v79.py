@@ -87,6 +87,22 @@ def validate_toast_geometry():
     accents = re.findall(r"0xff[0-9a-fA-F]{6}", palette.group(1))
     if len(accents) != 5 or len(set(accents)) != 5:
         raise RuntimeError("v7.9: expected five unique opaque toast accents")
+    # Keep the active navigation palette in lockstep with notifications.
+    # A future palette edit must fail before writing the Java file, rather
+    # than silently introducing inconsistent screen identities.
+    nav_palette = re.search(r"int tabAccent\\s*=\\s*(.*?);", nav_new, re.S)
+    if nav_palette is None:
+        raise RuntimeError("v7.9: missing active navigation palette")
+    nav_accents = re.findall(r"0xff[0-9a-fA-F]{6}", nav_palette.group(1))
+    if nav_accents != accents:
+        raise RuntimeError("v7.9: navigation and toast palettes differ")
+    for marker in (
+        "rect(c,left+18,90,36,2,tabAccent);",
+        "rect(c,left+18,132,36,2,tabAccent);",
+        "rect(c,left+9,94,2,12,tabAccent);",
+    ):
+        if nav_new.count(marker) != 1:
+            raise RuntimeError(f"v7.9: missing or duplicated active-tab rail: {marker}")
     if new.count("rect(canvas,26,toastY+4,3,18,toastAccent)") != 1:
         raise RuntimeError("v7.9: accent rail is not bound to page palette")
     if set(TOAST_Y) != set(range(5)):
