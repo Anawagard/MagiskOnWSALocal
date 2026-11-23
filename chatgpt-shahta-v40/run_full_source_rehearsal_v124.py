@@ -385,6 +385,11 @@ def rehearse(art_output=None):
               f"lowest={scores[0]['score']:.6f}", flush=True)
         print(f"BASELINE PASS: {count} archived files, {len(steps)} v6.9 source steps", flush=True)
         subprocess.run(
+            [sys.executable, str(HERE / "test_modernist_nav_pointer_fuzz_v139.py")],
+            cwd=root, check=True, timeout=60,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUTF8": "1"},
+        )
+        subprocess.run(
             [sys.executable, str(HERE / "verify_modernist_patch_chain.py")],
             cwd=root, check=True, timeout=300,
             env={**os.environ, "SHAHTA_BASELINE_PROJECT": str(project),
