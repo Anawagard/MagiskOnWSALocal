@@ -126,6 +126,18 @@ def audit(folder):
                     if mean_delta < distances[index]:
                         distances[index] = mean_delta
                         nearest[index] = names[neighbor]
+                # Mirroring a raster does not create a new biome or ore design.
+                # Compare transformed thumbnails as well as byte-identical
+                # orientation; preserve the alpha channel for ore silhouettes.
+                mirrored_delta = min(
+                    float(np.mean(np.abs(thumbs[i] - np.flip(thumbs[j], axis=axis))))
+                    for axis in (0, 1)
+                )
+                if mirrored_delta < 1.5:
+                    raise ValueError(
+                        f"{label}: mirrored duplicate {names[i]} / {names[j]} "
+                        f"(mean visible-channel delta {mirrored_delta:.2f})"
+                    )
                 if mean_delta < 1.5:
                     raise ValueError(
                         f"{label}: visually duplicated {names[i]} / {names[j]} "
