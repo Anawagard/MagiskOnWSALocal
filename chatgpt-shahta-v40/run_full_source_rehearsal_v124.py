@@ -41,12 +41,19 @@ def verify_biome_textures(project):
         with Image.open(path) as image:
             image.verify()
         with Image.open(path) as image:
+            image.load()
             if image.format != "PNG" or image.size != (384, 384) or image.mode != "RGB":
                 raise AssertionError(f"Unexpected biome texture format: {name}")
-        hashes.add(hashlib.sha256(path.read_bytes()).digest())
+            # PNG byte hashes can differ even when the displayed pixels match.
+            # Compare decoded content and reject entirely flat textures.
+            pixels = image.tobytes()
+            colors = image.getcolors(maxcolors=2)
+            if colors is not None:
+                raise AssertionError(f"Flat or two-color biome texture: {name}")
+            hashes.add(hashlib.sha256(pixels).digest())
     if len(hashes) != 24:
         raise AssertionError("Duplicate biome textures detected")
-    print("TEXTURES PASS: 24 distinct valid 384x384 RGB PNGs", flush=True)
+    print("TEXTURES PASS: 24 pixel-distinct, non-flat 384x384 RGB PNGs", flush=True)
 
 
 def verify_modernist_art(project):
