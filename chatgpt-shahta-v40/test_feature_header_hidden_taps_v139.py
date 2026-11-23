@@ -102,7 +102,7 @@ for width, height in sizes:
     scale = min(width / 360, height / 720)
     ox, oy = (width - 360 * scale) / 2, (height - 720 * scale) / 2
     for page in ("forge", "guild", "atlas"):
-        for logical_x in (-0.1, 0, 12.99, 13, 180, 347.8, 347.81, 359.99, 360):
+        for logical_x in (-0.1, 0, 12.99, 13.01, 180, 347.79, 347.81, 359.99, 360):
             for logical_y in (204.9, 205.1, 350, 712.9, 713.1):
                 px = ox + logical_x * scale
                 py = oy + logical_y * scale
