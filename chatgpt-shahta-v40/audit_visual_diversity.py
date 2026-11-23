@@ -52,6 +52,12 @@ def inspect(path, ore):
             raise ValueError(f"{path.name}: ore alpha occupancy {occupancy:.3f}")
         if np.min(alpha) > 16 or np.max(alpha) < 240:
             raise ValueError(f"{path.name}: missing transparent or opaque pixels")
+        # An otherwise valid ore can be clipped against the sprite canvas.
+        # Check all four edges before comparing texture fingerprints so the
+        # standalone art audit rejects crops as well as the release verifier.
+        if any(np.any(edge > 16) for edge in
+               (alpha[0, :], alpha[-1, :], alpha[:, 0], alpha[:, -1])):
+            raise ValueError(f"{path.name}: visible ore touches sprite border")
         visible = arr[:, :, :3][alpha > 16]
     else:
         visible = arr[:, :, :3].reshape(-1, 3)
