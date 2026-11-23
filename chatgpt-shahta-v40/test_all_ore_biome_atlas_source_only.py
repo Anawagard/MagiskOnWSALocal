@@ -2,6 +2,7 @@
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -48,6 +49,35 @@ def test_full_atlas_and_atomic_failure():
             raise AssertionError("production asset overwrite was accepted")
 
 
+def test_atlas_publish_failure_preserves_previous_output():
+    # The atlas is diagnostic output: a failed publish must never destroy a
+    # previously generated review image or leave temporary PNGs behind.
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        assets = root / "assets"
+        assets.mkdir()
+        output = root / "diagnostics" / "all-pairs.png"
+        output.parent.mkdir()
+        original = b"previous-atlas-generation"
+        output.write_bytes(original)
+        for i in range(24):
+            Image.new("RGB", (360, 570), (20 + i, 40, 50)).save(
+                assets / f"biome_{i:02d}.jpg", format="JPEG")
+            Image.new("RGBA", (300, 300), (210, 150 + i, 40, 200)).save(
+                assets / f"ore_{i:02d}.png", format="PNG")
+        with patch("preview_all_ore_biome_pairs_source_only.os.replace",
+                   side_effect=OSError("simulated atomic publish failure")):
+            try:
+                render_atlas(assets, output, tile=48)
+            except OSError as error:
+                assert "simulated atomic publish failure" in str(error)
+            else:
+                raise AssertionError("failed atlas publication was accepted")
+        assert output.read_bytes() == original
+        assert sorted(p.name for p in output.parent.iterdir()) == [output.name]
+
+
 if __name__ == "__main__":
     test_full_atlas_and_atomic_failure()
+    test_atlas_publish_failure_preserves_previous_output()
     print("PASS: full 576-pair atlas source-only")
