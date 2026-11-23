@@ -156,6 +156,7 @@ def rehearse(art_output=None):
                  "test_modernist_five_tab_viewports_v103.py",
                  # Active tab identity must match the five contextual toasts.
                  "test_modernist_page_identity_nav_v136.py",
+                 "test_modernist_toast_negative_geometry_v137.py",
                  "test_settings_hitboxes_v126.py",
                  "test_viewport_transform_v126.py",
                  "test_affine_source_contract_v127.py",
