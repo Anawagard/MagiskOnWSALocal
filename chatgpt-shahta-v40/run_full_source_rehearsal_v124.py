@@ -358,6 +358,19 @@ def rehearse(art_output=None):
                 raise AssertionError("Risk contact sheet PNG was not published")
             print(f"RASTER REVIEW REPORT: {report_path}", flush=True)
             print(f"RASTER RISK SHEET: {sheet_path} ({rendered} tiles)", flush=True)
+            # Publish the complete visual matrix for human review, including
+            # combinations that pass numeric risk thresholds. This is generated
+            # only when an explicit diagnostic output directory was requested.
+            from preview_all_ore_biome_pairs_source_only import render_atlas
+            atlas_path = output_dir / "ore_biome_all_576.png"
+            render_atlas(project / "app/src/main/assets/shahta_v70",
+                         atlas_path, tile=48)
+            from PIL import Image
+            with Image.open(atlas_path) as atlas:
+                atlas.load()
+                if atlas.format != "PNG" or atlas.size != (1255, 1255):
+                    raise AssertionError("Complete 576-pair review atlas has invalid dimensions")
+            print(f"RASTER FULL ATLAS: {atlas_path} (576 pairs)", flush=True)
         print(f"RASTER CORE COVERAGE REVIEW: {unscorable}/576 pairs lack a scorable opaque core", flush=True)
         print(f"RASTER VISIBILITY REVIEW: {flagged}/576 pairs have >=25% "
               f"low-contrast ore core; worst 10: "
