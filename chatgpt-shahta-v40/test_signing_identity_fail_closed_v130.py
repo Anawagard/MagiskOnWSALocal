@@ -11,8 +11,9 @@ def audit(source: str) -> None:
     assert "id: shahta-signing-cache" in source
     assert "actions/cache/restore@v4" in source
     assert "shahta-v44-debug-keystore-20261102" in source
-    assert 'steps.shahta-signing-cache.outputs.cache-hit' in source
-    assert '!= "true"' in source
+    assert "SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" in source
+    assert "secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" in source
+    assert "base64 --decode" in source
     assert '[ ! -s "$HOME/.android/debug.keystore" ]' in source
     assert "exit 1" in source
     assert "keytool -genkeypair" not in source
@@ -22,7 +23,7 @@ def audit(source: str) -> None:
 
 def negative_cases(source: str) -> None:
     for changed in (
-        source.replace('!= "true"', '== "true"', 1),
+        source.replace("secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64", "secrets.UNTRUSTED_KEY", 1),
         source.replace("actions/cache/restore@v4", "actions/cache@v4", 1),
         source + "\n# keytool -genkeypair must never be invoked\n",
     ):
@@ -37,4 +38,4 @@ if __name__ == "__main__":
     text = WORKFLOW.read_text(encoding="utf-8")
     audit(text)
     negative_cases(text)
-    print("PASS: original debug identity required; no APK or Gradle executed")
+    print("PASS: original debug identity restored only from cache or protected secret; no APK or Gradle executed")
