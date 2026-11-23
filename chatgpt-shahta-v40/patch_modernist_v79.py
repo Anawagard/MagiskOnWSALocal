@@ -90,7 +90,7 @@ def validate_toast_geometry():
     # Keep the active navigation palette in lockstep with notifications.
     # A future palette edit must fail before writing the Java file, rather
     # than silently introducing inconsistent screen identities.
-    nav_palette = re.search(r"int tabAccent\\s*=\\s*(.*?);", nav_new, re.S)
+    nav_palette = re.search(r"int tabAccent\s*=\s*(.*?);", nav_new, re.S)
     if nav_palette is None:
         raise RuntimeError("v7.9: missing active navigation palette")
     nav_accents = re.findall(r"0xff[0-9a-fA-F]{6}", nav_palette.group(1))
