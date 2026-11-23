@@ -41,6 +41,37 @@ class VisualDiversityPixelTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'expected 360x570 raster'):
                 inspect(path, False)
 
+    def test_ore_touching_any_canvas_edge_is_rejected(self):
+        # A valid alpha occupancy ratio alone does not detect clipped art.
+        with tempfile.TemporaryDirectory() as temp:
+            yy, xx = np.indices((300, 300))
+            base = np.zeros((300, 300, 4), dtype=np.uint8)
+            mask = (xx - 150) ** 2 + (yy - 150) ** 2 < 90 ** 2
+            base[mask, :3] = np.stack((
+                (xx[mask] * 3) % 256,
+                (yy[mask] * 5) % 256,
+                (xx[mask] + yy[mask]) % 256,
+            ), axis=1).astype(np.uint8)
+            base[mask, 3] = 255
+            good = Path(temp) / 'good.png'
+            Image.fromarray(base, 'RGBA').save(good)
+            inspect(good, True)
+            for edge in ('top', 'bottom', 'left', 'right'):
+                clipped = base.copy()
+                if edge == 'top':
+                    clipped[0, 150, :] = [180, 210, 240, 255]
+                elif edge == 'bottom':
+                    clipped[-1, 150, :] = [180, 210, 240, 255]
+                elif edge == 'left':
+                    clipped[150, 0, :] = [180, 210, 240, 255]
+                else:
+                    clipped[150, -1, :] = [180, 210, 240, 255]
+                path = Path(temp) / f'{edge}.png'
+                Image.fromarray(clipped, 'RGBA').save(path)
+                with self.subTest(edge=edge):
+                    with self.assertRaisesRegex(ValueError, 'touches sprite border'):
+                        inspect(path, True)
+
     def test_duplicate_ore_is_rejected_even_with_different_hidden_rgb(self):
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
