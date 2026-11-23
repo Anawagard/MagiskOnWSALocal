@@ -2,7 +2,6 @@
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
-from unittest.mock import patch
 
 from PIL import Image
 
@@ -25,6 +24,27 @@ def test_full_atlas_and_atomic_failure():
         with Image.open(output) as atlas:
             assert atlas.size == (28 + 24 * 51 + 3, 28 + 24 * 51 + 3)
             assert atlas.getpixel((28 + 23 * 51 + 12, 28 + 23 * 51 + 12)) != (20, 26, 34)
+        # Verify every cell maps to its intended biome row and ore column.
+        # A transposition or repeated sprite can otherwise pass a size-only test.
+        from audit_ore_biome_composites_source_only import (
+            ore_backdrop, read_ore, read_rgb, BACKGROUND_SIZE,
+        )
+        with Image.open(output) as atlas:
+            for biome in range(24):
+                backdrop = ore_backdrop(
+                    read_rgb(assets / f"biome_{biome:02d}.jpg",
+                             BACKGROUND_SIZE, "JPEG"), sample_size=48
+                ).convert("RGBA")
+                for ore in range(24):
+                    foreground = read_ore(assets / f"ore_{ore:02d}.png",
+                                          sample_size=48)
+                    expected = Image.alpha_composite(
+                        backdrop, foreground
+                    ).convert("RGB").getpixel((24, 24))
+                    actual = atlas.getpixel(
+                        (28 + ore * 51 + 24, 28 + biome * 51 + 24)
+                    )
+                    assert actual == expected, (biome, ore, actual, expected)
         original = output.read_bytes()
         (assets / "ore_23.png").unlink()
         try:
