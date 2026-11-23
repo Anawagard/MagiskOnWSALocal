@@ -92,3 +92,30 @@ for width, height in sizes:
                     assert math.isclose(78+ly*.94,ry,abs_tol=1e-7)
                 boundary_checks += 1
 print(f"PASS: {boundary_checks} additional feature-page boundary checks")
+
+# Regression for the real source transform: touch starts with y=screenY-60,
+# then the feature wrapper subtracts 18 and scales by .94.  The x gutter
+# must be rejected BEFORE applying the inverse feature transform.
+# These are checks against the same constants asserted above.
+gutter_checks = 0
+for width, height in sizes:
+    scale = min(width / 360, height / 720)
+    ox, oy = (width - 360 * scale) / 2, (height - 720 * scale) / 2
+    for page in ("forge", "guild", "atlas"):
+        for logical_x in (-0.1, 0, 12.99, 13, 180, 347.8, 347.81, 359.99, 360):
+            for logical_y in (204.9, 205.1, 350, 712.9, 713.1):
+                px = ox + logical_x * scale
+                py = oy + logical_y * scale
+                x = (px - ox) / scale
+                screen_y = (py - oy) / scale
+                active = 205 <= screen_y <= 713 and 13 <= x <= 347.8
+                expected = 205 <= logical_y <= 713 and 13 <= logical_x <= 347.8
+                assert active == expected, (page, width, height, logical_x, logical_y)
+                if active:
+                    legacy_x = (x - 13) / .93
+                    legacy_y = (screen_y - 60 - 18) / .94
+                    assert math.isclose(13 + legacy_x * .93, x, abs_tol=1e-7)
+                    assert math.isclose(60 + 18 + legacy_y * .94, screen_y, abs_tol=1e-7)
+                gutter_checks += 1
+print(f"PASS: {gutter_checks} feature-page side-gutter and full vertical-transform checks")
+
