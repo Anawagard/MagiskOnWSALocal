@@ -689,6 +689,8 @@ jobs:
           python3 chatgpt-shahta-v40/patch_modernist_v76.py
           python3 chatgpt-shahta-v40/patch_modernist_v77.py
           python3 chatgpt-shahta-v40/patch_modernist_v78.py
+          # Catch invalid page identity regex/geometry before patching Java.
+          python3 chatgpt-shahta-v40/test_modernist_page_identity_nav_v136.py
           python3 chatgpt-shahta-v40/patch_modernist_v79.py
           python3 chatgpt-shahta-v40/test_modernist_geometry_v72.py
           python3 chatgpt-shahta-v40/test_modernist_settings_v73.py
