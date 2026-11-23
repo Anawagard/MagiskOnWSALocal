@@ -163,6 +163,11 @@ def rehearse(art_output=None):
                  "test_modernist_five_tab_viewports_v103.py",
                  "test_modernist_mine_sprite_touch_v138.py",
                  "test_feature_header_hidden_taps_v139.py",
+                 # Exercise real navigation hitboxes and the standalone pixel-diversity gate.
+                 "test_modernist_nav_pointer_fuzz_v139.py",
+                 "test_visual_diversity_encoding_source_only.py",
+                 "test_visual_diversity_pixels_source_only.py",
+                 "test_visual_diversity_report_source_only.py",
                  # Validate cave corridor and footer readability on narrow screens.
                  "test_cave_narrow_wall_bounds_source_only.py",
                  "test_cave_strata_corridor_source_only.py",
