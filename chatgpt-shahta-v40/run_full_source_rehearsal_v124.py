@@ -154,6 +154,7 @@ def rehearse(art_output=None):
                  "test_manual_trigger_allowlist_v101.py",
                  "test_signing_identity_fail_closed_v130.py",
                  "test_modernist_five_tab_viewports_v103.py",
+                 "test_modernist_mine_sprite_touch_v138.py",
                  # Active tab identity must match the five contextual toasts.
                  "test_modernist_page_identity_nav_v136.py",
                  "test_modernist_toast_negative_geometry_v137.py",
