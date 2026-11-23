@@ -45,6 +45,19 @@ new = '''        if(System.currentTimeMillis()<toastUntil){
             v70Draw(canvas,String.format(Locale.US,"ore_%02d.png",(page*5)%24),
                 305,toastY+4,18,18,225);
         }'''
+# The five destinations now carry their own accent in the *active* bottom
+# navigation state, matching the existing page-specific toast/header palette.
+# These are paint-only rails within the old 64x44 button. No input or
+# navigation dispatcher code changes.
+nav_old = '            if(active)rect(c,left+18,132,36,2,0xff67e6d4);'
+nav_new = '''            if(active){
+                int tabAccent=i==0 ? 0xff65e1d0 : (i==1 ? 0xffffcf82 :
+                    (i==2 ? 0xffffa77a : (i==3 ? 0xffc4a7ff : 0xff82bfff)));
+                rect(c,left+18,90,36,2,tabAccent);
+                rect(c,left+18,132,36,2,tabAccent);
+                rect(c,left+9,94,2,12,tabAccent);
+            }'''
+
 # Geometry contract: the notification must fit the 360x720 logical canvas,
 # clear the fixed top navigation, and not cover the mine's ore hitbox.
 # Keep this source-only and independent of Android/Gradle.
@@ -118,7 +131,11 @@ def apply():
     missing_gradle = [marker for marker in gradle_required if marker not in gradle]
     if missing_gradle:
         raise RuntimeError(f"v7.9: missing build contracts {missing_gradle}; source unchanged")
-    result = current.replace(old, new, 1)
+    # Draw state is changed strictly after verifying the v7.5 navigation rail.
+    # The menu's painted 64x44 area and touch dispatch remain untouched.
+    if current.count(nav_old) != 1 or nav_new in current:
+        raise RuntimeError("v7.9: expected exactly one v7.5 nav accent anchor; source unchanged")
+    result = current.replace(old, new, 1).replace(nav_old, nav_new, 1)
     fd, tmp = tempfile.mkstemp(prefix=".mineview-v79-", suffix=".tmp", dir=source.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
