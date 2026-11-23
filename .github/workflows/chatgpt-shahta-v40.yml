@@ -715,7 +715,7 @@ jobs:
                            "private void drawForgeLegacy(", "private void drawGuildLegacy(",
                            "private void drawCollectionLegacy(",
                            "private void drawAudioSettings(Canvas c)",
-                           "rect(c,17,103,3,30,0xff65e1d0)",
+                           "rect(c,17,103,3,30,identity)",
                            "if(x>=218&&x<=323&&y>=251&&y<=301)",
                            "if(x>=35&&x<=325&&y>=383&&y<=414)",
                            "if(x>=218&&x<=323&&y>=461&&y<=511)",
