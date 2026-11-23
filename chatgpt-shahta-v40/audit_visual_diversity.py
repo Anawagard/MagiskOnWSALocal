@@ -139,6 +139,14 @@ def audit(folder):
                         np.flip(thumbs[j], axis=(0, 1)),
                     )
                 )
+                if ore:
+                    # Square ore canvases admit 90/270-degree rotations.
+                    # Rotated copies are not independent ore designs.
+                    mirrored_delta = min(
+                        mirrored_delta,
+                        *(float(np.mean(np.abs(thumbs[i] - np.rot90(thumbs[j], k=k))))
+                          for k in (1, 3)),
+                    )
                 if mirrored_delta < 1.5:
                     raise ValueError(
                         f"{label}: mirrored duplicate {names[i]} / {names[j]} "
