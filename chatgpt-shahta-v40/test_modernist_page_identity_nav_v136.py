@@ -82,3 +82,34 @@ for physical_width, physical_height in (
             checks += 1
 
 print(f"PASS: five unique tab accents match toasts; {checks} scaled rail checks")
+
+# Exercise the real fail-closed validator, not only string-level matching.
+# Loading the module executes no patch: apply() is guarded by __main__.
+import importlib.util
+spec = importlib.util.spec_from_file_location("shahta_nav_patch_v79", HERE / "patch_modernist_v79.py")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.validate_toast_geometry()
+original = module.nav_new
+try:
+    module.nav_new = original.replace("0xffffcf82", "0xff112233", 1)
+    try:
+        module.validate_toast_geometry()
+    except RuntimeError as error:
+        assert "palettes differ" in str(error)
+    else:
+        raise AssertionError("Mismatched navigation palette was accepted")
+
+    module.nav_new = original.replace(
+        "rect(c,left+9,94,2,12,tabAccent);",
+        "rect(c,left+9,94,2,12,0xff65e1d0);", 1)
+    try:
+        module.validate_toast_geometry()
+    except RuntimeError as error:
+        assert "active-tab rail" in str(error)
+    else:
+        raise AssertionError("Unbound navigation rail was accepted")
+finally:
+    module.nav_new = original
+module.validate_toast_geometry()
+print("PASS: production palette guard rejects mismatched and unbound navigation accents")
