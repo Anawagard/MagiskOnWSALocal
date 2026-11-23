@@ -87,3 +87,33 @@ for width, height in viewports:
             checks += 1
 
 print(f"PASS: {checks} deterministic navigation/letterbox pointer assertions")
+
+
+# Exhaustive quarter-pixel sweep across all five navigation cells.
+# This catches narrow transparent seams that random sampling can miss.
+grid_checks = 0
+for quarter_x in range(360 * 4):
+    x = quarter_x / 4
+    tab = int(x // 72)
+    local = x - tab * 72
+    expected = tab if 5 <= local <= 69 else None
+    for y in (89.75, 90, 90.25, 112, 133.75, 134, 134.25):
+        expected_at_y = expected if 90 <= y <= 134 else None
+        assert target(x, y) == expected_at_y, (x, y, expected_at_y)
+        grid_checks += 1
+
+# Painted cells are x=5..69 in each 72-unit slot. The logical
+# viewport boundary at x=360 must never wrap into the final cell.
+for x in (-0.01, 0, 4.99, 5, 69, 69.01, 71.99,
+          72, 76.99, 77, 141, 141.01, 359.99, 360, 360.01):
+    for y in (89.99, 90, 134, 134.01):
+        expected = None
+        if 0 <= x < 360 and 90 <= y <= 134:
+            slot = min(4, int(x // 72))
+            local = x - slot * 72
+            if 5 <= local <= 69:
+                expected = slot
+        assert target(x, y) == expected, (x, y, expected)
+        grid_checks += 1
+
+print(f"PASS: {grid_checks} exhaustive quarter-pixel navigation seam checks")
