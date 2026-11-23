@@ -129,9 +129,15 @@ def audit(folder):
                 # Mirroring a raster does not create a new biome or ore design.
                 # Compare transformed thumbnails as well as byte-identical
                 # orientation; preserve the alpha channel for ore silhouettes.
+                # A 180-degree rotation is equivalent to flipping both axes.
+                # Reject it too: rotated copies are not independent artwork.
                 mirrored_delta = min(
-                    float(np.mean(np.abs(thumbs[i] - np.flip(thumbs[j], axis=axis))))
-                    for axis in (0, 1)
+                    float(np.mean(np.abs(thumbs[i] - transformed)))
+                    for transformed in (
+                        np.flip(thumbs[j], axis=0),
+                        np.flip(thumbs[j], axis=1),
+                        np.flip(thumbs[j], axis=(0, 1)),
+                    )
                 )
                 if mirrored_delta < 1.5:
                     raise ValueError(
