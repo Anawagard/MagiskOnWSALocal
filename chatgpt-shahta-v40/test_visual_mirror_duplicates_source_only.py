@@ -10,8 +10,8 @@ from audit_visual_diversity import BIOMES, ORES, audit
 
 
 class MirrorDuplicateTests(unittest.TestCase):
-    def test_horizontal_and_vertical_mirrors_rejected(self):
-        for axis in (0, 1):
+    def test_horizontal_vertical_and_180_degree_mirrors_rejected(self):
+        for axis in (0, 1, (0, 1)):
             with self.subTest(axis=axis), tempfile.TemporaryDirectory() as tmp:
                 folder = Path(tmp)
                 names = BIOMES + ORES
