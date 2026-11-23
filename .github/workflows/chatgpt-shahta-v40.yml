@@ -757,11 +757,24 @@ jobs:
           path: ~/.android/debug.keystore
           key: shahta-v44-debug-keystore-20261102
           lookup-only: false
+      - name: Restore original signing key from protected secret if cache expired
+        if: steps.shahta-signing-cache.outputs.cache-hit != 'true'
+        env:
+          SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64: ${{ secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" ]; then
+            mkdir -p "$HOME/.android"
+            umask 077
+            printf '%s' "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+            test -s "$HOME/.android/debug.keystore"
+            echo "Restored original debug signing key from protected GitHub secret"
+          fi
       - name: Verify original debug signing identity exists
         run: |
           set -euo pipefail
-          if [ "${{ steps.shahta-signing-cache.outputs.cache-hit }}" != "true" ] || [ ! -s "$HOME/.android/debug.keystore" ]; then
-            echo "::error::Original Shahta debug keystore missing. Refusing to rotate signing identity."
+          if [ ! -s "$HOME/.android/debug.keystore" ]; then
+            echo "::error::Original Shahta debug keystore missing from cache and SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64 secret. Refusing to rotate signing identity."
             exit 1
           fi
           actual="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
