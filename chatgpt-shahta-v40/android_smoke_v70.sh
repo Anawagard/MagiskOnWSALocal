@@ -1,22 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+package="${SHAHTA_SMOKE_PACKAGE:-com.bezdna.mine}"
+case "$package" in
+  com.bezdna.mine|com.bezdna.mine.redesign) ;;
+  *) echo "Unexpected Shahta package: $package" >&2; exit 1 ;;
+esac
+activity="$package/com.bezdna.mine.MainActivity"
+
 mkdir -p screenshots
 adb shell wm size 360x760
 adb shell wm density 160
 adb shell input keyevent KEYCODE_WAKEUP
-standard_apk=""
-for candidate in smoke-apks/Shahta-Bez-Dna-v*.apk; do
-  if [[ "$candidate" != *Parallel.apk ]]; then standard_apk="$candidate"; break; fi
-done
-test -n "$standard_apk"
-adb install -r "$standard_apk"
-adb shell am start -W -n com.bezdna.mine/.MainActivity
+apk="${SHAHTA_SMOKE_APK:-}"
+if [ -z "$apk" ]; then
+  for candidate in smoke-apks/Shahta-Bez-Dna-v*.apk; do
+    if [[ "$candidate" != *Parallel.apk ]]; then apk="$candidate"; break; fi
+  done
+fi
+test -f "$apk"
+adb install --no-streaming -r "$apk"
+adb shell am start -W -n "$activity"
 python3 -m pip install --disable-pip-version-check --quiet Pillow
 
 capture_ready() {
   local target="$1" max_attempts="${2:-55}"
+  local focus
   for attempt in $(seq 1 "$max_attempts"); do
+    # Screenshot brightness alone also accepts the launcher and Android
+    # error dialogs. Wait until the game actually owns input focus.
+    focus="$(adb shell dumpsys window windows | sed -n '/mCurrentFocus=/p')"
+    if [[ "$focus" != *" $activity}"* && "$focus" != *" $package/.MainActivity}"* ]]; then
+      sleep 2
+      continue
+    fi
     adb exec-out screencap -p > "$target" || true
     if python3 - "$target" <<'PY'
 import sys
@@ -42,7 +59,7 @@ PY
   return 1
 }
 
-adb shell pidof com.bezdna.mine
+adb shell pidof "$package"
 capture_ready screenshots/01-mine.png
 # Exercise actual mining, fracture surfaces and hit/debris rendering.
 adb shell input tap 180 329
@@ -60,7 +77,7 @@ capture_ready screenshots/03-atlas.png
 adb shell input tap 252 135
 sleep 2
 capture_ready screenshots/03a-guild.png
-adb shell pidof com.bezdna.mine
+adb shell pidof "$package"
 adb logcat -d -s AndroidRuntime:E ActivityManager:E | tail -n 90 || true
 
 python3 - <<'PY'
@@ -145,14 +162,14 @@ PY
 
 # Visual audit: seed the app's *debug emulator only* SharedPreferences.
 # This never modifies a user's phone, APK, import/export schema or release data.
-if adb shell run-as com.bezdna.mine pwd >/dev/null 2>&1; then
+if adb shell run-as "$package" pwd >/dev/null 2>&1; then
   mkdir -p screenshots/biomes
   for biome in $(seq 0 23); do
     depth=$((biome*25+1))
-    adb shell am force-stop com.bezdna.mine
-    adb shell run-as com.bezdna.mine mkdir -p /data/user/0/com.bezdna.mine/shared_prefs
-    printf '<?xml version="1.0" encoding="utf-8" standalone="yes" ?><map><int name="depth" value="%s" /><int name="discovered" value="24" /></map>\n' "$depth" | adb shell "run-as com.bezdna.mine sh -c 'cat > /data/user/0/com.bezdna.mine/shared_prefs/mine_save_v1.xml'"
-    adb shell am start -W -n com.bezdna.mine/.MainActivity >/dev/null
+    adb shell am force-stop "$package"
+    adb shell run-as "$package" mkdir -p shared_prefs
+    printf '<?xml version="1.0" encoding="utf-8" standalone="yes" ?><map><int name="depth" value="%s" /><int name="discovered" value="24" /></map>\n' "$depth" | adb shell "run-as $package sh -c 'cat > shared_prefs/mine_save_v1.xml'"
+    adb shell am start -W -n "$activity" >/dev/null
     sleep 1
     capture_ready "screenshots/biomes/$(printf '%02d' "$biome").png" 16
   done

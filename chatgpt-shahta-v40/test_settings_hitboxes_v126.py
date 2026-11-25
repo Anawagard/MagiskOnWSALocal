@@ -49,10 +49,20 @@ class SettingsHitboxTests(unittest.TestCase):
         self.assertEqual(button, (18, 548, 324, 61))
         self.assertIn('x>=18&&x<=342&&y>=548&&y<=609', PATCH)
 
+    def test_save_actions_match_their_visible_buttons(self):
+        for label, method, start in (("ЭКСПОРТ", "exportSave", 18),
+                                     ("ИМПОРТ", "importSave", 186)):
+            with self.subTest(label=label):
+                self.assertIn(f'button(c,{start},516,156,30,"{label} JSON"', PATCH)
+                self.assertRegex(
+                    PATCH, rf'else if\(x>={start}&&x<={start + 156}&&y>=516&&y<=546\)'
+                           rf'\{{[^}}]*\.{method}\(\);')
+
     def test_settings_controls_are_disjoint(self):
         # Distinct painted controls cannot overlap, preventing double actions.
         regions = [(218, 251, 323, 301), (35, 383, 325, 414),
-                   (218, 461, 323, 511), (18, 548, 342, 609)]
+                   (218, 461, 323, 511), (18, 516, 174, 546),
+                   (186, 516, 342, 546), (18, 548, 342, 609)]
         for i, a in enumerate(regions):
             for b in regions[i+1:]:
                 overlap = max(a[0], b[0]) < min(a[2], b[2]) and max(a[1], b[1]) < min(a[3], b[3])

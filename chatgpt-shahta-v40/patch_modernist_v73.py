@@ -40,7 +40,7 @@ replace_method("private void drawAudioSettings(Canvas c)", r"""
     private void drawAudioSettings(Canvas c){
         v72NineSlice(c,"panel.png",14,153,332,477,255);
         leftFittedText(c,"НАСТРОЙКИ / ИГРА",30,179,18,0xffeafffa,289);
-        leftFittedText(c,"ЗВУК  •  ВИЗУАЛИЗАЦИЯ",30,201,11,0xff9cc8c8,289);
+        leftFittedText(c,"ЗВУК  •  ЭФФЕКТЫ  •  СОХРАНЕНИЕ",30,201,11,0xff9cc8c8,289);
         rect(c,30,214,300,2,0xff51b9b4);
 
         v72NineSlice(c,"panel.png",18,235,324,85,255);
@@ -61,11 +61,13 @@ replace_method("private void drawAudioSettings(Canvas c)", r"""
         p.setColor(soundEnabled?0xffe5fffa:0xffb3c5cd);
         c.drawCircle(end,397,7,p);
 
-        v72NineSlice(c,"panel.png",18,445,324,85,255);
+        v72NineSlice(c,"panel.png",18,445,324,69,255);
         leftFittedText(c,"ЭФФЕКТЫ",34,474,15,0xffe5fbf8,174);
         leftFittedText(c,"Анимации и частицы",34,496,11,0xffa6c3cb,174);
         button(c,218,461,105,50,fxEnabled?"ВКЛ":"ВЫКЛ","",true);
 
+        button(c,18,516,156,30,"ЭКСПОРТ JSON","",true);
+        button(c,186,516,156,30,"ИМПОРТ JSON","",true);
         button(c,18,548,324,61,"НАЗАД В ЛАВКУ",
             "Изменения сохраняются автоматически",true);
     }
@@ -79,6 +81,21 @@ once("else if(y>=326&&y<=402){soundVolume=Math.max(0,Math.min(100,Math.round((x-
      "else if(x>=35&&x<=325&&y>=383&&y<=414){soundVolume=Math.max(0,Math.min(100,Math.round((x-42f)/276f*20f)*5));")
 once("else if(y>=407&&y<=469){fxEnabled=!fxEnabled;",
      "else if(x>=218&&x<=323&&y>=461&&y<=511){fxEnabled=!fxEnabled;")
+once("""            else if(y>=476&&y<=531){
+                playSound(2);
+                if(getContext() instanceof MainActivity){
+                    if(x<180)((MainActivity)getContext()).exportSave();
+                    else ((MainActivity)getContext()).importSave();
+                }
+            }""",
+     """            else if(x>=18&&x<=174&&y>=516&&y<=546){
+                playSound(2);
+                if(getContext() instanceof MainActivity)((MainActivity)getContext()).exportSave();
+            }
+            else if(x>=186&&x<=342&&y>=516&&y<=546){
+                playSound(2);
+                if(getContext() instanceof MainActivity)((MainActivity)getContext()).importSave();
+            }""")
 # The legacy close-button Y range varies across prior patch levels.
 # Match the actual close action, not one historical set of coordinates.
 import re
