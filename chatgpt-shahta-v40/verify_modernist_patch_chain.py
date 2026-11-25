@@ -134,9 +134,8 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     protected_before = {name: method_body(before, name) for name in protected_methods}
     prepared = "v70Asset(" in before and "v71Scale(" in before
     # Fail closed on ambiguous or inconsistent version metadata before any
-    # source patch executes. In particular, a prepared v7.1 checkout must
-    # retain the approved v7.0.1 version rather than silently accepting a
-    # newer, incompatible project as the integration baseline.
+    # source patch executes. Accept the approved v7.0.1 checkout and the
+    # current release metadata for a prepared v7.1 checkout.
     gradle_source = gradle.read_text(encoding="utf-8")
     import re
     codes = re.findall(r"(?m)^\s*versionCode\s+(\d+)\s*$", gradle_source)
@@ -144,10 +143,11 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     assert len(codes) == len(names) == 1, (
         f"Ambiguous Gradle version metadata: codes={codes}, names={names}"
     )
-    expected_version = ("48", "7.0.1") if prepared else ("46", "6.9")
-    assert (codes[0], names[0]) == expected_version, (
+    release_version = ("49", "7.9.0")
+    expected_versions = (("48", "7.0.1"), release_version) if prepared else (("46", "6.9"),)
+    assert (codes[0], names[0]) in expected_versions, (
         f"Unexpected baseline version: {(codes[0], names[0])}; "
-        f"expected {expected_version}"
+        f"expected one of {expected_versions}"
     )
     if not prepared:
         assert "v70Asset(" not in before and "v71Scale(" not in before, "Partially patched baseline"
@@ -231,7 +231,8 @@ with tempfile.TemporaryDirectory(prefix="shahta-source-rehearsal-") as tmp:
     if prepared:
         assert gradle.read_bytes() == before_gradle, "Signing/package configuration changed"
     else:
-        expected_gradle = gradle_source.replace("versionCode 46", "versionCode 48").replace("versionName '6.9'", "versionName '7.0.1'")
+        expected_gradle = gradle_source.replace("versionCode 46", f"versionCode {release_version[0]}")
+        expected_gradle = expected_gradle.replace("versionName '6.9'", f"versionName '{release_version[1]}'")
         assert gradle.read_text() == expected_gradle, "Unexpected Gradle change"
     for marker in (
         'v72NineSlice(c,"panel.png",18,93,324,83,255);',

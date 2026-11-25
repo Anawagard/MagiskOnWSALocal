@@ -1,10 +1,12 @@
-name: Build Shahta Bez Dna v7.0.1 Android APK
-# Full v7.0.1 release validated; further intermediate commits must not build APK.
+name: Build Shahta Bez Dna v7.9.0 Android APK
+# Manual release of the completed modernist redesign.
 on:
   workflow_dispatch:
 jobs:
   android:
     runs-on: ubuntu-latest
+    env:
+      SHAHTA_CERT_SHA256: cba521972875548604af46ef77431e155f17fadd901c772c839b3889b81c83a0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -731,8 +733,8 @@ jobs:
                            'for(int i=0;i<6;i++)ed.putInt("tech_"+i,tech[i]);',
                            "public void save()","private void rebirth()"]:
               assert required in src,required
-          assert "versionCode 48" in gradle
-          assert "versionName '7.0.1'" in gradle
+          assert "versionCode 49" in gradle
+          assert "versionName '7.9.0'" in gradle
           assert "signingConfig signingConfigs.shahtaDebug" in gradle
           print("v7.0 24+24 raster assets and full 5-tab UX contract verified")
           PY
@@ -753,65 +755,66 @@ jobs:
       # Fail closed if the original debug identity is missing. A newly generated
       # key would prevent installing the APK over existing user installations.
       - name: Restore debug signing identity
-        id: shahta-signing-cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: shahta-v44-debug-keystore-20261102
           lookup-only: false
-      - name: Restore original signing key from protected secret if cache expired
-        if: steps.shahta-signing-cache.outputs.cache-hit != 'true'
+      - name: Verify or restore the signing key for v7.0.1 upgrades
         env:
           SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64: ${{ secrets.SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64 }}
         run: |
           set -euo pipefail
-          if [ -n "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" ]; then
-            mkdir -p "$HOME/.android"
-            umask 077
-            temporary_key="$(mktemp "$HOME/.android/.shahta-key.XXXXXXXX")"
-            trap 'rm -f "$temporary_key"' EXIT
-            printf '%s' "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" | base64 --decode > "$temporary_key"
-            test -s "$temporary_key"
-            # Verify the secret is a usable original debug key before publishing it.
-            keytool -list -keystore "$temporary_key" -alias androiddebugkey -storepass android >/dev/null
-            mv -f "$temporary_key" "$HOME/.android/debug.keystore"
-            trap - EXIT
-            echo "Restored original debug signing key from protected GitHub secret"
+          original_key="$HOME/.android/debug.keystore"
+          matches_original() {
+            test -s "$1" &&
+              keytool -list -v -J-Duser.language=en -keystore "$1" -alias androiddebugkey -storepass android |
+                grep -Fx 'Entry type: PrivateKeyEntry' >/dev/null &&
+              actual="$(keytool -exportcert -keystore "$1" -alias androiddebugkey -storepass android |
+                sha256sum | cut -d ' ' -f 1)" &&
+              test "$actual" = "$SHAHTA_CERT_SHA256"
+          }
+
+          if matches_original "$original_key"; then
+            exit 0
           fi
-      - name: Verify original debug signing identity exists
-        run: |
-          set -euo pipefail
-          if [ ! -s "$HOME/.android/debug.keystore" ]; then
-            echo "::error::Original Shahta debug keystore missing from cache and SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64 secret. Refusing to rotate signing identity."
+          if [ -z "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::Missing the key matching the v7.0.1 APK certificate. Restore SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64 to build an upgrade."
             exit 1
           fi
-          actual="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
-          test -n "$actual"
-          echo "Debug signing certificate: $actual"
+          mkdir -p "$HOME/.android"
+          umask 077
+          temporary_key="$(mktemp "$HOME/.android/.shahta-key.XXXXXXXX")"
+          trap 'rm -f "$temporary_key"' EXIT
+          printf '%s' "$SHAHTA_ORIGINAL_DEBUG_KEYSTORE_B64" | base64 --decode > "$temporary_key"
+          if ! matches_original "$temporary_key"; then
+            echo "::error::The restored signing key does not match the v7.0.1 APK certificate."
+            exit 1
+          fi
+          mv -f "$temporary_key" "$original_key"
+          trap - EXIT
       - name: Build standard game APK
         working-directory: chatgpt-shahta-v33/project
         run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Verify standard game APK
         run: |
           mkdir -p artifacts
-          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v7.0.1.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v7.0.1.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v7.0.1.apk | head -n 4
-          unzip -t artifacts/Shahta-Bez-Dna-v7.0.1.apk | tail -n 1
-          unzip -l artifacts/Shahta-Bez-Dna-v7.0.1.apk | grep game_icon.png
-          sha256sum artifacts/Shahta-Bez-Dna-v7.0.1.apk
-      - name: Check APK signing certificate matches build identity
+          cp chatgpt-shahta-v33/project/app/build/outputs/apk/debug/app-debug.apk artifacts/Shahta-Bez-Dna-v7.9.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Shahta-Bez-Dna-v7.9.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Shahta-Bez-Dna-v7.9.0.apk | head -n 4
+          unzip -t artifacts/Shahta-Bez-Dna-v7.9.0.apk | tail -n 1
+          unzip -l artifacts/Shahta-Bez-Dna-v7.9.0.apk | grep game_icon.png
+          sha256sum artifacts/Shahta-Bez-Dna-v7.9.0.apk
+      - name: Check APK certificate against the v7.0.1 upgrade certificate
         run: |
           set -euo pipefail
-          expected="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
-          actual="$(keytool -printcert -jarfile artifacts/Shahta-Bez-Dna-v7.0.1.apk | grep 'SHA256:' | head -1 | sed 's/.*SHA256: //')"
-          echo "Expected signing certificate: $expected"
-          echo "Actual APK certificate: $actual"
-          test "$expected" = "$actual"
+          actual="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs artifacts/Shahta-Bez-Dna-v7.9.0.apk |
+            awk '/^Signer #1 certificate SHA-256 digest: / { print $NF }')"
+          test "$actual" = "$SHAHTA_CERT_SHA256"
       - uses: actions/upload-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v7.0.1-APK
-          path: artifacts/Shahta-Bez-Dna-v7.0.1.apk
+          name: Shahta-v79-smoke-input
+          path: artifacts/Shahta-Bez-Dna-v7.9.0.apk
           if-no-files-found: error
 
   android-smoke:
@@ -826,7 +829,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Shahta-Bez-Dna-v7.0.1-APK
+          name: Shahta-v79-smoke-input
           path: smoke-apks
       - name: Enable hardware-accelerated Android emulator when KVM is available
         run: |
@@ -837,7 +840,7 @@ jobs:
           else
             echo "::warning::KVM unavailable; emulator will use slow software emulation"
           fi
-      - name: Boot emulator, launch game and capture 3 screens
+      - name: Boot emulator and verify navigation across all five game screens
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -846,6 +849,12 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -noaudio -no-boot-anim -no-snapshot -camera-back none -cores 2 -memory 2048
           script: bash chatgpt-shahta-v40/android_smoke_v70.sh
+      - name: Upload the verified final APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shahta-Bez-Dna-v7.9.0-APK
+          path: smoke-apks/Shahta-Bez-Dna-v7.9.0.apk
+          if-no-files-found: error
       - name: Upload smoke screenshots
         if: always()
         uses: actions/upload-artifact@v4

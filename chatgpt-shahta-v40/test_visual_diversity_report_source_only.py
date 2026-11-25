@@ -18,23 +18,24 @@ class VisualDiversityReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             yy, xx = np.indices((570, 360))
-            for i, name in enumerate(BIOMES):
-                # Large phase shifts and independent frequency patterns.
-                rgb = np.stack((
-                    (xx * (i + 3) + yy * 2) % 256,
-                    (yy * (i + 5) + xx * 3) % 256,
-                    ((xx // (i + 2)) * 17 + yy * 7) % 256,
+            # Separate low-frequency colour profiles survive the audit's
+            # downsampling, unlike high-frequency checkerboards.
+            def texture(x, y, index):
+                return np.stack((
+                    index % 4 * 50 + (x // 3 + y // 6) % 96,
+                    index // 4 % 3 * 66 + (y // 3 + x // 6) % 96,
+                    index // 12 * 110 + (x // 5 + y // 4) % 96,
                 ), axis=-1).astype(np.uint8)
-                Image.fromarray(rgb, "RGB").save(folder / name, quality=92)
+
+            for i, name in enumerate(BIOMES):
+                Image.fromarray(texture(xx, yy, i)).save(folder / name, quality=92)
             yy, xx = np.indices((300, 300))
             mask = (xx - 150) ** 2 + (yy - 150) ** 2 < 90 ** 2
             for i, name in enumerate(ORES):
                 rgba = np.zeros((300, 300, 4), dtype=np.uint8)
-                rgba[..., 0] = (xx * (i + 3) + yy * 2) % 256
-                rgba[..., 1] = (yy * (i + 5) + xx * 3) % 256
-                rgba[..., 2] = ((xx // (i + 2)) * 17 + yy * 7) % 256
+                rgba[..., :3] = texture(xx, yy, i)
                 rgba[..., 3] = np.where(mask, 255, 0).astype(np.uint8)
-                Image.fromarray(rgba, "RGBA").save(folder / name)
+                Image.fromarray(rgba).save(folder / name)
             first = audit(folder)
             self.assertEqual(first, audit(folder))
             for label, names in (("biomes", BIOMES), ("ores", ORES)):

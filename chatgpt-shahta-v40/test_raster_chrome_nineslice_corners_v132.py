@@ -109,8 +109,9 @@ class ChromeNineSliceCornerTests(unittest.TestCase):
                     before, after = np.asarray(original), np.asarray(ornamented)
                     diff = np.any(before != after, axis=2)
                     yy, xx = np.indices((h, w))
-                    allowed = ((xx < 18) | (xx >= w - 18)) & (
-                        (yy < 18) | (yy >= h - 18))
+                    sx, sy = min(18, w // 4), min(18, h // 4)
+                    allowed = ((xx < sx) | (xx >= w - sx)) & (
+                        (yy < sy) | (yy >= h - sy))
                     self.assertFalse(np.any(diff & ~allowed), name)
                     for corner in (allowed & (xx < 18) & (yy < 18),
                                    allowed & (xx >= w - 18) & (yy < 18),

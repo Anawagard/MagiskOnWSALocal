@@ -29,7 +29,8 @@ def replace_method(signature, replacement):
 replace_method("private void drawHeader(Canvas c)",r"""
     private void drawHeader(Canvas c){
         v70Draw(c,"header.png",0,0,360,88,255);
-        leftFittedText(c,"DEEP / MINE",16,27,19,0xffeafffb,200);
+        rect(c,12,11,3,17,0xff65e1d0);
+        leftFittedText(c,"ШАХТА БЕЗ ДНА",22,27,19,0xffeafffb,186);
         fittedText(c,"СЕКТОР "+(zone()+1)+" / 24",281,26,11,0xff91dace,140);
 
         // Two equal resource cards; the previous long inline labels could

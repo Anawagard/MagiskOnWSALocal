@@ -36,7 +36,7 @@ def audit():
     assert "patch_full_redesign_v70.py" in data, "Missing v7.0 source preparation"
     # v7.9 must follow v7.8 and keep notification positioning page-specific.
     v79 = (SCRIPTS / "patch_modernist_v79.py").read_text(encoding="utf-8")
-    assert "page==0 ? 178 : 623" in v79, "Page-aware toast clearance missing"
+    assert "page==0 ? 240 : (page==1 ? 691 : 177)" in v79, "Page-aware toast clearance missing"
     assert "onTouchEvent" not in v79.split("old = ", 1)[-1].split("new = ", 1)[0], "Unexpected touch handler patch"
 
     # Never silently label an older or unverified binary as a newer release.
@@ -44,7 +44,7 @@ def audit():
     assert match, "No named APK artifact found"
     apk_name = match.group(1)
     version = re.search(r"v([\d.]+)\.apk$", apk_name).group(1)
-    assert f"versionName '{version}'" in data or version == "7.0.1", (
+    assert f"versionName '{version}'" in data, (
         "APK filename does not match a declared release version"
     )
     print("PASS: manual-only workflow; one build; ordered v7.1-v7.9 patch chain; smoke gate")

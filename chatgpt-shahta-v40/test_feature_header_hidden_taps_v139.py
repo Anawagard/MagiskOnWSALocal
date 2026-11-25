@@ -6,28 +6,37 @@ Does not invoke Android, Gradle, APK or Actions.
 from pathlib import Path
 import ast
 import math
+import textwrap
 
 HERE = Path(__file__).resolve().parent
 source = (HERE / "patch_modernist_v72.py").read_text(encoding="utf-8")
-ast.parse(source)
 
 MARKERS = (
     'for name in ("drawForge","drawGuild","drawCollection"):',
     'c.clipRect(0,145,360,653);',
     'if(screenY<205f||screenY>713f)return true;',
+    'if(x<13f||x>347.8f)return true;',
+    'float y=screenY-60f;',
     'x=(x-13f)/.93f;',
     'y=(y-18f)/.94f;',
-    'if(screenY>=88&&screenY<=136)',
 )
 def verify(text):
+    # Validate the emitted Java rather than Python postcondition strings.
+    snippets = [line for node in ast.walk(ast.parse(text))
+                if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and "\n" in node.value
+                for line in textwrap.dedent(node.value).splitlines()]
+    emitted = "\n".join(snippets)
     for marker in MARKERS:
-        if marker not in text:
+        haystack = text if marker.startswith('for name') else emitted
+        if marker not in haystack:
             raise AssertionError("Missing feature header/touch invariant: " + marker)
 
 verify(source)
 for old, new in (
     ('screenY<205f', 'screenY<175f'),
     ('screenY>713f', 'screenY>720f'),
+    ('x>347.8f', 'x>360f'),
     ('c.clipRect(0,145,360,653);', 'c.clipRect(0,115,360,653);'),
     ('x=(x-13f)/.93f;', 'x=x/.93f;'),
     ('y=(y-18f)/.94f;', 'y=y/.94f;'),
@@ -67,7 +76,7 @@ for width, height in sizes:
         if oy > 0:
             assert (oy/2-oy)/scale < 0
             checks += 1
-print(f"PASS: {checks} feature-header visibility/touch checks; 5 mutation guards")
+print(f"PASS: {checks} feature-header visibility/touch checks; 6 mutation guards")
 
 
 # Boundary-sweep regression: all three feature pages must suppress taps

@@ -15,15 +15,20 @@ from audit_ore_biome_composites_source_only import (
 
 class VisibilityHeatmapTests(unittest.TestCase):
     def make_scores(self):
-        return [
-            {"biome": biome, "ore": ore,
-             "core_low_contrast_fraction": (
-                 None if (biome, ore) == (2, 3)
-                 else 0.75 if (biome, ore) == (1, 24)
-                 else 0.0)}
+        rows = [
+            dict(biome=biome, ore=ore, score=0.2, visible_coverage=0.6,
+                 weakest_decile=0.1, core_coverage=0.4,
+                 core_mean_contrast=0.2, core_weakest_decile=0.1,
+                 core_low_contrast_fraction=0.0)
             for biome in range(1, COUNT + 1)
             for ore in range(1, COUNT + 1)
         ]
+        rows[23].update(core_low_contrast_fraction=0.75,
+                        core_weakest_decile=0.03)
+        rows[COUNT + 2].update(core_coverage=0.0, core_mean_contrast=None,
+                              core_weakest_decile=None,
+                              core_low_contrast_fraction=None)
+        return rows
 
     def test_all_576_tiles_are_present_and_reproducible(self):
         with tempfile.TemporaryDirectory() as directory:

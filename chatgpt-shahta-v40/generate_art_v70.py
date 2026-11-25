@@ -36,7 +36,7 @@ SCENES=[
 (121,180,101),(196,120,76),(85,150,191),(151,192,100),(160,112,196),(194,160,117)]
 ORES=[
 (130,146,161),(200,118,65),(160,174,190),(237,174,60),(55,194,135),(75,166,225),
-(218,66,93),(150,99,216),(185,225,237),(73,63,110),(68,210,224),(222,113,52),
+(218,66,93),(150,99,216),(185,225,237),(107,86,154),(68,210,224),(222,113,52),
 (137,209,242),(183,143,219),(129,113,208),(229,204,108),(116,213,237),(152,141,161),
 (234,139,178),(160,214,90),(217,165,76),(191,181,224),(246,205,89),(193,137,239)]
 R=Image.Resampling.BICUBIC
@@ -811,10 +811,8 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
         d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
-    # Nine-slice preserves only the outer 18px of each source edge.
-    # Every decorative pixel below stays inside one of those 18x18
-    # source corners; marks previously placed at w-57 or x=21..35
-    # were in the stretchable centre and became distorted on shop tiles.
+    # The shortest skin (nav.png) has 12px-tall nine-slice corners.
+    # Keep the status marks inside the fixed corners of every skin.
     # The border, fine grain and left vertical rail remain stretchable.
     trace_rgb=(93,224,210) if bright else border_rgb
     trace_alpha=105 if bright else 66
@@ -823,22 +821,22 @@ def panel_art(path,base,border,size=(400,96),bright=False):
         cx=4+index*5
         d.rectangle((cx,5,cx+1,6),fill=(*trace_rgb,alpha))
     # Top-right circuitry and three short status ticks: x >= w-18.
-    d.line([(w-16,8),(w-10,8),(w-6,12)],
+    d.line([(w-16,5),(w-10,5),(w-6,8)],
            fill=(*trace_rgb,trace_alpha),width=1)
-    d.ellipse((w-7,11,w-5,13),
+    d.ellipse((w-7,7,w-5,9),
               fill=(*trace_rgb,min(255,trace_alpha+35)))
     tick=(112,226,216,118) if bright else (*border_rgb,96)
     for offset in (0,5,10):
         x=w-16+offset
-        d.line((x,14,x,16),fill=tick,width=1)
+        d.line((x,10,x,11),fill=tick,width=1)
     # Bottom-left index sits below the vertical accent bar.
     d.line((12,h-7,16,h-7),fill=(*trace_rgb,trace_alpha),width=1)
     # Bottom-right angular circuit and two reference strokes.
-    d.line([(w-17,h-16),(w-12,h-16),(w-7,h-11)],
+    d.line([(w-17,h-12),(w-12,h-12),(w-7,h-9)],
            fill=(*trace_rgb,trace_alpha),width=1)
-    d.line((w-16,h-9,w-7,h-9),
+    d.line((w-16,h-7,w-7,h-7),
            fill=(*trace_rgb,96 if bright else 54),width=1)
-    d.line((w-16,h-6,w-10,h-6),
+    d.line((w-16,h-4,w-10,h-4),
            fill=(*trace_rgb,65 if bright else 38),width=1)
     im.save(path,optimize=True)
 

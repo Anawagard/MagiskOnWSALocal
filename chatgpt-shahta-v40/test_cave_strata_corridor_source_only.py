@@ -18,9 +18,10 @@ def strata_segments(width, seed):
         right_start = width - left_end
         segments.extend(((0, left_end), (right_start, width - 1)))
         if band % 2 == 0:
-            joint_x = min(width - 3, right_start + rng.randrange(1, 9))
-            segments.append((max(right_start, joint_x - 5), joint_x))
-            segments.append((max(right_start, joint_x - 4), joint_x))
+            scale = width / 360
+            joint_x = min(width - 1, right_start + max(1, round(rng.randrange(1, 9) * scale)))
+            for distance in (5, 4):
+                segments.append((max(right_start, joint_x - max(1, round(distance * scale))), joint_x))
     return segments, margin
 
 
@@ -41,7 +42,8 @@ class CaveStrataCorridorTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("right_start=w-left_end", source)
-        self.assertIn("max(right_start,joint_x-5)", source)
+        self.assertIn("max(right_start,joint_x-branch_dx)", source)
+        self.assertIn("max(right_start,joint_x-branch_tip)", source)
         self.assertNotIn("left_end=int(strata_rng.integers(90,166))", source)
 
 

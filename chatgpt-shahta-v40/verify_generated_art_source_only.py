@@ -67,19 +67,19 @@ def verify(root):
         "--assets", assets,
         "--risk-sheet", sheets / "shahta_ore_biome_risks.png",
         "--heatmap", sheets / "shahta_ore_biome_heatmap.png")
-    for diagnostic in ("shahta_ore_biome_heatmap.png",
-                       "shahta_ore_biome_risks.png"):
-        image_path = sheets / diagnostic
-        if not image_path.is_file():
-            # The risk sheet may legitimately be absent when no pairs are
-            # flagged; the 576-cell heatmap must always be present.
-            if diagnostic.endswith("risks.png"):
-                continue
-            raise ValueError(f"Missing ore/biome matrix diagnostic: {diagnostic}")
-        with Image.open(image_path) as matrix_image:
-            matrix_image.load()
-            if matrix_image.format != "PNG" or min(matrix_image.size) < 300:
-                raise ValueError(f"Invalid ore/biome diagnostic: {diagnostic}")
+    heatmap = sheets / "shahta_ore_biome_heatmap.png"
+    with Image.open(heatmap) as image:
+        image.load()
+        if image.format != "PNG" or image.size != (692, 720):
+            raise ValueError(f"Invalid ore/biome heatmap: {heatmap}")
+    risk_sheet = sheets / "shahta_ore_biome_risks.png"
+    with Image.open(risk_sheet) as image:
+        image.load()
+        width, height = image.size
+        # One row is valid, including a one-tile sheet with zero risks.
+        if (image.format != "PNG" or not 128 <= width <= 6 * 128
+                or not 156 <= height <= 4 * 156 or width % 128 or height % 156):
+            raise ValueError(f"Invalid ore/biome risk sheet: {risk_sheet}")
     import json
     data = json.loads(report.read_text(encoding="utf-8"))
     # Reject malformed or mathematically inconsistent similarity metadata.

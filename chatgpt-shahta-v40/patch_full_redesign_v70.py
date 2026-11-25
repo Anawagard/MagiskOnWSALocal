@@ -309,7 +309,7 @@ assert "versionCode 46" in g and "versionName '6.9'" in g
 assert "applicationId 'com.bezdna.mine'" in g
 assert "signingConfig signingConfigs.shahtaDebug" in g
 source.write_text(s)
-gradle.write_text(g.replace("versionCode 46","versionCode 48")
-                    .replace("versionName '6.9'","versionName '7.0.1'"))
+gradle.write_text(g.replace("versionCode 46","versionCode 49")
+                    .replace("versionName '6.9'","versionName '7.9.0'"))
 print("v7.0: entire five-tab UI reskinned, top navigation reflowed with hitboxes, "
       "textured ore/caves, material menus; same saves/balance/signature")

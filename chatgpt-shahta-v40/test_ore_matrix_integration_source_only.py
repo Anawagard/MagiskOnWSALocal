@@ -166,10 +166,12 @@ class OreMatrixIntegrationTest(unittest.TestCase):
     def test_fully_transparent_ore_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            Image.new("RGB", BACKGROUND_SIZE, (30, 50, 70)).save(
-                root / "biome_00.jpg", "JPEG")
-            Image.new("RGBA", ORE_SIZE, (0, 0, 0, 0)).save(
-                root / "ore_00.png", "PNG")
+            background = Image.new("RGB", BACKGROUND_SIZE, (30, 50, 70))
+            ore = Image.new("RGBA", ORE_SIZE, (100, 150, 200, 255))
+            for index in range(COUNT):
+                background.save(root / f"biome_{index:02d}.jpg", "JPEG")
+                ore.save(root / f"ore_{index:02d}.png", "PNG")
+            Image.new("RGBA", ORE_SIZE).save(root / "ore_00.png", "PNG")
             with self.assertRaisesRegex(ValueError, "empty ore sprite"):
                 analyze(root)
 

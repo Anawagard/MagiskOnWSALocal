@@ -57,6 +57,9 @@ capture_ready screenshots/02-shop.png
 adb shell input tap 324 135
 sleep 3
 capture_ready screenshots/03-atlas.png
+adb shell input tap 252 135
+sleep 2
+capture_ready screenshots/03a-guild.png
 adb shell pidof com.bezdna.mine
 adb logcat -d -s AndroidRuntime:E ActivityManager:E | tail -n 90 || true
 
@@ -64,7 +67,7 @@ python3 - <<'PY'
 from pathlib import Path
 from PIL import Image, ImageChops, ImageStat
 files=sorted(Path("screenshots").glob("*.png"))
-assert len(files)==4,files
+assert len(files)==5,files
 images=[]
 for path in files:
     im=Image.open(path).convert("RGB")
@@ -77,7 +80,7 @@ damage_delta=sum(ImageStat.Stat(ImageChops.difference(
     images[0].crop((70,220,290,465)),images[1].crop((70,220,290,465)))).mean)/3
 assert damage_delta>1.2,("Textured ore fracture did not change",damage_delta)
 print("Mining damage visual delta:",round(damage_delta,2))
-for i,j in ((0,2),(2,3)):
+for i,j in ((0,2),(2,3),(3,4),(2,4)):
     first=images[i].crop((10,120,350,630))
     second=images[j].crop((10,120,350,630))
     delta=sum(ImageStat.Stat(ImageChops.difference(first,second)).mean)/3
@@ -167,5 +170,6 @@ for path in paths:
 print("24 biome screenshots validated; average scene luminance:",means)
 PY
 else
-  echo "::warning::Android run-as unavailable; 24-biome debug visual audit skipped"
+  echo "::error::Android run-as unavailable; the 24-biome visual audit requires the debug APK"
+  exit 1
 fi
