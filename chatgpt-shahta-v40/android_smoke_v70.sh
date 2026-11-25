@@ -115,7 +115,7 @@ sleep 1
 adb shell input tap 295 212
 sleep 1
 capture_ready screenshots/03b-settings.png
-adb shell input tap 180 664
+adb shell input tap 180 637
 sleep 1
 adb shell input tap 180 225
 sleep 1
