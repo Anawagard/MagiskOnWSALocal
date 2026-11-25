@@ -1,0 +1,88 @@
+"""Check cross-category tint collisions in the existing 24x24 raster palettes.
+
+Pure source audit: no Android project, images, or build processes are touched.
+"""
+from audit_palette_perception_source_only import palettes, oklab
+from math import dist
+
+
+def blend_srgb(background, foreground, alpha):
+    """Approximate displayed RGB when an ore tint overlays its biome tint."""
+    if not isinstance(alpha, (int, float)) or isinstance(alpha, bool) or not 0 <= alpha <= 1:
+        raise ValueError("alpha must be in [0, 1]")
+    # Reject malformed RGB rather than silently truncating zip() or producing
+    # out-of-range colors. This diagnostic must never mask asset corruption.
+    for name, rgb in (("background", background), ("foreground", foreground)):
+        if not isinstance(rgb, (tuple, list)) or len(rgb) != 3:
+            raise ValueError(f"{name} must contain exactly three RGB channels")
+        if any(type(channel) is not int or not 0 <= channel <= 255 for channel in rgb):
+            raise ValueError(f"{name} RGB channels must be integers in [0, 255]")
+    return tuple(round((1 - alpha) * bg + alpha * fg)
+                 for bg, fg in zip(background, foreground))
+
+
+def composited_palette_collisions(alpha=0.65, limit=10):
+    """Rank ore/biome tint collisions after alpha compositing (not a pixel audit)."""
+    if type(limit) is not int or not 1 <= limit <= 576:
+        raise ValueError("limit must be an integer in [1, 576]")
+    colors = palettes()
+    return sorted(
+        (dist(oklab(scene), oklab(blend_srgb(scene, ore, alpha))), i, j)
+        for i, scene in enumerate(colors["SCENES"])
+        for j, ore in enumerate(colors["ORES"])
+    )[:limit]
+
+
+
+def cross_palette_collisions(limit=10):
+    if type(limit) is not int or not 1 <= limit <= 576:
+        raise ValueError("limit must be an integer in [1, 576]")
+    colors = palettes()
+    scenes = [oklab(rgb) for rgb in colors["SCENES"]]
+    ores = [oklab(rgb) for rgb in colors["ORES"]]
+    return sorted(
+        (dist(scene, ore), i, j)
+        for i, scene in enumerate(scenes)
+        for j, ore in enumerate(ores)
+    )[:limit]
+
+
+def alpha_sensitivity_report(alphas=(0.35, 0.50, 0.65, 0.80), limit=10):
+    """Find persistently low-contrast ore/biome tints across opacity scenarios.
+
+    This is a palette-only diagnostic, not a measurement of sprite pixel alpha.
+    Ranking uses the *largest* distance across scenarios: a pair ranks risky
+    only if it remains similar even in its most distinguishable scenario.
+    """
+    if not isinstance(alphas, (tuple, list)) or not alphas:
+        raise ValueError("alphas must be a nonempty sequence")
+    # Validate before checking duplicates: malformed nested lists must raise
+    # ValueError, not leak a TypeError from set().
+    for alpha in alphas:
+        if (not isinstance(alpha, (int, float)) or isinstance(alpha, bool)
+                or not 0 <= alpha <= 1):
+            raise ValueError("each alpha must be in [0, 1]")
+    if len(alphas) != len(set(alphas)):
+        raise ValueError("alphas must be distinct")
+    if type(limit) is not int or not 1 <= limit <= 576:
+        raise ValueError("limit must be an integer in [1, 576]")
+    colors = palettes()
+    scenes = colors["SCENES"]
+    ores = colors["ORES"]
+    result = []
+    for i, scene in enumerate(scenes):
+        original = oklab(scene)
+        for j, ore in enumerate(ores):
+            distances = tuple(dist(original, oklab(blend_srgb(scene, ore, a)))
+                              for a in alphas)
+            result.append((max(distances), i, j, distances))
+    return sorted(result, key=lambda row: (row[0], row[1], row[2]))[:limit]
+
+
+if __name__ == "__main__":
+    for distance, biome, ore in cross_palette_collisions():
+        print(f"biome {biome + 1:02d} / ore {ore + 1:02d}: OKLab {distance:.4f}")
+    print("Composited tint risk at alpha=0.65 (illustrative, not actual sprite opacity):")
+    for distance, biome, ore in composited_palette_collisions():
+        print(f"biome {biome + 1:02d} / ore {ore + 1:02d}: OKLab {distance:.4f}")
+    print("Tint-only diagnostic; inspect real textures before changing palettes.")

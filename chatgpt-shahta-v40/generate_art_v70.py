@@ -3,12 +3,32 @@
 textured shared panel, button, nav and header skins. No external assets or licenses.
 """
 from pathlib import Path
+import os
 import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
-ROOT=Path("chatgpt-shahta-v33/project")
-OUT=ROOT/"app/src/main/assets/shahta_v70"
-OUT.mkdir(parents=True,exist_ok=True)
+# Resolve relative to this script, not the shell working directory.
+# This keeps generation and audit pointed at the same Android assets folder.
+# Optional standalone raster preview: generate real artwork without restoring or
+# building an Android project. The output directory must already exist; this
+# prevents typos from silently creating arbitrary directories.
+_PREVIEW = os.environ.get("SHAHTA_ART_PREVIEW_DIR")
+if _PREVIEW:
+    OUT = Path(_PREVIEW).expanduser().resolve()
+    if not OUT.is_dir():
+        raise SystemExit(f"BLOCKED: preview directory does not exist: {OUT}")
+else:
+    ROOT=Path(os.environ["SHAHTA_ART_PROJECT"]).expanduser().resolve() if os.environ.get("SHAHTA_ART_PROJECT") else Path(__file__).resolve().parent.parent / "chatgpt-shahta-v33/project"
+    # Never fabricate an empty Android project when the historical baseline is absent.
+    # The manual release workflow restores the project before generating art.
+    _REQUIRED = ("app/build.gradle", "app/src/main/java/com/bezdna/mine/MineView.java",
+                 "app/src/main/java/com/bezdna/mine/MainActivity.java")
+    _missing = [name for name in _REQUIRED if not (ROOT / name).is_file()]
+    if _missing:
+        raise SystemExit(f"BLOCKED: Android baseline missing at {ROOT}; required: {_missing}. "
+                         "Restore sources before generating raster assets; no files written.")
+    OUT=ROOT/"app/src/main/assets/shahta_v70"
+    OUT.mkdir(parents=True,exist_ok=True)
 SCENES=[
 (106,128,148),(169,114,74),(69,157,122),(188,148,78),(93,171,199),(176,82,91),
 (139,108,192),(194,98,65),(74,132,188),(114,91,143),(78,166,171),(177,160,103),
@@ -16,7 +36,7 @@ SCENES=[
 (121,180,101),(196,120,76),(85,150,191),(151,192,100),(160,112,196),(194,160,117)]
 ORES=[
 (130,146,161),(200,118,65),(160,174,190),(237,174,60),(55,194,135),(75,166,225),
-(218,66,93),(150,99,216),(185,225,237),(73,63,110),(68,210,224),(222,113,52),
+(218,66,93),(150,99,216),(185,225,237),(107,86,154),(68,210,224),(222,113,52),
 (137,209,242),(183,143,219),(129,113,208),(229,204,108),(116,213,237),(152,141,161),
 (234,139,178),(160,214,90),(217,165,76),(191,181,224),(246,205,89),(193,137,239)]
 R=Image.Resampling.BICUBIC
@@ -43,8 +63,11 @@ def cave(index,color,path,w=360,h=570):
     displace=np.sin(yy*.017+xx*.012+index)*8
     # Rough limestone, crystal, coal and volcanic wall textures, not canvas polygons.
     tone=rock*.9+strata+displace
-    left=np.exp(-((xx-24)/(w*.26))**2)
-    right=np.exp(-((xx-(w-24))/(w*.27))**2)
+    # Position wall highlights proportionally to the canvas. Fixed 24 px
+    # offsets put the highlights too close to the edges on wide previews.
+    wall_center = w * (24.0 / 360.0)
+    left=np.exp(-((xx-wall_center)/(w*.26))**2)
+    right=np.exp(-((xx-(w-wall_center))/(w*.27))**2)
     wall=np.maximum(left,right)
     aperture=np.exp(-(((xx-w*.5)/(w*.39))**2+
                        ((yy-h*.48)/(h*.61))**2)*1.1)
@@ -55,39 +78,464 @@ def cave(index,color,path,w=360,h=570):
     rgb=base[None,None,:]*shade[:,:,None]+tone[:,:,None]*(.75+wall[:,:,None]*.35)
     rgb[:,:,2]+=4+10*aperture
     rgb[:,:,0]+=12*(yy/h)
+    # A graphite reading zone behind menu titles and navigation.
+    # Baked into menu JPEGs only: no changes to gameplay or hitboxes.
+    if 31 <= index <= 34:
+        center=np.exp(-((xx-w*.5)/(w*.34))**4)
+        # Keep the title band readable too: the previous fade began at 10%
+        # height, leaving top navigation headings on an unprotected texture.
+        vertical=.55+.45*np.clip((yy-h*.04)/(h*.24),0,1)
+        scrim=(.18+.42*center*vertical)[:,:,None]
+        graphite=np.array([12,20,30],dtype=np.float32)
+        rgb=rgb*(1-scrim)+graphite[None,None,:]*scrim
     im=image_array(rgb)
     d=ImageDraw.Draw(im,"RGBA")
     # Distinct layered real-pixel mineral veins, tiny fossil and fault networks.
+    # Keep decorative veins on the peripheral rock walls. The original
+    # random walk could cross the central mining corridor and muddy ore/HUD
+    # contrast; clamp every vertex before rasterizing the stroke.
+    wall_limit=max(1,min(70,w//5))
     for j in range(75):
-        x=int(r.integers(0,w));y=int(r.integers(0,h))
+        side=int(r.integers(0,2))
+        x=int(r.integers(0,wall_limit)) if side==0 else int(r.integers(w-wall_limit,w))
+        y=int(r.integers(0,h))
         length=int(r.integers(9,65))
         points=[(x,y)]
         dx=float(r.uniform(-.75,.75))
         for k in range(0,length,4):
-            dx=np.clip(dx+r.uniform(-.3,.3),-1.5,1.5)
-            x+=int(dx*4);y+=int(r.uniform(1.3,3.9))
+            dx=float(np.clip(dx+r.uniform(-.3,.3),-1.5,1.5))
+            x=int(np.clip(x+int(dx*4),0,wall_limit-1 if side==0 else w-1)) if side==0 else int(np.clip(x+int(dx*4),w-wall_limit,w-1))
+            y+=int(r.uniform(1.3,3.9))
             points.append((x,y))
         bright=r.random()<.35
         ink=(int(color[0]*.8+50),int(color[1]*.8+42),
              int(color[2]*.8+55),int(r.integers(45,112))) if bright else (8,12,22,115)
         d.line(points,fill=ink,width=int(r.integers(1,4)),joint="curve")
+    # Biome-specific lithology: subdued strata with deterministic angular joints.
+    # This is painted into the 360x570 backdrop, never into the touch layer.
+    # The upper/middle cave stays dark enough for high-contrast HUD labels.
+    strata_rng=np.random.default_rng(73001+index*1031)
+    for band in range(7):
+        # Scale the authored 360x570 strata grid with the actual backdrop.
+        # The old fixed Y positions compressed seams into the top half of
+        # tall previews and clipped the lower bands on narrow/short assets.
+        strata_sx, strata_sy = w / 360.0, h / 570.0
+        base_y=round((90+band*62+int(strata_rng.integers(-11,12)))*strata_sy)
+        slope=round(int(strata_rng.integers(-17,18))*strata_sy)
+        offset=round(int(strata_rng.integers(14,42))*strata_sy)
+        # Confine lithological seams to the peripheral walls. Earlier long
+        # strokes entered the central x=85..275 gameplay corridor.
+        margin=max(4,min(70,w//5))
+        left_end=int(strata_rng.integers(max(2,margin//2),margin+1))
+        right_start=w-left_end
+        seam=(min(255,int(color[0]*.70+30)),
+              min(255,int(color[1]*.70+35)),
+              min(255,int(color[2]*.70+42)),48)
+        d.line([(0,base_y),(left_end,base_y+slope)],fill=seam,width=2)
+        d.line([(right_start,base_y+slope+offset//5),
+                (w-1,base_y+offset)],fill=seam,width=2)
+        # Fault branches also remain inside the right wall.
+        if (band+index)%2==0:
+            joint_x=min(w-1,right_start+max(1,round(int(strata_rng.integers(1,9))*strata_sx)))
+            joint_y=base_y+slope+offset//5
+            branch_dx=max(1,round(5*strata_sx))
+            branch_tip=max(1,round(4*strata_sx))
+            d.line([(joint_x,joint_y),
+                    (max(right_start,joint_x-branch_dx),joint_y+round(14*strata_sy)),
+                    (max(right_start,joint_x-branch_tip),joint_y+round(27*strata_sy))],
+                   fill=(8,15,25,65),width=max(1,round(2*strata_sx)))
+    # Modernist depth markers are embedded in the sidewall artwork, never in
+    # the central mining corridor or the touch/UI layer. Vary their spacing
+    # and illuminated side by biome to avoid a repeated wallpaper pattern.
+    # The cyan is intentionally restrained against the dark geological base.
+    marker_rng=np.random.default_rng(910007+index*173)
+    marker_side=index%2
+    marker_sx, marker_sy = w / 360.0, h / 570.0
+    marker_wall = max(1, min(70, w // 5))
+    # Depth rails stay inside the sidewall at every supported raster size.
+    marker_inset = min(marker_wall - 1, max(1, round(18 * marker_sx)))
+    marker_x = marker_inset if marker_side == 0 else w - 1 - marker_inset
+    toward = 1 if marker_side == 0 else -1
+    rail_end = max(0, min(marker_wall - 1, marker_x + max(1, round(7 * marker_sx)))) if marker_side == 0 else max(w - marker_wall, min(w - 1, marker_x - max(1, round(7 * marker_sx))))
+    for marker in range(3+(index%3)):
+        marker_y = round((105 + marker*83 + int(marker_rng.integers(-12,13))) * marker_sy)
+        half_height = max(1, round(12 * marker_sy))
+        if marker_y + half_height >= h - max(1, round(48 * marker_sy)):
+            continue
+        glow=(67,213,202,30)
+        rail=(104,235,219,105)
+        d.line([(marker_x,marker_y-half_height),(marker_x,marker_y+half_height)],
+               fill=glow,width=max(1,round(7*marker_sx)))
+        d.line([(marker_x,marker_y-max(1,round(10*marker_sy))),
+                (marker_x,marker_y+max(1,round(10*marker_sy)))],
+               fill=rail,width=max(1,round(2*marker_sx)))
+        d.line([(marker_x,marker_y-max(1,round(10*marker_sy))),
+                (rail_end,marker_y-max(1,round(10*marker_sy)))],
+               fill=(131,243,226,95),width=1)
+        dot_radius=max(1,round(2*min(marker_sx,marker_sy)))
+        d.ellipse((marker_x-dot_radius,marker_y-dot_radius,
+                   marker_x+dot_radius,marker_y+dot_radius),
+                  fill=(164,249,230,150))
     # Ground strata and hand-built timber support silhouettes baked into backdrop.
-    d.polygon([(0,510),(45,493),(105,519),(153,506),(223,525),
-               (280,504),(360,516),(360,570),(0,570)],fill=(14,19,29,115))
+    d.polygon([(int(round(w * x / 360)), int(round(h * y / 570)))
+               for x, y in [(0,510),(45,493),(105,519),(153,506),(223,525),
+                            (280,504),(360,516),(360,570),(0,570)]],
+              fill=(14,19,29,115))
     if index%6 in (0,1,5):
-        for x in (36,318):
-            d.line([(x,55),(x-3,490)],fill=(83,53,37,143),width=13)
-            d.line([(x+2,55),(x,490)],fill=(212,150,87,50),width=3)
-        d.arc((36,52,322,266),180,357,fill=(120,83,56,110),width=9)
+        # Scale the timber frame with the backdrop, just like the ground.
+        # Keep the supports near the walls at non-default image sizes.
+        sx, sy = w / 360.0, h / 570.0
+        def timber_point(x, y):
+            return (int(round(x * sx)), int(round(y * sy)))
+        for x in (36, 318):
+            d.line([timber_point(x, 55), timber_point(x-3, 490)],
+                   fill=(83,53,37,143), width=max(1,round(13*sx)))
+            d.line([timber_point(x+2, 55), timber_point(x, 490)],
+                   fill=(212,150,87,50), width=max(1,round(3*sx)))
+        d.arc((*timber_point(36,52), *timber_point(322,266)),
+              180,357,fill=(120,83,56,110),width=max(1,round(9*sx)))
     elif index%6 in (2,4):
+        # Scale mineral nodules from the same 360x570 design grid as timber.
+        # At narrow sizes the old fixed y=480 range clipped the bottom rows.
+        sx, sy = w / 360.0, h / 570.0
         for j in range(14):
-            x=int(r.choice([r.integers(0,78),r.integers(270,360)]))
-            cy=int(r.integers(80,480)); rad=int(r.integers(4,15))
-            d.ellipse((x-rad,cy-rad,x+rad,cy+rad),outline=(*color,100),width=2)
+            base_x=int(r.choice([r.integers(15,60),r.integers(300,345)]))
+            x=int(round(base_x*sx))
+            cy=int(round(int(r.integers(80,480))*sy))
+            rad=max(1,int(round(int(r.integers(4,15))*min(sx,sy))))
+            d.ellipse((x-rad,cy-rad,x+rad,cy+rad),
+                      outline=(*color,100),width=max(1,round(2*min(sx,sy))))
     elif index%6==3:
+        # Volcanic fractures use normalized geometry, including stroke width.
+        sx, sy = w / 360.0, h / 570.0
         for j in range(8):
-            x=int(r.integers(0,360));cy=int(r.integers(70,510))
-            d.line([(x,cy),(x+8,cy+17),(x-2,cy+31)],fill=(255,139,63,95),width=3)
+            base_x=int(r.choice([r.integers(16,59),r.integers(301,344)]))
+            x=int(round(base_x*sx))
+            cy=int(round(int(r.integers(70,510))*sy))
+            vertices=[(x,cy),(x+round(8*sx),cy+round(17*sy)),
+                      (x-round(2*sx),cy+round(31*sy))]
+            d.line(vertices,fill=(255,139,63,95),
+                   width=max(1,round(3*min(sx,sy))))
+    # Biome-specific foreground geology: four distinct silhouettes repeated
+    # with independent palettes and seeded placement across all 24 biomes.
+    # Drawn once into the bitmap; no additional runtime Canvas operations.
+    motif=index%4
+    # Foreground lithology uses the same normalized 360x570 design grid as
+    # timber and the ground silhouette. Keep shelves in the side-wall fifth
+    # so narrow displays retain an unobstructed central mining corridor.
+    motif_sx, motif_sy = w / 360.0, h / 570.0
+    motif_wall = max(1, min(70, w // 5))
+    if motif==0:
+        # Jagged crystalline shelves with a narrow luminous ridge.
+        for side in (0,1):
+            for j in range(9):
+                y=int(round((85+j*43+int(r.integers(-12,13)))*motif_sy))
+                edge=0 if side==0 else w-1
+                reach=min(motif_wall-1, max(1,round(int(r.integers(17,54))*motif_sx)))
+                tip=edge+(1 if side==0 else -1)*reach
+                upper=max(0,y-round(18*motif_sy))
+                lower=min(h-1,y+round(23*motif_sy))
+                d.polygon([(edge,upper),(tip,y),(edge,lower)],
+                          fill=(20,32,44,160))
+                d.line([(edge,upper),(tip,y)],fill=(*color,125),
+                       width=max(1,round(2*motif_sx)))
+    elif motif==1:
+        # Layered sedimentary ledges and fine fossil-like inclusions.
+        for j in range(12):
+            y=int(round((65+j*39+int(r.integers(-9,10)))*motif_sy))
+            span=min(motif_wall-1, max(1,round(int(r.integers(34,71))*motif_sx)))
+            tilt=round(int(r.integers(-5,6))*motif_sy)
+            d.line([(0,y),(span,max(0,min(h-1,y+tilt)))],
+                   fill=(*color,94),width=max(1,round(3*motif_sx)))
+            d.line([(w-1-span,min(h-1,y+round(8*motif_sy))),
+                    (w-1,min(h-1,y+round(11*motif_sy)))],
+                   fill=(8,15,25,125),width=max(1,round(4*motif_sx)))
+    elif motif==2:
+        # Rounded nodules: scale the 360x570 design coordinates and clamp
+        # their entire silhouettes to the peripheral wall, not just centers.
+        # This keeps narrow previews and the central mining lane clear.
+        for j in range(25):
+            radius=max(1,round(int(r.integers(3,11))*min(motif_sx,motif_sy)))
+            radius=min(radius,max(0,(motif_wall-1)//2))
+            if radius < 1:
+                continue
+            side=int(r.integers(0,2))
+            lo=radius
+            hi=motif_wall-1-radius
+            if hi < lo:
+                continue
+            offset=int(r.integers(lo,hi+1))
+            x=offset if side==0 else w-1-offset
+            y=int(round(int(r.integers(68,505))*motif_sy))
+            y=max(radius,min(h-1-radius,y))
+            d.ellipse((x-radius,y-radius,x+radius,y+radius),
+                      fill=(11,24,33,155),outline=(*color,128),
+                      width=max(1,round(2*min(motif_sx,motif_sy))))
+    else:
+        # Fractured volcanic seams, kept outside the central play corridor.
+        for side in (0,1):
+            for j in range(11):
+                # Sample from the actual wall, not the 360px design grid.
+                # Reserve a one-pixel inset for the rasterized stroke.
+                wall_edge=max(1,min(70,w//5))
+                inset=min(2,max(0,(wall_edge-1)//2))
+                lo,hi=(inset,wall_edge-1-inset) if side==0 else (w-wall_edge+inset,w-1-inset)
+                if lo>hi:
+                    continue
+                x=int(r.integers(lo,hi+1))
+                y=int(r.integers(max(0,round(60*motif_sy)),
+                                 max(1,round(510*motif_sy))+1))
+                y=max(0,min(h-1,y))
+                vertices=[(int(np.clip(x+round(dx*motif_sx),lo,hi)),
+                           max(0,min(h-1,y+round(dy*motif_sy))))
+                          for dx,dy in ((0,0),(int(r.integers(-10,11)),15),
+                                        (int(r.integers(-16,17)),32))]
+                d.line(vertices,fill=(232,119,72,110),
+                       width=max(1,round(2*min(motif_sx,motif_sy))))
+    # Six depth-dependent geological signatures differentiate biomes that share
+    # the same foreground motif. Keep these confined to the side walls so
+    # navigation labels and the central mining corridor remain readable.
+    # Menu scenes use indices 31..34; map them to distinct geological
+    # signatures instead of letting all fall through the final branch.
+    signature=index//4 if index < 24 else (index-30)%6
+    if signature==0:
+        # Fine parallel quartz seams, normalized to the actual sidewall width.
+        # The old 72px endpoint escaped the 48px wall on 240px previews.
+        signature_sx, signature_sy = w / 360.0, h / 570.0
+        signature_wall = max(1, min(70, w // 5))
+        for j in range(9):
+            y = round((78 + j * 46) * signature_sy)
+            seam = [(min(signature_wall - 1, round(x * signature_sx)),
+                     max(0, min(h - 1, round(yy * signature_sy))))
+                    for x, yy in ((5, 78 + j * 46),
+                                  (45, 70 + j * 46),
+                                  (72, 74 + j * 46))]
+            d.line(seam, fill=(*color,75), width=max(1, round(signature_sx)))
+    elif signature==1:
+        # Sparse dark nodules, contained entirely in the scaled sidewalls.
+        margin=max(1,min(wall_limit-1,round(4*w/360)))
+        for j in range(16):
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(55*h/570))))
+            side=int(r.integers(0,2))
+            cx=int(r.integers(margin,max(margin+1,wall_limit-margin)))
+            x=cx if side==0 else w-1-cx
+            rx=max(1,min(cx,wall_limit-1-cx,round(3*w/360)))
+            ry=max(1,round(2*h/570))
+            d.ellipse((x-rx,y-ry,x+rx,y+ry),fill=(8,17,27,125))
+    elif signature==2:
+        # Mineral faults stay within the right wall even at 240px width.
+        reach=max(1,min(wall_limit-2,round(57*w/360)))
+        for j in range(8):
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(85*h/570))))
+            d.line([(w-2,y),(w-1-reach,min(h-1,y+round(12*h/570))),
+                    (w-1-reach,min(h-1,y+round(9*h/570)))],
+                   fill=(106,198,204,82),width=max(1,round(2*w/360)))
+    elif signature==3:
+        # Oxidized pockets with radius bounded by the wall width.
+        rx=max(1,min(wall_limit//3,round(9*w/360)))
+        ry=max(1,round(4*h/570))
+        for j in range(12):
+            y=int(r.integers(max(0,round(72*h/570)),max(1,h-round(70*h/570))))
+            x=rx if j%2==0 else w-1-rx
+            d.ellipse((x-rx,y-ry,x+rx,y+ry),fill=(190,104,65,65))
+    elif signature==4:
+        # Cleavage traces scale with the sidewall rather than a 360px canvas.
+        for j in range(12):
+            y=int(r.integers(max(0,round(75*h/570)),max(1,h-round(75*h/570))))
+            reach=max(1,min(wall_limit-2,round(32*w/360)))
+            if j%2==0:
+                x0,x1=1,1+reach
+            else:
+                x0,x1=w-2-reach,w-2
+            dy=max(1,round(11*h/570))
+            d.line([(x0,max(0,y-dy)),(x1,min(h-1,y+dy))],
+                   fill=(*color,88),width=1)
+    else:
+        # Bright pinprick crystals restricted to the peripheral rock.
+        for j in range(25):
+            y=int(r.integers(max(0,round(70*h/570)),max(1,h-round(65*h/570))))
+            cx=int(r.integers(1,max(2,wall_limit-1)))
+            x=cx if int(r.integers(0,2))==0 else w-1-cx
+            d.point((x,y),fill=(209,240,237,130))
+    # Biome-specific geological fingerprint: 24 different vein paths, not
+    # merely six palette swaps of the same silhouettes. Keep the central
+    # mining lane (x=85..275) clear for sprites and navigation overlays.
+    if 0 <= index < 24:
+        fingerprint=np.random.default_rng(310001+index*1009)
+        for side in (0,1):
+            # Normalize the origin and reach to the actual wall. Fixed
+            # 12px/57px coordinates caused signatures to crowd narrow art.
+            inset=min(wall_limit-1,max(1,round(12*w/360)))
+            edge=inset if side==0 else w-1-inset
+            direction=1 if side==0 else -1
+            for vein in range(4+index%5):
+                y0=int(fingerprint.integers(max(1,round(75*h/570)),
+                                           max(2,h-round(100*h/570))))
+                available=max(0,wall_limit-1-inset)
+                if not available:
+                    continue
+                reach=min(available,max(1,round(int(fingerprint.integers(18,58))*w/360)))
+                bend=int(fingerprint.integers(-12,13))
+                vertices=[(edge,y0),
+                          (edge+direction*(reach//2),y0+bend),
+                          (edge+direction*reach,y0+bend+int(fingerprint.integers(12,34)))]
+                d.line(vertices,fill=(*color,85+index%4*12),width=1+index%3)
+                # Offset dark fault core gives depth without a runtime effect.
+                d.line([(x,y+3) for x,y in vertices],
+                       fill=(8,17,27,70),width=1)
+    # Distinct side-wall crystal clusters add a recognizable silhouette to
+    # each biome without obscuring the central mining lane or HUD labels.
+    # The translucent faces and glints are baked into the JPEG once.
+    if 0 <= index < 24:
+        crystals=np.random.default_rng(490003+index*997)
+        for side in (0,1):
+            direction=1 if side==0 else -1
+            inset=min(wall_limit-1,max(1,round(9*w/360)))
+            edge=inset if side==0 else w-1-inset
+            for cluster in range(3):
+                cy=int(crystals.integers(max(1,round(125*h/570)),
+                                        max(2,h-round(100*h/570))))
+                available=max(0,wall_limit-1-inset)
+                if not available:
+                    continue
+                reach=min(available,max(1,round(int(crystals.integers(17,43))*w/360)))
+                rise=max(1,round(int(crystals.integers(14,38))*h/570))
+                # Maximum x reach is 9+43=52 on the left and
+                # w-9-43=w-52 on the right: clear of x=85..275.
+                tip=edge+direction*reach
+                base=[(edge,cy-rise//2),(tip,cy-rise),
+                      (edge+direction*(reach//2),cy+rise//2),
+                      (edge,cy+rise)]
+                fill=tuple(min(255,int(c*.78+35)) for c in color)+(96,)
+                d.polygon(base,fill=fill)
+                d.line([base[0],base[1],base[2]],
+                       fill=(205,245,236,115),width=1)
+                d.line([base[1],base[3]],fill=(9,22,34,105),width=1)
+                d.ellipse((tip-2,cy-rise-2,tip+2,cy-rise+2),
+                          fill=(224,251,240,140))
+    # Peripheral parallax-like depth plates: deliberately rasterized, not animated.
+    # Three staggered silhouettes per wall make each cave less flat while
+    # leaving the central x=85..275 mining lane and touch targets untouched.
+    if 0 <= index < 24:
+        plates=np.random.default_rng(880019+index*1223)
+        for side in (0,1):
+            edge=0 if side==0 else w
+            direction=1 if side==0 else -1
+            for layer in range(3):
+                top=round((115+layer*122+int(plates.integers(-15,16)))*h/570)
+                depth=max(1,min(wall_limit-1,round(int(plates.integers(22,48))*w/360)))
+                height=max(1,round(int(plates.integers(54,91))*h/570))
+                inset=edge+direction*depth
+                ridge=edge+direction*(depth//2)
+                silhouette=[(edge,top-13),(ridge,top),
+                            (inset,top+height//3),(ridge,top+height),
+                            (edge,top+height+12)]
+                d.polygon(silhouette,fill=(7,18,27,44+layer*12))
+                d.line([silhouette[1],silhouette[2],silhouette[3]],
+                       fill=(*color,42+layer*10),width=1)
+    # Biome-specific mineral light wells: soft, broken side-wall reflections.
+    # Baked into each bitmap; never cover the central mining corridor.
+    # The color and position vary with the biome, not with frame timing.
+    if 0 <= index < 24:
+        wells=np.random.default_rng(920017+index*1297)
+        for side in (0,1):
+            edge=max(1,round(8*w/360)) if side==0 else w-1-max(1,round(8*w/360))
+            direction=1 if side==0 else -1
+            for beam in range(3):
+                cy=round(int(wells.integers(100,460))*h/570)
+                reach=max(1,min(wall_limit-1-max(1,round(8*w/360)),round(int(wells.integers(17,49))*w/360)))
+                spread=max(1,round(int(wells.integers(30,65))*h/570))
+                x1=edge+direction*reach
+                # All vertices stay within 57 px of the outer edge.
+                tint=tuple(min(255,int(c*.72+52)) for c in color)
+                d.polygon([(edge,cy-spread),(x1,cy-10),
+                           (x1,cy+12),(edge,cy+spread)],
+                          fill=(*tint,19+beam*5))
+                d.line([(edge,cy-spread//2),
+                        (edge+direction*(reach//2),cy),
+                        (edge,cy+spread//2)],
+                       fill=(190,233,224,29),width=1)
+    # Layered mineral strata give each of the 24 biomes a recognizable
+    # side-wall rhythm at phone resolution. The veins are baked into JPEG
+    # and never intrude into the central x=85..275 mining corridor.
+    if 0 <= index < 24:
+        seam_rng = np.random.default_rng(650021 + index * 1427)
+        spacing = 27 + index % 5 * 5
+        for side in (0, 1):
+            edge_inset = max(1, round(5*w/360))
+            edge = edge_inset if side == 0 else w - 1 - edge_inset
+            direction = 1 if side == 0 else -1
+            for row in range(95, 495, spacing):
+                y = round((row + int(seam_rng.integers(-7, 8)))*h/570)
+                reach = max(1, min(wall_limit-1-edge_inset, round(int(seam_rng.integers(22, 58))*w/360)))
+                kink = round(int(seam_rng.integers(-9, 10))*h/570)
+                x1 = edge + direction * (reach // 2)
+                x2 = edge + direction * reach
+                # Reach <= 57 px from the edge; never overdraws HUD/play lane.
+                dark = (8, 20, 29, 75 + index % 4 * 10)
+                light = (*color, 60 + index % 3 * 12)
+                d.line([(edge, y), (x1, y + kink), (x2, y + kink + 5)],
+                       fill=dark, width=3)
+                d.line([(edge, y - 2), (x1, y + kink - 2),
+                        (x2, y + kink + 3)], fill=light, width=1)
+    # Final title-safe overlay: geological details are painted after the base
+    # graphite scrim, so bright seams can otherwise cross navigation labels.
+    # Only menu backdrops receive this pass; playable biomes stay unchanged.
+    if 31 <= index <= 34:
+        pixels=np.asarray(im,dtype=np.float32).copy()
+        title_y=np.arange(h,dtype=np.float32)[:,None]
+        title_x=np.arange(w,dtype=np.float32)[None,:]
+        fade=np.clip((h*.24-title_y)/(h*.24),0,1)**2
+        center=np.exp(-((title_x-w*.5)/(w*.42))**4)
+        # A separate footer scrim protects the bottom navigation rail from
+        # bright ground strata and support silhouettes. The center is strongest
+        # while the geological sidewalls retain their identifying texture.
+        # This is baked into the menu JPEG, not a runtime Canvas overlay.
+        footer=np.clip((title_y-h*.78)/(h*.22),0,1)**2
+        footer_center=.55+.45*np.exp(-((title_x-w*.5)/(w*.52))**4)
+        # Readability across narrow screens: dim the title and footer more
+        # decisively, while adding a soft central reading lane for menu cards.
+        # Keep sidewall identity visible; all layers are bitmap-only.
+        reading=np.exp(-((title_x-w*.5)/(w*.34))**4)
+        reading_y=np.clip((title_y-h*.15)/(h*.16),0,1)*np.clip((h*.82-title_y)/(h*.16),0,1)
+        opacity=np.clip(.24*fade*center+.30*footer*footer_center+
+                        .10*reading*reading_y,0,1)[:,:,None]
+        graphite=np.array([12,20,30],dtype=np.float32)
+        im=image_array(pixels*(1-opacity)+graphite[None,None,:]*opacity)
+    # Four menu backdrops share a restrained technical navigation frame.
+    # Place the cyan registration rails in the peripheral 5% of the bitmap:
+    # the centre remains clear for localized labels and interactive cards.
+    # All dimensions scale with the actual preview resolution.
+    if 31 <= index <= 34:
+        frame = ImageDraw.Draw(im, "RGBA")
+        rail_x = max(1, round(w * .035))
+        rail_right = w - 1 - rail_x
+        rail_top = max(1, round(h * .105))
+        rail_bottom = min(h - 2, round(h * .865))
+        tick = max(2, round(w * .022))
+        stroke = max(1, round(w / 360))
+        for x, direction in ((rail_x, 1), (rail_right, -1)):
+            frame.line([(x, rail_top), (x, rail_bottom)],
+                       fill=(75, 213, 204, 43), width=stroke)
+            for fraction in (.0, .25, .5, .75, 1.0):
+                y = round(rail_top + (rail_bottom - rail_top) * fraction)
+                frame.line([(x, y), (x + direction * tick, y)],
+                           fill=(122, 236, 222, 88), width=stroke)
+    # Distinct four-step destination index on menu backgrounds. Unlike text,
+    # these tiny bitmap markers cannot overlap translated screen headings.
+    # Keep them inside the sidewall margin and away from the bottom tab bar.
+    if 31 <= index <= 34:
+        frame = ImageDraw.Draw(im, "RGBA")
+        unit = max(1, round(min(w / 360.0, h / 570.0) * 3))
+        x0 = max(2, round(w * .065))
+        y0 = max(2, round(h * .135))
+        gap = max(unit + 2, round(w * .024))
+        for step in range(4):
+            x = x0 + step * gap
+            active = step == index - 31
+            ink = (119, 245, 225, 215) if active else (103, 151, 160, 88)
+            frame.rounded_rectangle((x, y0, x + unit, y0 + unit * 3),
+                                    radius=max(1, unit // 2), fill=ink)
     # Subtle dark vignette fixed in the image (no per-frame glow).
     im.save(path,quality=88,optimize=True)
 
@@ -112,10 +560,28 @@ def ore(index,color,path):
                     np.arange(19),np.r_[nodes,nodes[0]])
     for a in range(64):
         rad=a*math.tau/64
-        dist=113+float(radii[a])+6*math.sin(rad*3+index)+4*math.cos(rad*7+index*.4)
-        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*.87))
+        # Four distinct ore silhouettes, not just differently colored stones.
+        # Keep every vertex inside the 300px bitmap and preserve the alpha mask.
+        family=index%4
+        if family==0:  # fractured, broad crystalline ore
+            shape=9*math.cos(rad*5+index*.37)+4*math.sin(rad*11)
+            aspect=.86
+        elif family==1:  # compact rounded nodule
+            shape=4*math.cos(rad*3+index*.41)+3*math.sin(rad*9)
+            aspect=.94
+        elif family==2:  # elongated sedimentary deposit
+            shape=7*math.cos(rad*4+index*.29)+3*math.sin(rad*13)
+            aspect=.72
+        else:  # sharply cleaved metallic fragment
+            shape=11*math.cos(rad*6+index*.23)+5*math.sin(rad*12)
+            aspect=.82
+        dist=min(126,max(65,109+float(radii[a])*.75+shape))
+        points.append((150+math.cos(rad)*dist,149+math.sin(rad)*dist*aspect))
+    # Every radial contour has a strictly positive radius (>=65 px), so
+    # its polygon already covers the centre. A second fixed ellipse would
+    # overwrite the concave clefts and make the four silhouettes converge.
+    # Preserve the actual family-specific perimeter instead.
     md.polygon(points,fill=255)
-    md.ellipse((87,74,210,220),fill=255)
     mask=mask.filter(ImageFilter.GaussianBlur(.55))
     im=image_array(rgb).convert("RGBA")
     im.putalpha(mask)
@@ -155,6 +621,168 @@ def ore(index,color,path):
     alpha=ImageChops.multiply(highlights.getchannel("A"),mask)
     highlights.putalpha(alpha)
     im=Image.alpha_composite(im,highlights)
+    # Distinct mineral microstructures are baked into the bitmap, never drawn
+    # as extra per-frame Canvas geometry. Keep all marks inside the alpha mask.
+    grain=Image.new("RGBA",(w,h),(0,0,0,0))
+    gd=ImageDraw.Draw(grain,"RGBA")
+    if index % 3 == 0:
+        # Sedimentary ore: fine, staggered horizontal laminae.
+        for j in range(46):
+            x=int(r.integers(50,246)); y=int(r.integers(48,249))
+            length=int(r.integers(8,31))
+            gd.line((x,y,x+length,y+int(r.integers(-3,4))),
+                    fill=(229,232,220,75),width=1)
+    elif index % 3 == 1:
+        # Crystalline ore: intersecting short angular cleavages.
+        for j in range(38):
+            x=int(r.integers(48,244)); y=int(r.integers(45,245))
+            dx=int(r.integers(5,19)); dy=int(r.integers(7,23))
+            gd.line([(x-dx,y+dy),(x,y),(x+dx,y+dy//2)],
+                    fill=(225,241,242,90),width=1)
+    else:
+        # Metallic ore: discontinuous diagonal striations.
+        for j in range(55):
+            x=int(r.integers(52,242)); y=int(r.integers(48,246))
+            length=int(r.integers(5,20))
+            gd.line((x,y,x+length,y-length//2),
+                    fill=(14,23,35,92),width=2)
+    # Six mineral families add a second, index-dependent texture signature.
+    # All features are rasterized and clipped to the original ore silhouette.
+    family=Image.new("RGBA",(w,h),(0,0,0,0))
+    fd=ImageDraw.Draw(family,"RGBA")
+    motif=index%6
+    for j in range(30):
+        x=int(r.integers(55,245)); y=int(r.integers(55,242))
+        if motif==0:  # sparse quartz flecks
+            fd.ellipse((x-2,y-2,x+2,y+2),fill=(239,246,232,92))
+        elif motif==1:  # copper oxidation pits
+            radius=int(r.integers(2,7))
+            fd.ellipse((x-radius,y-radius,x+radius,y+radius),
+                       outline=(40,87,77,120),width=2)
+        elif motif==2:  # layered silver plates
+            fd.line((x-9,y,x+9,y-3),fill=(211,231,238,112),width=2)
+        elif motif==3:  # golden granular seams
+            fd.line((x-5,y+4,x+3,y-5),fill=(248,205,109,116),width=2)
+        elif motif==4:  # dark basalt vesicles
+            radius=int(r.integers(2,6))
+            fd.ellipse((x-radius,y-radius,x+radius,y+radius),
+                       fill=(15,23,35,105))
+        else:  # amethyst angular inclusions
+            fd.line([(x-5,y),(x,y-8),(x+5,y),(x,y+7),(x-5,y)],
+                    fill=(227,202,252,106),width=1)
+    family.putalpha(ImageChops.multiply(family.getchannel("A"),mask))
+    grain.putalpha(ImageChops.multiply(grain.getchannel("A"),mask))
+    im=Image.alpha_composite(im,grain)
+    im=Image.alpha_composite(im,family)
+    # Baked directional rim lighting makes the stone edge more dimensional.
+    # Keep the highlight strictly inside the existing ore silhouette.
+    interior=mask.filter(ImageFilter.MinFilter(11))
+    rim=ImageChops.subtract(mask,interior)
+    rim_alpha=np.asarray(rim,dtype=np.float32)
+    yy_r,xx_r=np.mgrid[0:h,0:w].astype(np.float32)
+    facing=np.clip(.50-(xx_r-150)/310-(yy_r-149)/310,0,1)
+    alpha=np.uint8(np.clip(rim_alpha*facing*.38,0,255))
+    light=Image.new("RGBA",(w,h),(225,244,238,0))
+    light.putalpha(Image.fromarray(alpha,"L"))
+    im=Image.alpha_composite(im,light)
+    # Faceted ore planes: each deposit has a seeded, asymmetric cluster of
+    # translucent mineral faces. The planes are raster-only and clipped to
+    # the existing alpha silhouette; gameplay geometry stays untouched.
+    facets=Image.new("RGBA",(w,h),(0,0,0,0))
+    facet_draw=ImageDraw.Draw(facets,"RGBA")
+    facet_rng=np.random.default_rng(810031+index*1013)
+    for face in range(9):
+        cx=int(facet_rng.integers(79,222))
+        cy=int(facet_rng.integers(79,215))
+        width=int(facet_rng.integers(12,34))
+        height=int(facet_rng.integers(14,39))
+        lean=int(facet_rng.integers(-12,13))
+        vertices=[(cx-width//2,cy-height//3),
+                  (cx+lean,cy-height),
+                  (cx+width//2,cy-height//5),
+                  (cx+width//3,cy+height//2)]
+        # Alternate cool reflection and dark mineral cleavage for depth.
+        if face%3==0:
+            facet_draw.polygon(vertices,fill=(228,245,238,37))
+            facet_draw.line(vertices[:3],fill=(247,253,246,95),width=1)
+        else:
+            facet_draw.polygon(vertices,fill=(9,20,31,27))
+            facet_draw.line(vertices[1:],fill=(11,22,34,80),width=1)
+    facets.putalpha(ImageChops.multiply(facets.getchannel("A"),mask))
+    im=Image.alpha_composite(im,facets)
+    # Macroscopic mineral lodes give each of the 24 rocks a legible geological
+    # identity even when its 300px bitmap is displayed at game scale.
+    # All three layers are rasterized once and clipped by the original alpha
+    # silhouette; no Canvas geometry, hitbox, or gameplay values change.
+    lodes=Image.new("RGBA",(w,h),(0,0,0,0))
+    ld=ImageDraw.Draw(lodes,"RGBA")
+    lode_rng=np.random.default_rng(820413+index*701)
+    angle=index*math.pi/12 + (index%3-1)*.13
+    along=np.array([math.cos(angle),math.sin(angle)],dtype=np.float32)
+    across=np.array([-along[1],along[0]],dtype=np.float32)
+    center=np.array([150+int(lode_rng.integers(-12,13)),
+                     149+int(lode_rng.integers(-10,11))],dtype=np.float32)
+    # Six mineral families have different lode colours, branch widths and
+    # deposition patterns, while the seeded rotation makes all 24 distinct.
+    kind=index%6
+    if kind==4:  # carbon-rich basalt cleavage
+        seam_rgb=(25,36,43)
+        glimmer_rgb=(105,137,153)
+    elif kind==3:  # amber-gold inclusions
+        seam_rgb=(99,67,28)
+        glimmer_rgb=(255,213,116)
+    elif kind==5:  # amethyst fissures
+        seam_rgb=(52,35,85)
+        glimmer_rgb=(224,194,255)
+    elif kind==1:  # copper oxidation
+        seam_rgb=(28,81,76)
+        glimmer_rgb=(139,242,207)
+    elif kind==2:  # crystalline silver
+        seam_rgb=(38,65,82)
+        glimmer_rgb=(221,246,255)
+    else:  # milky quartz
+        seam_rgb=(48,69,75)
+        glimmer_rgb=(233,250,227)
+    for branch in range(2+index%3):
+        # Stagger the branches across the deposit rather than drawing the
+        # same centred stripe on every recoloured ore.
+        shift=(branch-(1+index%3)/2)*19
+        origin=center+across*shift+along*float(lode_rng.integers(-12,13))
+        trace=[]
+        for distance in (-71,-35,0,36,72):
+            jitter=float(lode_rng.integers(-8,9))
+            point=origin+along*(distance+(branch%2)*6)+across*jitter
+            trace.append((int(np.clip(round(float(point[0])),0,w-1)),
+                          int(np.clip(round(float(point[1])),0,h-1))))
+        ld.line(trace,fill=(*seam_rgb,104),width=8 if branch==0 else 5,
+                joint="curve")
+        ld.line(trace,fill=(*glimmer_rgb,110 if branch==0 else 83),
+                width=2 if kind!=4 else 1,joint="curve")
+        # Fracture intersections and secondary mineral growths.
+        middle=np.array(trace[2],dtype=np.float32)
+        tip=middle+across*(18+branch*4)+along*float(lode_rng.integers(9,25))
+        ld.line([trace[2],(int(np.clip(round(float(tip[0])),0,w-1)),
+                           int(np.clip(round(float(tip[1])),0,h-1)))],
+                fill=(*glimmer_rgb,76),width=2)
+    lodes.putalpha(ImageChops.multiply(lodes.getchannel("A"),mask))
+    im=Image.alpha_composite(im,lodes)
+    # Directional mineral glints, pre-rendered and masked to the stone silhouette.
+    # They do not add runtime draw calls or change hitboxes.
+    glints=Image.new("RGBA",(w,h),(0,0,0,0))
+    glint_draw=ImageDraw.Draw(glints,"RGBA")
+    for j in range(13):
+        x=int(r.integers(69,225))
+        y=int(r.integers(67,221))
+        reach=int(r.integers(7,19))
+        tilt=int(r.integers(-8,9))
+        glint_draw.line([(x-2,y+2),(x+reach-2,y+tilt+2)],
+                        fill=(7,17,27,105),width=2)
+        glint_draw.line([(x,y),(x+reach,y+tilt)],
+                        fill=(246,250,241,140 if j%3==0 else 88),width=1)
+        if j%3==0:
+            glint_draw.point((x,y),fill=(255,255,248,190))
+    glints.putalpha(ImageChops.multiply(glints.getchannel("A"),mask))
+    im=Image.alpha_composite(im,glints)
     im.save(path,optimize=True)
 
 def panel_art(path,base,border,size=(400,96),bright=False):
@@ -166,22 +794,60 @@ def panel_art(path,base,border,size=(400,96),bright=False):
     arr=top[None,None,:]*(.86+.10*(1-yy/h))[:,:,None]
     arr=np.broadcast_to(arr,(h,w,3)).copy()
     arr+=np.maximum(0,1-np.abs(xx-w*.28)/(w*.8))[:,:,None]*2
+    # Deterministic fine brushed-metal grain, baked into the raster skin.
+    # Keep contrast below 3 RGB levels so labels remain readable and the
+    # same asset is produced byte-for-byte on repeated generation.
+    grain=(np.sin(xx*.79+yy*.11)*.75 + np.sin(yy*1.91)*.55)
+    arr+=grain[:,:,None]
     im=image_array(arr).convert("RGBA")
     d=ImageDraw.Draw(im,"RGBA")
-    accent=(93,224,210,255) if bright else (119,166,190,230)
+    # Honour the per-surface border palette instead of giving every panel
+    # the same grey stroke. Bright controls keep a turquoise focus rail.
+    border_rgb=tuple(int(np.clip(channel,0,255)) for channel in border)
+    accent=(93,224,210,255) if bright else (*border_rgb,230)
     d.rounded_rectangle((1,1,w-2,h-2),radius=12,
-                        outline=(115,146,163,118),width=2)
+                        outline=(*border_rgb,150 if bright else 118),width=2)
     d.line((15,3,w-15,3),fill=(*accent[:3],85),width=1)
     d.rounded_rectangle((8,9,11,h-10),radius=2,fill=accent)
     if bright:
         d.line((22,h-7,w-22,h-7),fill=(110,241,219,88),width=2)
+    # The shortest skin (nav.png) has 12px-tall nine-slice corners.
+    # Keep the status marks inside the fixed corners of every skin.
+    # The border, fine grain and left vertical rail remain stretchable.
+    trace_rgb=(93,224,210) if bright else border_rgb
+    trace_alpha=105 if bright else 66
+    # Top-left hardware LEDs: three 2x2px lamps entirely inside 0..17.
+    for index, alpha in enumerate((190,110,55) if bright else (105,65,35)):
+        cx=4+index*5
+        d.rectangle((cx,5,cx+1,6),fill=(*trace_rgb,alpha))
+    # Top-right circuitry and three short status ticks: x >= w-18.
+    d.line([(w-16,5),(w-10,5),(w-6,8)],
+           fill=(*trace_rgb,trace_alpha),width=1)
+    d.ellipse((w-7,7,w-5,9),
+              fill=(*trace_rgb,min(255,trace_alpha+35)))
+    tick=(112,226,216,118) if bright else (*border_rgb,96)
+    for offset in (0,5,10):
+        x=w-16+offset
+        d.line((x,10,x,11),fill=tick,width=1)
+    # Bottom-left index sits below the vertical accent bar.
+    d.line((12,h-7,16,h-7),fill=(*trace_rgb,trace_alpha),width=1)
+    # Bottom-right angular circuit and two reference strokes.
+    d.line([(w-17,h-12),(w-12,h-12),(w-7,h-9)],
+           fill=(*trace_rgb,trace_alpha),width=1)
+    d.line((w-16,h-7,w-7,h-7),
+           fill=(*trace_rgb,96 if bright else 54),width=1)
+    d.line((w-16,h-4,w-10,h-4),
+           fill=(*trace_rgb,65 if bright else 38),width=1)
     im.save(path,optimize=True)
 
 for i,color in enumerate(SCENES):
     cave(i,color,OUT/("biome_%02d.jpg"%i))
 for i,color in enumerate(ORES):
     ore(i,color,OUT/("ore_%02d.png"%i))
-for j,base in enumerate([(59,118,137),(132,74,51),(73,108,133),(101,93,143)],start=1):
+# Distinct cool mineral identities for the four menu backdrops. Avoid the old
+# rust-orange/purple palette: graphite HUD panels and turquoise controls must
+# read as one coherent interface, while each destination remains recognizable.
+for j,base in enumerate([(43,103,119),(57,90,104),(48,112,119),(73,103,121)],start=1):
     cave(30+j,base,OUT/("menu_%d.jpg"%j))
 panel_art(OUT/"panel.png",(23,32,47),(85,125,148))
 panel_art(OUT/"button.png",(21,103,109),(92,227,207),size=(160,64),bright=True)
@@ -206,8 +872,9 @@ crack.save(OUT/"fractures.png",optimize=True)
 # Reuse the separately authored, textured miner sprite rather than a Canvas silhouette.
 from redesign_assets import miner as generate_miner_sprite
 generate_miner_sprite().save(OUT/"miner.png",optimize=True)
-assert (OUT/"miner.png").stat().st_size>5000
-assert len(list(OUT.glob("ore_*.png")))==24
-assert len(list(OUT.glob("biome_*.jpg")))==24
+# Verify the *actual decoded output*, including alpha, dimensions and uniqueness.
+# Unlike assert, these checks also run under python -O.
+from audit_raster_assets_v710 import audit as audit_raster_assets
+audit_raster_assets(OUT)
 print("V7.0 generated raster art: ",len(list(OUT.iterdir())),"files; bytes",
       sum(p.stat().st_size for p in OUT.iterdir()))
